@@ -5,7 +5,9 @@ import pybullet as p
 G = 9.81
 
 
-def spawn_ball(position, radius_urdf: str = "sphere_small.urdf", mass: float = 0.05):
+def spawn_ball(position, radius_urdf: str = "sphere_small.urdf", mass: float = 0.065):
+    # 65 g at 2.5 cm radius → density ≈ 1000 kg/m³ (water-like, golf-ball-ish).
+    # Dense enough to ignore most indoor airflow (e.g. a fan).
     body = p.loadURDF(radius_urdf, basePosition=list(position), globalScaling=1.0)
     p.changeDynamics(body, -1, mass=mass, restitution=0.4,
                      linearDamping=0.05, angularDamping=0.05)

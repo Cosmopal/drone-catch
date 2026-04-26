@@ -10,6 +10,7 @@ import pybullet as p
 from world import setup
 from drone import Drone
 from ball import spawn_ball, predict_landing, state
+from planner import PlannerInputs, plan as plan_throw
 
 
 HOVER_Z = 1.5
@@ -62,6 +63,31 @@ def snapshot(t, phase, thrower, catcher, ball, cube, predicted_xy):
     }
 
 
+def draw_box_outline(center, half_extents, color, thickness=0.01):
+    """Draw the 12 edges of an axis-aligned box as visual-only thin boxes.
+    Real visual bodies (not debug lines) so getCameraImage / video picks them up.
+    """
+    cx, cy, cz = center
+    hx, hy, hz = half_extents
+    rgba = list(color) + ([0.9] if len(color) == 3 else [])
+    edges = []
+    for sy in (-1, 1):
+        for sz in (-1, 1):
+            edges.append(((cx, cy + sy*hy, cz + sz*hz),
+                          (hx, thickness, thickness)))
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            edges.append(((cx + sx*hx, cy, cz + sz*hz),
+                          (thickness, hy, thickness)))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            edges.append(((cx + sx*hx, cy + sy*hy, cz),
+                          (thickness, thickness, hz)))
+    for pos, half in edges:
+        vis = p.createVisualShape(p.GEOM_BOX, halfExtents=half, rgbaColor=rgba)
+        p.createMultiBody(baseMass=0, baseVisualShapeIndex=vis, basePosition=list(pos))
+
+
 class Marker:
     """Visual-only sphere that we move around to show a target/aim point.
     Has no collision shape so it doesn't interact with anything."""
@@ -84,7 +110,10 @@ class Marker:
 class VideoRecorder:
     """Captures offscreen frames via getCameraImage and writes MP4."""
 
-    def __init__(self, path: str | None, every: int, width=640, height=480, fps=30):
+    def __init__(self, path: str | None, every: int, width=640, height=480,
+                 sim_hz=240, playback_speed=0.5):
+        # Default playback_speed=0.5 → 0.5× slow-mo so motion is easier to read.
+        # Set =1.0 for real-time, =0.25 for very slow.
         self.path = path
         self.every = max(1, every)
         self.width, self.height = width, height
@@ -92,14 +121,20 @@ class VideoRecorder:
         self.step = 0
         if path is not None:
             import imageio.v2 as imageio
-            self.writer = imageio.get_writer(path, fps=fps, codec="libx264",
+            capture_fps = sim_hz / self.every
+            playback_fps = capture_fps * playback_speed
+            self.writer = imageio.get_writer(path, fps=playback_fps, codec="libx264",
                                              quality=7, macro_block_size=1)
+            # Side-spectator view from inside the arena (walls are now
+            # collision-only, so an outside camera would still see floor/sky
+            # but we get a more natural framing from inside). Slightly raised
+            # above hover height with a small downward tilt.
             self.view = p.computeViewMatrix(
-                cameraEyePosition=[3.0, -3.0, 2.5],
-                cameraTargetPosition=[0.0, 0.0, 1.2],
+                cameraEyePosition=[0.0, -5.5, 2.5],
+                cameraTargetPosition=[0.0, 0.0, 1.5],
                 cameraUpVector=[0, 0, 1])
             self.proj = p.computeProjectionMatrixFOV(
-                fov=60, aspect=width / height, nearVal=0.1, farVal=20.0)
+                fov=90, aspect=width / height, nearVal=0.1, farVal=30.0)
 
     def capture(self):
         if self.writer is None:
@@ -138,16 +173,24 @@ def run(gui: bool = True, duration_s: float = 20.0,
     video = VideoRecorder(video_path, every=video_every)
     sim_step = [0]  # mutable counter for closures
 
-    # Each drone owns a soft-bound play area centered on its home_pos.
-    # Areas overlap a little in the middle so the catcher can step toward the
-    # thrower's side to make a tough catch.
-    thrower = Drone(start_pos=(-1.5, 0.0, HOVER_Z),
-                    home_pos=(-1.5, 0.0, HOVER_Z),
-                    play_area_half_extents=(2.0, 1.5, 1.5))
-    catcher = Drone(start_pos=(1.5, 0.0, HOVER_Z),
-                    home_pos=(1.5, 0.0, HOVER_Z),
-                    play_area_half_extents=(2.0, 1.5, 1.5))
-    cube = p.loadURDF("cube_small.urdf", [0.5, -1.0, 0.05])
+    # Each drone has an asymmetric play area: lots of room BEHIND home for
+    # backup runway (like a tennis player's baseline), less room forward — they
+    # can reach a bit into the opponent's near-court for a tough catch but
+    # can't camp in opponent territory. Z capped at CEILING−margin (=2.6 m
+    # with ceiling 3 m) so the soft bound keeps targets off the ceiling.
+    Z_LO = -1.3   # 0.2 m floor clearance
+    Z_HI = 1.1    # ceiling − 0.4 m margin
+    # No overlap: each drone owns its half of the room (centerline at x=0).
+    # Sport-like — thrower can't poach into catcher's area.
+    thrower = Drone(start_pos=(-3.0, 0.0, HOVER_Z),
+                    home_pos=(-3.0, 0.0, HOVER_Z),
+                    play_area_min_offset=(-2.5, -1.5, Z_LO),  # 2.5 m behind home
+                    play_area_max_offset=(+3.0, +1.5, Z_HI))  # to centerline
+    catcher = Drone(start_pos=(3.0, 0.0, HOVER_Z),
+                    home_pos=(3.0, 0.0, HOVER_Z),
+                    play_area_min_offset=(-3.0, -1.5, Z_LO),  # to centerline
+                    play_area_max_offset=(+2.5, +1.5, Z_HI))
+    cube = p.loadURDF("cube_small.urdf", [2.0, -1.0, 0.05])
     p.changeVisualShape(cube, -1, rgbaColor=[0.2, 0.8, 0.2, 1])  # green cube
 
     # Markers (visual-only, no collision):
@@ -157,6 +200,17 @@ def run(gui: bool = True, duration_s: float = 20.0,
     m_thrower = Marker([1.0, 0.2, 0.2, 0.7])
     m_catcher = Marker([0.2, 0.4, 1.0, 0.7])
     m_ball_target = Marker([1.0, 0.85, 0.0, 0.8], radius=0.08)
+    # Magenta = planned final release point (static during throw — stays where
+    # the planner committed to release, regardless of where the trajectory
+    # carrot is moving).
+    m_release_target = Marker([1.0, 0.2, 0.8, 0.7], radius=0.07)
+    # Play-area outlines (asymmetric → use lo/hi corners)
+    for d, color in ((thrower, [0.9, 0.3, 0.3]), (catcher, [0.3, 0.5, 1.0])):
+        lo = d.home_pos + d.play_area_min_offset
+        hi = d.home_pos + d.play_area_max_offset
+        center = (lo + hi) / 2
+        half = (hi - lo) / 2
+        draw_box_outline(center, half, color)
 
     # Spawn ball early so logger can reference it during warm-up.
     ball = spawn_ball(thrower.position() - np.array([0, 0, 0.08]))
@@ -190,29 +244,72 @@ def run(gui: bool = True, duration_s: float = 20.0,
     for _ in range(120):
         tick("settle")
 
-    # --- Throw: solve back from "ball lands at catcher_pos at z=HOVER_Z" to
-    # get a release_pos + release_vel pair, then ask the controller to track
-    # that state. Release when the drone passes through release_pos. ---
     horiz_dir = np.array([np.cos(yaw_to_catcher), np.sin(yaw_to_catcher), 0.0])
-    release_pos = thrower.position() + horiz_dir * 1.0 + np.array([0, 0, 1.0])
-    catcher_xy = catcher.position()[:2]
-    flight_time = 0.8  # tunable; longer = higher arc, also higher vz needed
-    horiz_xy = (catcher_xy - release_pos[:2]) / flight_time
-    vz_release = (HOVER_Z - release_pos[2] + 0.5 * 9.81 * flight_time ** 2) / flight_time
-    release_vel = np.array([horiz_xy[0], horiz_xy[1], vz_release])
 
-    # Set a lookahead target: aim 0.4s past release_pos along release_vel so the
-    # controller doesn't try to brake as the drone approaches release_pos.
-    lookahead_pos = release_pos + release_vel * 0.4
-    thrower.set_target(lookahead_pos, vel=release_vel)
-    # Show where the ball is aimed (catcher's hover point)
+    # --- Plan the throw: grid+Pareto over (release_x, vz), pick from frontier.
+    # The planner returns release_pos, release_vel, backup_pos, t_ramp — all
+    # consistent under a matched-t single ramp.
+    play_lo = thrower.home_pos + thrower.play_area_min_offset
+    play_hi = thrower.home_pos + thrower.play_area_max_offset
+    inputs = PlannerInputs(
+        catcher_xy=tuple(catcher.home_pos[:2]),
+        hover_z=HOVER_Z,
+        ceiling_z=3.0, ceiling_margin=0.4,
+        backup_x_min=float(play_lo[0]),
+        play_x_max=float(play_hi[0]),  # forward boundary — drone must brake within
+        floor_margin=float(play_lo[2]),
+        release_x_range=(float(play_lo[0] + 0.5), float(play_hi[0])),
+        m_drone=0.55, m_ball=0.065,
+        max_thrust=12.0, max_tilt_deg=35.0,
+    )
+    # prefer="max_throw" picks the flattest, fastest plan (real throw, not
+    # a drop). "pareto" balances KE vs margin; "min_ke" minimizes ball arrival
+    # speed (gentlest catch).
+    throw = plan_throw(inputs, prefer="max_throw")
+    if throw is None:
+        from planner import diagnose_infeasibility
+        print(f"[planner] no feasible throw: {diagnose_infeasibility(inputs)}")
+        logger.close(); video.close(); p.disconnect(); return
+    print(f"[planner] release_pos={tuple(round(x,2) for x in throw.release_pos)}  "
+          f"release_vel={tuple(round(x,2) for x in throw.release_vel)}  "
+          f"backup={tuple(round(x,2) for x in throw.backup_pos)}  "
+          f"t_ramp={throw.t_ramp:.2f}s  apex={throw.apex:.2f}m  "
+          f"thrust={throw.thrust_required:.1f}N  tilt={throw.tilt_deg:.1f}°  "
+          f"KE={throw.arrival_ke:.2f}J")
+    # Park the static release-target marker where the planner committed to
+    # release. The moving trajectory carrot is the red m_thrower marker.
+    m_release_target.set(throw.release_pos)
+
+    # --- Backup: fly to the planner's backup_pos.
+    backup_pos = np.array(throw.backup_pos)
+    thrower.set_target(backup_pos)
+    for _ in range(int(2.5 / DT)):
+        tick("backup")
+        if (np.linalg.norm(thrower.position() - backup_pos) < 0.25
+                and np.linalg.norm(thrower.velocity()) < 0.4):
+            break
+
+    # --- Throw windup: matched-t single ramp from backup → release.
+    # pos_target evolves as the integral of vel_target so they stay consistent
+    # at every step. At t = t_ramp, drone should be at release_pos with
+    # release_vel by construction.
+    release_pos = np.array(throw.release_pos)
+    release_vel = np.array(throw.release_vel)
+    t_ramp = throw.t_ramp
+    throw_dir = release_vel / np.linalg.norm(release_vel)
+    catcher_xy = catcher.position()[:2]
     m_ball_target.set([catcher_xy[0], catcher_xy[1], HOVER_Z])
 
-    # Trigger: release the moment the drone crosses the plane through
-    # release_pos perpendicular to the throw direction.
-    throw_dir = release_vel / np.linalg.norm(release_vel)
-    max_steps = int(1.5 / DT)
-    for _ in range(max_steps):
+    max_steps = int(1.5 * t_ramp / DT)
+    for i in range(max_steps):
+        t = i * DT
+        progress = min(1.0, t / t_ramp)
+        # vel_target ramps linearly; pos_target is its integral
+        cur_vel = release_vel * progress
+        cur_pos = backup_pos + 0.5 * release_vel * (t ** 2) / t_ramp \
+                  if t < t_ramp \
+                  else release_pos + release_vel * (t - t_ramp)
+        thrower.set_target(cur_pos, vel=cur_vel)
         tick("throw_windup")
         if np.dot(thrower.position() - release_pos, throw_dir) >= 0:
             break
@@ -224,7 +321,13 @@ def run(gui: bool = True, duration_s: float = 20.0,
           f"target_vel={release_vel.round(2).tolist()}  "
           f"actual_grip_v={grip_v.round(2).tolist()}")
 
-    # Evade + return home (cascade will pitch up to brake and climb)
+    # Evade + return home. Temporarily bump max_tilt to 90° so the cascade
+    # can flip-brake (drone tilts ~90° backward, full thrust horizontal in -x).
+    # This matches the planner's `brake_decel = max_thrust/m_drone` assumption.
+    # Drone briefly free-falls during the flip; OK with our hover_z headroom.
+    m_release_target.hide()
+    normal_max_tilt = thrower.controller.max_tilt_deg
+    thrower.controller.max_tilt_deg = 90.0
     thrower.go_home()
     thrower.set_yaw_target(0.0)
 
