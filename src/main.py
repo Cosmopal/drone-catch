@@ -186,7 +186,10 @@ def run(gui: bool = True, duration_s: float = 20.0,
                     home_pos=(-3.0, 0.0, HOVER_Z),
                     play_area_min_offset=(-2.5, -1.5, Z_LO),  # 2.5 m behind home
                     play_area_max_offset=(+3.0, +1.5, Z_HI))  # to centerline
-    catcher = Drone(start_pos=(3.0, 0.0, HOVER_Z),
+    # Catcher starts off-home but reachable: slightly low (1.0 vs hover 1.5)
+    # and slightly side-offset (y=0.5). Catcher has to actually reach for the
+    # ball without it being a trivial intercept-from-rest.
+    catcher = Drone(start_pos=(3.0, 0.5, 1.0),
                     home_pos=(3.0, 0.0, HOVER_Z),
                     play_area_min_offset=(-3.0, -1.5, Z_LO),  # to centerline
                     play_area_max_offset=(+2.5, +1.5, Z_HI))
@@ -204,6 +207,11 @@ def run(gui: bool = True, duration_s: float = 20.0,
     # the planner committed to release, regardless of where the trajectory
     # carrot is moving).
     m_release_target = Marker([1.0, 0.2, 0.8, 0.7], radius=0.07)
+    # Orange = where the ball was ACTUALLY released (drops at release time
+    # and stays there). Lets you see how much the drone trails the released
+    # ball vs cleanly separating from it. Bigger + high-contrast so it's
+    # visible against the floor/sky.
+    m_release_actual = Marker([1.0, 0.5, 0.0, 1.0], radius=0.12)
     # Play-area outlines (asymmetric → use lo/hi corners)
     for d, color in ((thrower, [0.9, 0.3, 0.3]), (catcher, [0.3, 0.5, 1.0])):
         lo = d.home_pos + d.play_area_min_offset
@@ -262,10 +270,10 @@ def run(gui: bool = True, duration_s: float = 20.0,
         m_drone=0.55, m_ball=0.065,
         max_thrust=12.0, max_tilt_deg=35.0,
     )
-    # prefer="max_throw" picks the flattest, fastest plan (real throw, not
-    # a drop). "pareto" balances KE vs margin; "min_ke" minimizes ball arrival
-    # speed (gentlest catch).
-    throw = plan_throw(inputs, prefer="max_throw")
+    # "max_flight" maximizes ball flight time → catcher has more time to
+    # react, throws look more like high arcs. Other options: "max_throw"
+    # (fast flat fastball), "min_ke" (gentle), "pareto" (random from frontier).
+    throw = plan_throw(inputs, prefer="max_flight")
     if throw is None:
         from planner import diagnose_infeasibility
         print(f"[planner] no feasible throw: {diagnose_infeasibility(inputs)}")
@@ -301,6 +309,8 @@ def run(gui: bool = True, duration_s: float = 20.0,
     m_ball_target.set([catcher_xy[0], catcher_xy[1], HOVER_Z])
 
     max_steps = int(1.5 * t_ramp / DT)
+    PRE_FLIP_TIME = 0.10  # seconds before predicted release to start the brake rotation
+    pre_flip_active = False
     for i in range(max_steps):
         t = i * DT
         progress = min(1.0, t / t_ramp)
@@ -309,25 +319,52 @@ def run(gui: bool = True, duration_s: float = 20.0,
         cur_pos = backup_pos + 0.5 * release_vel * (t ** 2) / t_ramp \
                   if t < t_ramp \
                   else release_pos + release_vel * (t - t_ramp)
-        thrower.set_target(cur_pos, vel=cur_vel)
+
+        # Pre-flip: when we're within PRE_FLIP_TIME of crossing the release
+        # plane (estimated from current forward speed), bump max_tilt to 180
+        # AND change the target so the cascade starts rotating the body
+        # backward. By release time, the drone is already partway into the
+        # brake pose — eliminates the ~500 ms rotation lag we observed.
+        if not pre_flip_active:
+            dist_to_plane = -float(np.dot(thrower.position() - release_pos, throw_dir))
+            speed_along = float(np.dot(thrower.velocity(), throw_dir))
+            if speed_along > 0 and dist_to_plane / speed_along < PRE_FLIP_TIME:
+                pre_flip_active = True
+                thrower.controller.max_tilt_deg = 180.0
+        if pre_flip_active:
+            # Target = home, vel_target keeps current forward velocity so the
+            # cascade computes thrust pointing back-and-down (start the flip)
+            # without immediately killing the forward momentum.
+            thrower.set_target(thrower.home_pos, vel=release_vel)
+        else:
+            thrower.set_target(cur_pos, vel=cur_vel)
+
         tick("throw_windup")
         if np.dot(thrower.position() - release_pos, throw_dir) >= 0:
             break
 
+    # Actual release point = gripper world position at this instant
+    R_thr = np.array(p.getMatrixFromQuaternion(thrower.orientation())).reshape(3, 3)
+    actual_release_pos = thrower.position() + R_thr @ thrower.GRIPPER_OFFSET
     grip_v = thrower.gripper_world_velocity()
     thrower.release()
+    m_release_actual.set(actual_release_pos)  # white sphere stays at actual release point
     print(f"[t={sim_step[0]*DT:.2f}s] threw ball  "
           f"release_pos={release_pos.round(2).tolist()}  "
           f"target_vel={release_vel.round(2).tolist()}  "
-          f"actual_grip_v={grip_v.round(2).tolist()}")
+          f"actual_grip_v={grip_v.round(2).tolist()}  "
+          f"actual_release_pos={actual_release_pos.round(2).tolist()}")
 
-    # Evade + return home. Temporarily bump max_tilt to 90° so the cascade
-    # can flip-brake (drone tilts ~90° backward, full thrust horizontal in -x).
-    # This matches the planner's `brake_decel = max_thrust/m_drone` assumption.
-    # Drone briefly free-falls during the flip; OK with our hover_z headroom.
+    # Evade + return home. Bump max_tilt to 180° so the cascade can flip past
+    # 90° — drone can orient body-z DOWN and push the airframe downward
+    # actively (not just rely on gravity). Critical for braking vertical
+    # momentum: with vz=3 m/s upward at release and only gravity to brake,
+    # drone climbs 0.45 m before stopping. Active downward thrust eats that
+    # in ~0.1 m. The min_tz floor in the controller is automatically dropped
+    # when max_tilt ≥ 90 (so thrust_vec_z can go negative).
     m_release_target.hide()
     normal_max_tilt = thrower.controller.max_tilt_deg
-    thrower.controller.max_tilt_deg = 90.0
+    thrower.controller.max_tilt_deg = 180.0
     thrower.go_home()
     thrower.set_yaw_target(0.0)
 
@@ -337,19 +374,27 @@ def run(gui: bool = True, duration_s: float = 20.0,
         predicted_xy = None
         if phase == "tracking":
             bp, bv = state(ball)
-            # Don't yaw-track the ball: when the ball is directly behind the
-            # catcher (yaw error ≈ π) the geometric attitude controller hits
-            # its singularity AND, with thrust_vec in the same plane as x_c,
-            # R_des becomes symmetric → e_R == 0 → the cascade can't tilt the
-            # drone to translate. Yaw is cosmetic for our gripper anyway.
+            # Two-mode catcher logic:
+            #   Far: chase the predicted z=HOVER_Z landing point (good for big
+            #        positioning moves while ball is high in the air).
+            #   Close: chase the ball's CURRENT 3D position (handles the case
+            #        where ball passes through HOVER_Z briefly OR drops below
+            #        it before catcher arrives at the ground-zero prediction).
             predicted_xy, _ = predict_landing(bp, bv, target_z=HOVER_Z)
-            if predicted_xy is not None:
+            cat_to_ball = float(np.linalg.norm(catcher.position() - bp))
+            if cat_to_ball < 1.0:
+                # Direct 3D pursuit — converge on actual ball position.
+                catcher.set_target(bp)
+                m_ball_target.set(bp)
+            elif predicted_xy is not None:
                 catcher.set_target([predicted_xy[0], predicted_xy[1], HOVER_Z])
                 m_ball_target.set([predicted_xy[0], predicted_xy[1], HOVER_Z])
             else:
-                m_ball_target.hide()
-            if np.linalg.norm(catcher.position() - bp) < 0.25:
-                if catcher.grasp(ball, max_distance=0.3):
+                # Ball below HOVER_Z and no prediction — pursue directly.
+                catcher.set_target(bp)
+                m_ball_target.set(bp)
+            if cat_to_ball < 0.5:
+                if catcher.grasp(ball, max_distance=0.5):
                     phase = "carry_to_cube"
                     print(f"[t={i*DT:.2f}s] caught ball")
 

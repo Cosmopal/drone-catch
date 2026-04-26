@@ -44,19 +44,14 @@ class PlannerInputs:
     def m_total(self) -> float:
         return self.m_drone + self.m_ball
 
-    @property
-    def brake_decel(self) -> float:
-        """Max horizontal deceleration during evade — assumes the drone can
-        flip to ~90° tilt and use full thrust horizontally (racing-style
-        flip-brake). Drone briefly free-falls vertically during the flip;
-        OK as long as hover_z has altitude headroom (~0.5s of free-fall is
-        ~1.2m of drop).
-
-        Requires the controller's max_tilt cap to be relaxed during evade
-        for this brake to actually be achievable.
-
-        For our setup: 12N / 0.55kg ≈ 21.8 m/s² (about 2.2g)."""
-        return self.max_thrust / self.m_drone
+    # Empirically-observed average deceleration during evade. Theoretical
+    # max at 90° tilt is max_thrust/m_drone ≈ 21.8 m/s², but the controller
+    # spends ~120 ms rotating to the brake pose and during that transient
+    # the brake is much weaker. Empirically the average over the brake
+    # period is ~3-5 m/s². Using 5 keeps drone safely on its half — bumping
+    # higher means overshoot. Tune higher when the controller gets a proper
+    # trajectory tracker that pre-flips before release.
+    brake_decel: float = 10.0
 
 
 @dataclass(frozen=True)
@@ -201,21 +196,24 @@ def plan(inp: PlannerInputs, rng: np.random.Generator | None = None,
     """End-to-end: grid → filter → pick by `prefer`. Returns None if infeasible.
 
     prefer:
-      "pareto"    — random pick from Pareto frontier (default; balances
-                    arrival KE vs control margin)
-      "min_ke"    — gentlest throw (lowest |v|, highest arc — looks like a drop)
-      "max_throw" — flattest, fastest throw (max vx, looks like a fastball,
-                    arrives hardest at catcher)
-      "max_margin"— most controller headroom (random pick among top-margin)
+      "max_flight" — maximize ball flight time (highest arc, gives catcher
+                     the most time to adjust — most "interesting" throw)
+      "max_throw"  — flattest, fastest throw (max vx, arrives hardest)
+      "min_ke"     — gentlest throw (lowest |v|, near-equivalent to max_flight
+                     for symmetric throws since arc time correlates with low |v|)
+      "max_margin" — most controller headroom
+      "pareto"     — random pick from Pareto(KE↓, margin↑) frontier
     """
     candidates = grid_search(inp)
     if not candidates:
         return None
     rng = rng or np.random.default_rng()
+    if prefer == "max_flight":
+        return max(candidates, key=lambda p: p.flight_time)
     if prefer == "min_ke":
         return min(candidates, key=lambda p: p.arrival_ke)
     if prefer == "max_throw":
-        return max(candidates, key=lambda p: p.release_vel[0])  # max horizontal vel
+        return max(candidates, key=lambda p: p.release_vel[0])
     if prefer == "max_margin":
         return max(candidates, key=lambda p: p.min_margin)
     # default: Pareto frontier random pick

@@ -50,14 +50,21 @@ class CascadeController:
         # thrust vector mostly horizontal, the attitude cascade would tilt the
         # drone past 90° and lose all vertical authority → drone falls. Real
         # autopilots clip the horizontal component so tilt stays bounded.
+        # When max_tilt_deg < 90 we also enforce a vertical-thrust floor (drone
+        # always pushes up at least half-gravity-worth) so the controller can't
+        # command the body into the no-vertical-authority regime. When evade
+        # mode raises max_tilt to ≥90°, we drop that floor so the drone CAN
+        # command thrust pointing down (flip past 90° to brake hard while
+        # descending).
         tx, ty, tz = thrust_vec
-        min_tz = 0.5 * total_mass * G
-        tz = max(tz, min_tz)
-        max_h = tz * np.tan(np.deg2rad(self.max_tilt_deg))
-        h = float(np.hypot(tx, ty))
-        if h > max_h:
-            s = max_h / h
-            tx *= s; ty *= s
+        if self.max_tilt_deg < 90:
+            min_tz = 0.5 * total_mass * G
+            tz = max(tz, min_tz)
+            max_h = tz * np.tan(np.deg2rad(self.max_tilt_deg))
+            h = float(np.hypot(tx, ty))
+            if h > max_h:
+                s = max_h / h
+                tx *= s; ty *= s
         thrust_vec = np.array([tx, ty, tz])
 
         # Project onto current body-z (the only axis we can push along)
