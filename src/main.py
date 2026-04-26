@@ -11,6 +11,7 @@ from world import setup
 from drone import Drone
 from ball import spawn_ball, predict_landing, state
 from planner import PlannerInputs, plan as plan_throw
+from config import GameConfig, DEFAULT as DEFAULT_GAME
 
 
 HOVER_Z = 1.5
@@ -166,34 +167,22 @@ def rotate_videos(runs_dir: Path, keep: int = 5):
 
 def run(gui: bool = True, duration_s: float = 20.0,
         log_path: str | None = None, log_decimate: int = 10,
-        video_path: str | None = None, video_every: int = 8):
-    setup(gui=gui)
+        video_path: str | None = None, video_every: int = 8,
+        cfg: GameConfig = DEFAULT_GAME):
+    """Run the full play-catch demo. All scene geometry comes from `cfg`."""
+    setup(gui=gui, room_size=cfg.room_size, wall_height=cfg.wall_height)
     logger = Logger(log_path, decimate=log_decimate)
-    # 240Hz / 8 = 30fps capture
     video = VideoRecorder(video_path, every=video_every)
     sim_step = [0]  # mutable counter for closures
+    HOVER_Z = cfg.hover_z
 
-    # Each drone has an asymmetric play area: lots of room BEHIND home for
-    # backup runway (like a tennis player's baseline), less room forward — they
-    # can reach a bit into the opponent's near-court for a tough catch but
-    # can't camp in opponent territory. Z capped at CEILING−margin (=2.6 m
-    # with ceiling 3 m) so the soft bound keeps targets off the ceiling.
-    Z_LO = -1.3   # 0.2 m floor clearance
-    Z_HI = 1.1    # ceiling − 0.4 m margin
-    # No overlap: each drone owns its half of the room (centerline at x=0).
-    # Sport-like — thrower can't poach into catcher's area.
-    thrower = Drone(start_pos=(-3.0, 0.0, HOVER_Z),
-                    home_pos=(-3.0, 0.0, HOVER_Z),
-                    play_area_min_offset=(-2.5, -1.5, Z_LO),  # 2.5 m behind home
-                    play_area_max_offset=(+3.0, +1.5, Z_HI))  # to centerline
-    # Catcher starts off-home but reachable: slightly low (1.0 vs hover 1.5)
-    # and slightly side-offset (y=0.5). Catcher has to actually reach for the
-    # ball without it being a trivial intercept-from-rest.
-    catcher = Drone(start_pos=(3.0, 0.5, 1.0),
-                    home_pos=(3.0, 0.0, HOVER_Z),
-                    play_area_min_offset=(-3.0, -1.5, Z_LO),  # to centerline
-                    play_area_max_offset=(+2.5, +1.5, Z_HI))
-    cube = p.loadURDF("cube_small.urdf", [2.0, -1.0, 0.05])
+    thrower = Drone(start_pos=cfg.thrower_start, home_pos=cfg.thrower_home,
+                    play_area_min_offset=cfg.thrower_play_min_offset,
+                    play_area_max_offset=cfg.thrower_play_max_offset)
+    catcher = Drone(start_pos=cfg.catcher_start, home_pos=cfg.catcher_home,
+                    play_area_min_offset=cfg.catcher_play_min_offset,
+                    play_area_max_offset=cfg.catcher_play_max_offset)
+    cube = p.loadURDF("cube_small.urdf", list(cfg.cube_pos))
     p.changeVisualShape(cube, -1, rgbaColor=[0.2, 0.8, 0.2, 1])  # green cube
 
     # Markers (visual-only, no collision):
@@ -261,14 +250,16 @@ def run(gui: bool = True, duration_s: float = 20.0,
     play_hi = thrower.home_pos + thrower.play_area_max_offset
     inputs = PlannerInputs(
         catcher_xy=tuple(catcher.home_pos[:2]),
-        hover_z=HOVER_Z,
-        ceiling_z=3.0, ceiling_margin=0.4,
+        hover_z=cfg.hover_z,
+        ceiling_z=cfg.ceiling_z,
+        ceiling_margin=cfg.ceiling_margin,
         backup_x_min=float(play_lo[0]),
-        play_x_max=float(play_hi[0]),  # forward boundary — drone must brake within
-        floor_margin=float(play_lo[2]),
+        play_x_max=float(play_hi[0]),
+        floor_margin=cfg.floor_margin,
         release_x_range=(float(play_lo[0] + 0.5), float(play_hi[0])),
         m_drone=0.55, m_ball=0.065,
         max_thrust=12.0, max_tilt_deg=35.0,
+        brake_decel=cfg.brake_decel,
     )
     # "max_flight" maximizes ball flight time → catcher has more time to
     # react, throws look more like high arcs. Other options: "max_throw"

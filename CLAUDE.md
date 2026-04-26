@@ -39,6 +39,17 @@ Demo orchestration (`src/main.py`) is a phase machine: `tracking → carry_to_cu
 
 Hand-authored: a `0.18 x 0.18 x 0.04` box base with four cosmetic prop disks fixed-jointed in. The disks have tiny inertials (1e-6) purely to silence PyBullet's "no inertial data" warnings — they're cosmetic, fixed-joint, and don't affect dynamics. Only `base_link` matters physically (`MASS = 0.5` in `drone.py` must match the URDF). Non-base reference URDFs (`plane.urdf`, `sphere_small.urdf`, `cube_small.urdf`, `pr2_gripper.urdf`) are pulled live from `pybullet_data` at runtime.
 
+## Engineering log
+
+`docs/iteration_findings.md` is the running "lessons learned" companion to
+`docs/throw_planning.md`. Where `throw_planning.md` documents *how* to plan a
+throw, `iteration_findings.md` records *what surprised us* while tuning the
+loop — controller singularities we hit, paper estimates that turned out to be
+off by integer multiples, choreography tricks (pre-flip windup), and the
+diagnostic scripts that made fast iteration possible. Read it before
+re-tuning the throw or rewriting the controller, and append to it when the
+next iteration teaches you something non-obvious.
+
 ## Tuning gotchas
 
 - `MASS` in `drone.py` and `<mass>` in the URDF must agree, otherwise gravity feed-forward is wrong and the drone drifts vertically.
