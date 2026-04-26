@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtualenv (we use a conda env now, but keep this in case)
+.venv/
+
+# Run outputs (logs, videos, plots)
+runs/
+
+# Claude Code local settings (per-user, not shared)
+.claude/settings.local.json
