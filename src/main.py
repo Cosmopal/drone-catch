@@ -37,7 +37,7 @@ class Logger:
 def _drone_state(d):
     _, ang = p.getBaseVelocity(d.body_id)
     _, orn = p.getBasePositionAndOrientation(d.body_id)
-    return {
+    state = {
         "pos": d.position().tolist(),
         "vel": d.velocity().tolist(),
         "ang_vel": list(ang),
@@ -46,6 +46,17 @@ def _drone_state(d):
         "target": d.target.tolist(),
         "holding": d.held_constraint is not None,
     }
+    # Arm joint state + EE world pose (per-drone, present on both since both
+    # have arms in the URDF).
+    if hasattr(d, "shoulder_joint"):
+        s_pos, s_vel, e_pos, e_vel = d.joint_states()
+        ee_pos, _, ee_vel, _ = d.ee_state()
+        state.update({
+            "shoulder_pos": float(s_pos), "shoulder_vel": float(s_vel),
+            "elbow_pos": float(e_pos),    "elbow_vel": float(e_vel),
+            "ee_pos": ee_pos.tolist(),    "ee_vel": ee_vel.tolist(),
+        })
+    return state
 
 
 def snapshot(t, phase, thrower, catcher, ball, cube, predicted_xy):
@@ -209,8 +220,11 @@ def run(gui: bool = True, duration_s: float = 20.0,
         half = (hi - lo) / 2
         draw_box_outline(center, half, color)
 
-    # Spawn ball early so logger can reference it during warm-up.
-    ball = spawn_ball(thrower.position() - np.array([0, 0, 0.08]))
+    # Spawn ball at the end-effector's current world position (arm starts
+    # folded — EE sits near body center). Drone grasps it immediately;
+    # ball follows the EE through arm motion thereafter.
+    ee_initial = thrower.gripper_world_position()
+    ball = spawn_ball(ee_initial)
     p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.3, 0.3, 1])  # red ball
     p.resetBaseVelocity(ball, linearVelocity=[0, 0, 0])
 
@@ -227,8 +241,8 @@ def run(gui: bool = True, duration_s: float = 20.0,
         if gui:
             time.sleep(DT)
 
-    # Warm up: let drones settle at hover (ball rests on thrower hand spawn point)
-    thrower.grasp(ball, max_distance=0.5)
+    # Warm up: let drones settle at hover with arm folded + ball gripped at EE.
+    thrower.grasp(ball, max_distance=0.10)
     # Aim: yaw thrower so body-x points at the catcher.
     # Catcher's yaw is left at 0 — pre-yawing it to face the thrower puts the
     # geometric attitude controller at its 180° singularity.
@@ -257,8 +271,8 @@ def run(gui: bool = True, duration_s: float = 20.0,
         play_x_max=float(play_hi[0]),
         floor_margin=cfg.floor_margin,
         release_x_range=(float(play_lo[0] + 0.5), float(play_hi[0])),
-        m_drone=0.55, m_ball=0.065,
-        max_thrust=12.0, max_tilt_deg=35.0,
+        m_drone=0.625, m_ball=0.065,
+        max_thrust=20.0, max_tilt_deg=35.0,
         brake_decel=cfg.brake_decel,
     )
     # "max_flight" maximizes ball flight time → catcher has more time to
@@ -279,82 +293,86 @@ def run(gui: bool = True, duration_s: float = 20.0,
     # release. The moving trajectory carrot is the red m_thrower marker.
     m_release_target.set(throw.release_pos)
 
-    # --- Backup: fly to the planner's backup_pos.
-    backup_pos = np.array(throw.backup_pos)
-    thrower.set_target(backup_pos)
-    for _ in range(int(2.5 / DT)):
-        tick("backup")
-        if (np.linalg.norm(thrower.position() - backup_pos) < 0.25
-                and np.linalg.norm(thrower.velocity()) < 0.4):
-            break
-
-    # --- Throw windup: matched-t single ramp from backup → release.
-    # pos_target evolves as the integral of vel_target so they stay consistent
-    # at every step. At t = t_ramp, drone should be at release_pos with
-    # release_vel by construction.
+    # --- v1: STATIONARY THROW. Drone hovers at release_pos with arm extended
+    # straight down. Arm spin delivers ALL the throw velocity (no drone
+    # translation contribution). This avoids the coupling between drone
+    # translation/brake and arm dynamics that was producing inconsistent
+    # throws. Real bowling-style (drone runup + arm sweep) is the v2 goal.
     release_pos = np.array(throw.release_pos)
     release_vel = np.array(throw.release_vel)
-    t_ramp = throw.t_ramp
     throw_dir = release_vel / np.linalg.norm(release_vel)
+    target_speed = float(np.linalg.norm(release_vel))
     catcher_xy = catcher.position()[:2]
     m_ball_target.set([catcher_xy[0], catcher_xy[1], HOVER_Z])
 
-    max_steps = int(1.5 * t_ramp / DT)
-    PRE_FLIP_TIME = 0.10  # seconds before predicted release to start the brake rotation
-    pre_flip_active = False
-    for i in range(max_steps):
-        t = i * DT
-        progress = min(1.0, t / t_ramp)
-        # vel_target ramps linearly; pos_target is its integral
-        cur_vel = release_vel * progress
-        cur_pos = backup_pos + 0.5 * release_vel * (t ** 2) / t_ramp \
-                  if t < t_ramp \
-                  else release_pos + release_vel * (t - t_ramp)
-
-        # Pre-flip: when we're within PRE_FLIP_TIME of crossing the release
-        # plane (estimated from current forward speed), bump max_tilt to 180
-        # AND change the target so the cascade starts rotating the body
-        # backward. By release time, the drone is already partway into the
-        # brake pose — eliminates the ~500 ms rotation lag we observed.
-        if not pre_flip_active:
-            dist_to_plane = -float(np.dot(thrower.position() - release_pos, throw_dir))
-            speed_along = float(np.dot(thrower.velocity(), throw_dir))
-            if speed_along > 0 and dist_to_plane / speed_along < PRE_FLIP_TIME:
-                pre_flip_active = True
-                thrower.controller.max_tilt_deg = 180.0
-        if pre_flip_active:
-            # Target = home, vel_target keeps current forward velocity so the
-            # cascade computes thrust pointing back-and-down (start the flip)
-            # without immediately killing the forward momentum.
-            thrower.set_target(thrower.home_pos, vel=release_vel)
-        else:
-            thrower.set_target(cur_pos, vel=cur_vel)
-
-        tick("throw_windup")
-        if np.dot(thrower.position() - release_pos, throw_dir) >= 0:
+    # Park drone over release_pos (skip backup; drone is already at home).
+    thrower.set_target(release_pos)
+    for _ in range(int(2.5 / DT)):
+        tick("approach_to_release_pos")
+        if (np.linalg.norm(thrower.position() - release_pos) < 0.15
+                and np.linalg.norm(thrower.velocity()) < 0.3):
             break
 
-    # Actual release point = gripper world position at this instant
-    R_thr = np.array(p.getMatrixFromQuaternion(thrower.orientation())).reshape(3, 3)
-    actual_release_pos = thrower.position() + R_thr @ thrower.GRIPPER_OFFSET
-    grip_v = thrower.gripper_world_velocity()
-    thrower.release()
-    m_release_actual.set(actual_release_pos)  # white sphere stays at actual release point
+    # Compute arm spin rate needed for tip velocity = release_vel.
+    # |v_tip| = L_arm * ω_shoulder. With L_arm = 0.4 m, target |release_vel|
+    # ≈ 6.5 m/s → ω ≈ 16 rad/s. URDF allows up to 20 rad/s.
+    L_arm = cfg.arm.upper_arm_len + cfg.arm.forearm_len
+    omega_required = target_speed / L_arm
+    # Cap at URDF velocity limit
+    omega_cmd = min(omega_required, 18.0)
+    thrower.spin_arm(shoulder_vel=omega_cmd, elbow_vel=0.0)
+    spin_started_at = sim_step[0] * DT
+
+    # Multi-condition release trigger (see plan §F).
+    v_proj_max = -np.inf
+    released = False
+    actual_release_pos = None
+    grip_v_at_release = None
+    trig_reason = None
+    max_steps = int(cfg.arm.spin_window_s / DT)
+
+    for i in range(max_steps):
+        tick("throw_windup_arm")
+        v_ee = thrower.gripper_world_velocity()
+        v_proj = float(np.dot(v_ee, throw_dir))
+        v_ee_mag = float(np.linalg.norm(v_ee))
+        cos_align = float(np.dot(v_ee, release_vel) /
+                          (v_ee_mag * target_speed + 1e-9))
+        t_since_spin = sim_step[0] * DT - spin_started_at
+        gates_ok = (t_since_spin > cfg.arm.min_spin_time
+                    and cos_align > cfg.arm.release_align_cos_min)
+        mag_met = v_proj >= cfg.arm.release_mag_frac * target_speed
+        past_peak = v_proj < v_proj_max - cfg.arm.release_decline_threshold
+        timeout = t_since_spin > cfg.arm.spin_window_s
+        if (gates_ok and (mag_met or past_peak)) or timeout:
+            actual_release_pos = thrower.gripper_world_position()
+            grip_v_at_release = thrower.gripper_world_velocity()
+            thrower.release()
+            m_release_actual.set(actual_release_pos)
+            trig_reason = ("mag_met" if mag_met else
+                           "past_peak" if past_peak else "timeout")
+            released = True
+            break
+        v_proj_max = max(v_proj_max, v_proj)
+
+    # Forced release if loop exits without trigger (shouldn't happen but safe)
+    if not released:
+        actual_release_pos = thrower.gripper_world_position()
+        grip_v_at_release = thrower.gripper_world_velocity()
+        thrower.release()
+        m_release_actual.set(actual_release_pos)
+        trig_reason = "loop_end"
+
     print(f"[t={sim_step[0]*DT:.2f}s] threw ball  "
           f"release_pos={release_pos.round(2).tolist()}  "
           f"target_vel={release_vel.round(2).tolist()}  "
-          f"actual_grip_v={grip_v.round(2).tolist()}  "
-          f"actual_release_pos={actual_release_pos.round(2).tolist()}")
+          f"actual_grip_v={grip_v_at_release.round(2).tolist()}  "
+          f"actual_release_pos={actual_release_pos.round(2).tolist()}  "
+          f"trigger={trig_reason}")
 
-    # Evade + return home. Bump max_tilt to 180° so the cascade can flip past
-    # 90° — drone can orient body-z DOWN and push the airframe downward
-    # actively (not just rely on gravity). Critical for braking vertical
-    # momentum: with vz=3 m/s upward at release and only gravity to brake,
-    # drone climbs 0.45 m before stopping. Active downward thrust eats that
-    # in ~0.1 m. The min_tz floor in the controller is automatically dropped
-    # when max_tilt ≥ 90 (so thrust_vec_z can go negative).
+    # Post-release: refold arm, raise tilt cap for evade flip-brake, go home.
     m_release_target.hide()
-    normal_max_tilt = thrower.controller.max_tilt_deg
+    thrower.fold_arm()
     thrower.controller.max_tilt_deg = 180.0
     thrower.go_home()
     thrower.set_yaw_target(0.0)

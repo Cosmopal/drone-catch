@@ -23,7 +23,10 @@ class CascadeController:
     # inner (attitude) loop — sized for I ≈ 2-4 mN·m·s²
     kR: np.ndarray = field(default_factory=lambda: np.array([0.30, 0.30, 0.15]))
     kw: np.ndarray = field(default_factory=lambda: np.array([0.05, 0.05, 0.03]))
-    max_thrust: float = 12.0
+    max_thrust: float = 20.0   # T/W ≈ 3.3 — racing-class. Heavier drone+arm
+                               # (0.625 kg) + bowling throw needs bigger budget
+                               # for the brake+spin maneuver with reduced floor
+                               # runway (arm extension shrinks usable z range).
     max_torque: float = 0.5
     max_tilt_deg: float = 35.0  # cap on desired body tilt from vertical
 

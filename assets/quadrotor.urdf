@@ -54,4 +54,76 @@
     </visual>
   </link>
   <joint name="j_br" type="fixed"><parent link="base_link"/><child link="arm_br"/></joint>
+
+  <!-- ===================== 2-link extending arm =====================
+       Hangs straight down from drone when shoulder=0, elbow=0.
+       Folded: elbow=π → forearm doubles back over upper arm.
+       Both joints rotate about body-y (pitch axis) so the arm spins
+       in the body xz plane during a bowling-style throw.            -->
+
+  <link name="shoulder_housing">
+    <inertial><mass value="0.010"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><geometry><cylinder radius="0.020" length="0.020"/></geometry>
+      <material name="hub"><color rgba="0.30 0.30 0.30 1"/></material></visual>
+  </link>
+  <joint name="j_shoulder_mount" type="fixed">
+    <parent link="base_link"/><child link="shoulder_housing"/>
+    <origin xyz="0 0 0.030"/>
+  </joint>
+
+  <link name="upper_arm">
+    <inertial>
+      <origin xyz="0 0 -0.10"/>
+      <mass value="0.030"/>
+      <inertia ixx="1.0e-4" ixy="0" ixz="0" iyy="1.0e-4" iyz="0" izz="1.0e-6"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.10"/>
+      <geometry><cylinder radius="0.008" length="0.20"/></geometry>
+      <material name="arm_upper"><color rgba="0.9 0.6 0.1 1"/></material>
+    </visual>
+  </link>
+  <joint name="shoulder_joint" type="revolute">
+    <parent link="shoulder_housing"/><child link="upper_arm"/>
+    <origin xyz="0 0 -0.010"/>
+    <!-- axis = -y so POSITIVE shoulder angle/vel sweeps the arm FORWARD
+         (arm in body -z direction at shoulder=0; positive rotation
+         takes arm toward body +x = forward). Bowling-style throw uses
+         positive shoulder velocity. -->
+    <axis xyz="0 -1 0"/>
+    <limit lower="-100" upper="100" effort="2.0" velocity="20"/>
+    <dynamics damping="0.005" friction="0.001"/>
+  </joint>
+
+  <link name="forearm">
+    <inertial>
+      <origin xyz="0 0 -0.10"/>
+      <mass value="0.030"/>
+      <inertia ixx="1.0e-4" ixy="0" ixz="0" iyy="1.0e-4" iyz="0" izz="1.0e-6"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.10"/>
+      <geometry><cylinder radius="0.008" length="0.20"/></geometry>
+      <material name="arm_lower"><color rgba="0.1 0.6 0.9 1"/></material>
+    </visual>
+  </link>
+  <joint name="elbow_joint" type="revolute">
+    <parent link="upper_arm"/><child link="forearm"/>
+    <origin xyz="0 0 -0.20"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="3.2" effort="2.0" velocity="20"/>
+    <dynamics damping="0.005" friction="0.001"/>
+  </joint>
+
+  <link name="end_effector">
+    <inertial><mass value="0.005"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/></inertial>
+    <visual><geometry><sphere radius="0.012"/></geometry>
+      <material name="ee"><color rgba="0.10 0.95 0.25 1"/></material></visual>
+  </link>
+  <joint name="j_ee" type="fixed">
+    <parent link="forearm"/><child link="end_effector"/>
+    <origin xyz="0 0 -0.20"/>
+  </joint>
 </robot>
