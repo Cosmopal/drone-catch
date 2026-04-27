@@ -71,30 +71,30 @@ class ArmConfig:
 
 @dataclass(frozen=True)
 class GameConfig:
-    # Room
-    room_size: float = 12.0          # m, square footprint (x and y)
+    # Room — tighter than before so the drones use most of it during the
+    # bowling throw (visible in the video instead of looking miniature).
+    room_size: float = 8.0           # m, square footprint (x and y)
     wall_height: float = 3.0         # m, also = ceiling_z
     hover_z: float = 1.5             # default hover/catch altitude
     ceiling_margin: float = 0.4      # safety gap below ceiling for ball apex
     floor_margin: float = 0.8        # min backup z above floor — needs ~40 cm
                                      # for the extended arm, plus margin for
-                                     # PD overshoot during descent (drone
-                                     # routinely overshoots target by 30-40 cm)
+                                     # PD overshoot during descent.
 
     # Thrower (home + asymmetric play area + start position)
-    thrower_home: tuple = (-3.0, 0.0, 1.5)
-    thrower_start: tuple = (-3.0, 0.0, 1.5)            # where it spawns
-    thrower_play_min_offset: tuple = (-2.5, -1.5, -0.7)  # z lo = 0.8 (fits arm + overshoot)
-    thrower_play_max_offset: tuple = (+3.0, +1.5, +1.1)  # to centerline (no overlap)
+    thrower_home: tuple = (-2.0, 0.0, 1.5)
+    thrower_start: tuple = (-2.0, 0.0, 1.5)
+    thrower_play_min_offset: tuple = (-1.5, -1.0, -0.7)  # 1.5m back (less than before)
+    thrower_play_max_offset: tuple = (+2.0, +1.0, +1.1)  # to centerline
 
-    # Catcher (home + play area + start). Starts off-home so catching isn't trivial.
-    catcher_home: tuple = (+3.0, 0.0, 1.5)
-    catcher_start: tuple = (+3.0, 0.5, 1.0)            # off-home, slightly low
-    catcher_play_min_offset: tuple = (-3.0, -1.5, -0.7)  # to centerline
-    catcher_play_max_offset: tuple = (+2.5, +1.5, +1.1)
+    # Catcher (home + play area + start)
+    catcher_home: tuple = (+2.0, 0.0, 1.5)
+    catcher_start: tuple = (+2.0, 0.4, 1.1)
+    catcher_play_min_offset: tuple = (-2.0, -1.0, -0.7)  # to centerline
+    catcher_play_max_offset: tuple = (+1.5, +1.0, +1.1)
 
-    # The cube the catcher picks up after delivering the ball
-    cube_pos: tuple = (2.0, -1.0, 0.05)
+    # The cube the catcher picks up
+    cube_pos: tuple = (1.5, -0.7, 0.05)
 
     # Planner brake_decel (m/s²) — empirically observed average during evade,
     # NOT the theoretical max. See docs/iteration_findings.md.

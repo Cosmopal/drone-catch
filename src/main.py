@@ -142,11 +142,11 @@ class VideoRecorder:
             # but we get a more natural framing from inside). Slightly raised
             # above hover height with a small downward tilt.
             self.view = p.computeViewMatrix(
-                cameraEyePosition=[0.0, -5.5, 2.5],
+                cameraEyePosition=[0.0, -3.5, 1.8],
                 cameraTargetPosition=[0.0, 0.0, 1.5],
                 cameraUpVector=[0, 0, 1])
             self.proj = p.computeProjectionMatrixFOV(
-                fov=90, aspect=width / height, nearVal=0.1, farVal=30.0)
+                fov=75, aspect=width / height, nearVal=0.1, farVal=20.0)
 
     def capture(self):
         if self.writer is None:
@@ -275,10 +275,11 @@ def run(gui: bool = True, duration_s: float = 20.0,
         max_thrust=20.0, max_tilt_deg=35.0,
         brake_decel=cfg.brake_decel,
     )
-    # "max_flight" maximizes ball flight time → catcher has more time to
-    # react, throws look more like high arcs. Other options: "max_throw"
-    # (fast flat fastball), "min_ke" (gentle), "pareto" (random from frontier).
-    throw = plan_throw(inputs, prefer="max_flight")
+    # "max_throw" picks the flattest, fastest plan (low vz, high vx).
+    # Less vertical motion during runup so the matched-t backup doesn't
+    # require descending to floor margin. Drone stays near hover height
+    # throughout. Arm spin will add some vz at release.
+    throw = plan_throw(inputs, prefer="max_throw")
     if throw is None:
         from planner import diagnose_infeasibility
         print(f"[planner] no feasible throw: {diagnose_infeasibility(inputs)}")
@@ -311,7 +312,7 @@ def run(gui: bool = True, duration_s: float = 20.0,
     omega_cmd = min(omega_required, 18.0)
     RAMP_DURATION = 0.20
 
-    # Backup: drone goes to backup_pos with arm wound up + ball gripped.
+    # Backup: drone goes to planner's backup_pos (matched-t).
     backup_pos = np.array(throw.backup_pos)
     thrower.set_target(backup_pos)
     for _ in range(int(2.5 / DT)):
