@@ -293,79 +293,92 @@ def run(gui: bool = True, duration_s: float = 20.0,
     # release. The moving trajectory carrot is the red m_thrower marker.
     m_release_target.set(throw.release_pos)
 
-    # --- v1: STATIONARY THROW. Drone hovers at release_pos with arm extended
-    # straight down. Arm spin delivers ALL the throw velocity (no drone
-    # translation contribution). This avoids the coupling between drone
-    # translation/brake and arm dynamics that was producing inconsistent
-    # throws. Real bowling-style (drone runup + arm sweep) is the v2 goal.
+    # --- BOWLING-STYLE THROW: drone charges forward via matched-t toward
+    # release_pos with release_vel (so drone has forward vx AT release).
+    # Arm starts spinning BEFORE drone arrives at release_pos so the arm is
+    # at full ω by release moment. EE world velocity at release =
+    # drone_vel + arm_tangent — both contribute to ball launch.
     release_pos = np.array(throw.release_pos)
     release_vel = np.array(throw.release_vel)
+    t_ramp = throw.t_ramp
     throw_dir = release_vel / np.linalg.norm(release_vel)
     target_speed = float(np.linalg.norm(release_vel))
     catcher_xy = catcher.position()[:2]
     m_ball_target.set([catcher_xy[0], catcher_xy[1], HOVER_Z])
 
-    # Park drone over release_pos (skip backup; drone is already at home).
-    thrower.set_target(release_pos)
-    for _ in range(int(2.5 / DT)):
-        tick("approach_to_release_pos")
-        if (np.linalg.norm(thrower.position() - release_pos) < 0.15
-                and np.linalg.norm(thrower.velocity()) < 0.3):
-            break
-
-    # SPIN: arm starts wound-up (folded_shoulder=-π/2 in config, set during
-    # Drone.__post_init__). Command full ω forward — arm sweeps from -π/2
-    # → 0 → +π/2 → ... reaching full ω before the optimal release angle.
-    # Tip world velocity passes through "purely forward" at shoulder=0 and
-    # "forward-up at 47°" at shoulder≈+0.83. Trigger fires when v_ee
-    # aligns with planner's release_vel.
     L_arm = cfg.arm.upper_arm_len + cfg.arm.forearm_len
     omega_required = target_speed / L_arm
     omega_cmd = min(omega_required, 18.0)
-    RAMP_DURATION = 0.20  # ramp arm vel target 0 → omega_cmd over this
-    spin_started_at = sim_step[0] * DT
+    RAMP_DURATION = 0.20
 
-    # Multi-condition release trigger (see plan §F).
+    # Backup: drone goes to backup_pos with arm wound up + ball gripped.
+    backup_pos = np.array(throw.backup_pos)
+    thrower.set_target(backup_pos)
+    for _ in range(int(2.5 / DT)):
+        tick("backup")
+        if (np.linalg.norm(thrower.position() - backup_pos) < 0.25
+                and np.linalg.norm(thrower.velocity()) < 0.4):
+            break
+
+    # Approach + spin: matched-t toward release_pos with release_vel.
+    # Spin starts when drone is close to release_pos so arm is at full ω
+    # by the time drone passes release_pos.
+    thrower.controller.max_tilt_deg = cfg.arm.throw_max_tilt_deg
+    SPIN_TRIGGER_DIST = 0.5  # m before release plane → start arm spin
+    spin_started = False
+    spin_started_at = None
     v_proj_max = -np.inf
     released = False
     actual_release_pos = None
     grip_v_at_release = None
     trig_reason = None
-    max_steps = int(cfg.arm.spin_window_s / DT)
 
+    max_steps = int(2.0 * t_ramp / DT)
     for i in range(max_steps):
-        # Ramp shoulder velocity command linearly to spread arm-reaction
-        # angular momentum over time — step-commanding full ω hits drone
-        # with ~2 N·m impulsive torque, drone tilts past 80° within 50 ms
-        # and falls. With a 200 ms ramp, α_arm ≈ 80 rad/s² → reaction
-        # ≈ 1.1 N·m, well within cascade's 3 N·m torque budget.
-        t_since_spin = sim_step[0] * DT - spin_started_at
-        ramp_progress = min(1.0, t_since_spin / RAMP_DURATION)
-        thrower.spin_arm(shoulder_vel=omega_cmd * ramp_progress, elbow_vel=0.0)
-        tick("throw_windup_arm")
-        v_ee = thrower.gripper_world_velocity()
-        v_proj = float(np.dot(v_ee, throw_dir))
-        v_ee_mag = float(np.linalg.norm(v_ee))
-        cos_align = float(np.dot(v_ee, release_vel) /
-                          (v_ee_mag * target_speed + 1e-9))
-        t_since_spin = sim_step[0] * DT - spin_started_at
-        gates_ok = (t_since_spin > cfg.arm.min_spin_time
-                    and cos_align > cfg.arm.release_align_cos_min)
-        mag_met = v_proj >= cfg.arm.release_mag_frac * target_speed
-        past_peak = v_proj < v_proj_max - cfg.arm.release_decline_threshold
-        timeout = t_since_spin > cfg.arm.spin_window_s
-        if (gates_ok and (mag_met or past_peak)) or timeout:
-            actual_release_pos = thrower.gripper_world_position()
-            grip_v_at_release = thrower.gripper_world_velocity()
-            thrower.release()
-            m_release_actual.set(actual_release_pos)
-            trig_reason = ("mag_met" if mag_met else
-                           "past_peak" if past_peak else "timeout")
-            released = True
-            break
-        v_proj_max = max(v_proj_max, v_proj)
+        t = i * DT
+        progress = min(1.0, t / t_ramp)
+        cur_vel = release_vel * progress
+        cur_pos = (backup_pos + 0.5 * release_vel * (t ** 2) / t_ramp
+                   if t < t_ramp
+                   else release_pos + release_vel * (t - t_ramp))
+        thrower.set_target(cur_pos, vel=cur_vel)
 
-    # Forced release if loop exits without trigger (shouldn't happen but safe)
+        dist_to_plane = -float(np.dot(thrower.position() - release_pos, throw_dir))
+        if not spin_started and dist_to_plane < SPIN_TRIGGER_DIST:
+            spin_started = True
+            spin_started_at = t
+
+        # Once spin has started, ramp arm vel target 0 → omega_cmd
+        if spin_started:
+            t_since_spin = t - spin_started_at
+            ramp_progress = min(1.0, t_since_spin / RAMP_DURATION)
+            thrower.spin_arm(shoulder_vel=omega_cmd * ramp_progress, elbow_vel=0.0)
+
+        tick("throw_windup_arm" if spin_started else "throw_approach")
+
+        if spin_started and not released:
+            v_ee = thrower.gripper_world_velocity()
+            v_proj = float(np.dot(v_ee, throw_dir))
+            v_ee_mag = float(np.linalg.norm(v_ee))
+            cos_align = float(np.dot(v_ee, release_vel) /
+                              (v_ee_mag * target_speed + 1e-9))
+            t_since_spin = t - spin_started_at
+            gates_ok = (t_since_spin > cfg.arm.min_spin_time
+                        and cos_align > cfg.arm.release_align_cos_min)
+            mag_met = v_proj >= cfg.arm.release_mag_frac * target_speed
+            past_peak = v_proj < v_proj_max - cfg.arm.release_decline_threshold
+            timeout = t_since_spin > cfg.arm.spin_window_s
+            if (gates_ok and (mag_met or past_peak)) or timeout:
+                actual_release_pos = thrower.gripper_world_position()
+                grip_v_at_release = thrower.gripper_world_velocity()
+                thrower.release()
+                m_release_actual.set(actual_release_pos)
+                trig_reason = ("mag_met" if mag_met else
+                               "past_peak" if past_peak else "timeout")
+                released = True
+                break
+            v_proj_max = max(v_proj_max, v_proj)
+
     if not released:
         actual_release_pos = thrower.gripper_world_position()
         grip_v_at_release = thrower.gripper_world_velocity()
