@@ -41,14 +41,24 @@ Hand-authored: a `0.18 x 0.18 x 0.04` box base with four cosmetic prop disks fix
 
 ## Engineering log
 
-`docs/iteration_findings.md` is the running "lessons learned" companion to
-`docs/throw_planning.md`. Where `throw_planning.md` documents *how* to plan a
-throw, `iteration_findings.md` records *what surprised us* while tuning the
-loop — controller singularities we hit, paper estimates that turned out to be
-off by integer multiples, choreography tricks (pre-flip windup), and the
-diagnostic scripts that made fast iteration possible. Read it before
-re-tuning the throw or rewriting the controller, and append to it when the
-next iteration teaches you something non-obvious.
+Three living docs together cover the throw-and-catch design:
+
+- `docs/throw_planning.md` — *how* to plan a throw. Ballistic math, planner
+  algorithm (grid + Pareto), free variables, hard/soft constraints, the
+  matched-t single ramp insight.
+- `docs/iteration_findings.md` — *what surprised us* during the no-arm
+  tuning loop. Lee SO(3) singularity, paper estimates off by integer
+  multiples, choreography tricks (pre-flip windup), the marker-palette
+  debugging substrate, the diagnostic scripts.
+- `docs/arm_v1_status.md` — *where the 2-link arm work stands*. WIP doc
+  capturing what's built and verified (URDF, joint discovery, EE-aware
+  grasp, system-CoM thrust compensation, stationary throw skeleton),
+  what still doesn't work (EE world velocity is half of expected ω·L,
+  drone destabilizes during spin), and the list of open puzzles for the
+  next session. Read before resuming arm work.
+
+Read these before re-tuning the throw or rewriting the controller, and
+append to them when the next iteration teaches you something non-obvious.
 
 ## Tuning gotchas
 
