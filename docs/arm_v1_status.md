@@ -195,24 +195,58 @@ follow-up once the stationary throw delivers planned `release_vel`.
 
 ## Open puzzles for next session
 
-In likely order of investigation:
+### What got fixed in the followup session
 
-1. **Why is EE world velocity half of `ω·L`?** Add explicit instrumentation:
-   log `getLinkState(ee_link)[7]` (link angular velocity in world frame)
-   alongside `joint_states()[1]` (joint velocity). If they differ, the
-   issue is somewhere in the joint-to-world rotation. If they match,
-   the issue is the rotation contribution being cancelled by drone
-   body motion.
+- **System-CoM thrust application now includes the held ball.** Was excluded;
+  with ball at the wound-up EE position (body x=-0.4) the unaccounted ball
+  gravity caused drone to drift backward+down during warmup. Fixed.
+- **Wound-up initial pose (shoulder=-π/2)** instead of straight-down.
+  Gives the arm 90° of pre-rotation runway so it reaches the optimal
+  release angle (~+47°) at full ω rather than during its accel phase.
+  Without this, "drone has to do a backflip to spin it" — the arm
+  ramping up while drone tries to maintain attitude was destabilizing.
+- **Ramped shoulder velocity command (0 → ω_cmd over 200 ms)** instead
+  of step. Step-commanding full ω hits drone with ~2 N·m impulsive
+  reaction torque, drone tilts past 80° in 50 ms and loses thrust.
+  Ramping spreads angular-momentum injection over time.
+- **Cascade max_torque bumped 0.5 → 3.0 N·m.** Cascade was getting
+  outmuscled by arm reaction. With 3 N·m it can fight the ramped arm
+  reaction (~1.1 N·m) AND maintain attitude tracking.
+- **vx in throw is now ~105% of target** (4.47 measured vs 4.26 planned).
+  Horizontal component of throw works.
 
-2. **Why does drone fall during spin?** Probably arm reaction torque
-   destabilizes the cascade transiently. Could log `omega_drone` over
-   the spin window to see if drone is rotating + drifting from arm
-   reaction. Mitigation candidates:
-   - Stiffer attitude gains during throw window (`kR`/`kw` bump).
-   - Pre-pitch the drone slightly nose-up before spin (so arm reaction
-     reinforces rather than fighting an upright pose).
-   - Feed-forward the arm reaction torque into the cascade's body-torque
-     command (would need the cascade to know about arm dynamics).
+### What still doesn't work
+
+- **vz at release is ~33% of target** (1.52 vs 4.65). Drone STILL pitches
+  past 80° during the spin window (driven by conservation of angular
+  momentum from arm sweep), loses vertical thrust, drops 0.4 m. By the
+  time arm reaches the high-vz portion of its sweep, drone is too low
+  and tilted to deliver the planned vz.
+- **Drone z drops 0.4 m during the throw.** Arm sweep injects ~0.22
+  kg·m²/s of angular momentum in pitch. Drone has I_y=0.0025; absorbing
+  this without exceeding the tilt cap would require either:
+    - Counter-rotating mass (reaction wheel or balanced second arm)
+    - Higher drone I_y (fundamentally different chassis geometry)
+    - Pre-load the drone with opposite pitch rate so arm reaction
+      brings it to level rather than past
+    - Or cascade gains tuned aggressively for THIS specific maneuver
+- **Catch fails.** Ball lands well short of catcher because vz is
+  insufficient. Catcher chases prediction, doesn't reach ball.
+
+### Likely paths forward
+
+1. **Reaction-wheel approach**: add a second arm (counter-rotating
+   sweep) so net angular momentum injection is zero. Doubles arm
+   complexity but eliminates the drone-pitch problem.
+2. **Pre-pitch the drone before spin**: command drone to pitch nose-DOWN
+   by ~30° before starting spin, so the arm-reaction (nose-up) brings
+   it back to level rather than past. Like a pitcher leaning into the
+   throw.
+3. **Use the bowling-style choreography after all**: drone runs forward,
+   brake-pitches as part of the maneuver (cascade has to pitch anyway
+   to brake), arm spin's reaction adds to that pitch. The "cost" of
+   pitch is paid for the brake regardless. This was the original plan
+   and is worth retrying now that we understand the failure modes.
 
 3. **Decide stationary vs bowling-style for v1 demo.**
    - If we can get stationary throw to deliver planned `release_vel`

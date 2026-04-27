@@ -27,7 +27,9 @@ class CascadeController:
                                # (0.625 kg) + bowling throw needs bigger budget
                                # for the brake+spin maneuver with reduced floor
                                # runway (arm extension shrinks usable z range).
-    max_torque: float = 0.5
+    max_torque: float = 3.0    # bumped from 0.5: arm spin reaction torque
+                               # is up to 2 N·m, cascade needs headroom to
+                               # absorb that AND maintain attitude tracking.
     max_tilt_deg: float = 35.0  # cap on desired body tilt from vertical
 
     def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,

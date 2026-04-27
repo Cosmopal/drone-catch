@@ -24,18 +24,22 @@ class ArmConfig:
     upper_arm_len: float = 0.20
     forearm_len: float = 0.20
 
-    # "Folded" vs "extended" joint angles (rad). With the URDF axes:
+    # Joint angles for various stages. With the URDF axes:
     #   shoulder positive = forward sweep (about body -y)
     #   elbow=0 = forearm continues from upper_arm; elbow=π = forearm folded back
     #
-    # NOTE: we keep the arm extended (elbow=0) at "folded" too, so the ball
-    # hangs as a STABLE pendulum below the drone. With elbow=π the EE sits
-    # ABOVE the shoulder and the ball-on-EE becomes an inverted pendulum
-    # with √(g/L) ≈ 22 rad/s natural divergence rate — joint motor PD can't
-    # stabilize it. Real-world hardware can fold mechanically (different
-    # mechanism); for sim the simpler always-extended approach works.
-    folded_shoulder: float = 0.0
-    folded_elbow: float = 0.0   # KEEP ARM EXTENDED — see note above
+    # NEUTRAL (folded): shoulder=0 (arm hangs straight down). Stable pendulum.
+    # WOUND-UP: shoulder=-π/2 (arm points BACKWARD, opposite of throw direction).
+    #   Drone starts in this pose. When spin commences, arm has 90° of pre-
+    #   rotation runway before reaching the optimal release angle (~+47°),
+    #   so the arm is at full ω by the time it sweeps through the release
+    #   point — accel phase happens during the wound-up sweep.
+    #
+    # NOTE: elbow stays at 0 (extended) throughout. Folded position with
+    # elbow=π puts EE above the shoulder, creating an inverted pendulum
+    # that joint-motor PD can't stabilize.
+    folded_shoulder: float = -1.5708   # -π/2 — wound-up at rest
+    folded_elbow: float = 0.0
     extended_elbow: float = 0.0
 
     # Motor limits (per joint). PyBullet's setJointMotorControl2 uses `force`

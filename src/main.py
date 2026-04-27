@@ -313,14 +313,16 @@ def run(gui: bool = True, duration_s: float = 20.0,
                 and np.linalg.norm(thrower.velocity()) < 0.3):
             break
 
-    # Compute arm spin rate needed for tip velocity = release_vel.
-    # |v_tip| = L_arm * ω_shoulder. With L_arm = 0.4 m, target |release_vel|
-    # ≈ 6.5 m/s → ω ≈ 16 rad/s. URDF allows up to 20 rad/s.
+    # SPIN: arm starts wound-up (folded_shoulder=-π/2 in config, set during
+    # Drone.__post_init__). Command full ω forward — arm sweeps from -π/2
+    # → 0 → +π/2 → ... reaching full ω before the optimal release angle.
+    # Tip world velocity passes through "purely forward" at shoulder=0 and
+    # "forward-up at 47°" at shoulder≈+0.83. Trigger fires when v_ee
+    # aligns with planner's release_vel.
     L_arm = cfg.arm.upper_arm_len + cfg.arm.forearm_len
     omega_required = target_speed / L_arm
-    # Cap at URDF velocity limit
     omega_cmd = min(omega_required, 18.0)
-    thrower.spin_arm(shoulder_vel=omega_cmd, elbow_vel=0.0)
+    RAMP_DURATION = 0.20  # ramp arm vel target 0 → omega_cmd over this
     spin_started_at = sim_step[0] * DT
 
     # Multi-condition release trigger (see plan §F).
@@ -332,6 +334,14 @@ def run(gui: bool = True, duration_s: float = 20.0,
     max_steps = int(cfg.arm.spin_window_s / DT)
 
     for i in range(max_steps):
+        # Ramp shoulder velocity command linearly to spread arm-reaction
+        # angular momentum over time — step-commanding full ω hits drone
+        # with ~2 N·m impulsive torque, drone tilts past 80° within 50 ms
+        # and falls. With a 200 ms ramp, α_arm ≈ 80 rad/s² → reaction
+        # ≈ 1.1 N·m, well within cascade's 3 N·m torque budget.
+        t_since_spin = sim_step[0] * DT - spin_started_at
+        ramp_progress = min(1.0, t_since_spin / RAMP_DURATION)
+        thrower.spin_arm(shoulder_vel=omega_cmd * ramp_progress, elbow_vel=0.0)
         tick("throw_windup_arm")
         v_ee = thrower.gripper_world_velocity()
         v_proj = float(np.dot(v_ee, throw_dir))
@@ -370,10 +380,12 @@ def run(gui: bool = True, duration_s: float = 20.0,
           f"actual_release_pos={actual_release_pos.round(2).tolist()}  "
           f"trigger={trig_reason}")
 
-    # Post-release: refold arm, raise tilt cap for evade flip-brake, go home.
+    # Post-release: re-extend arm to neutral hanging position, restore
+    # normal tilt cap (we never moved the body during the throw — no need
+    # for evade flip-brake), go home.
     m_release_target.hide()
-    thrower.fold_arm()
-    thrower.controller.max_tilt_deg = 180.0
+    thrower.extend_arm()
+    thrower.controller.max_tilt_deg = 35.0
     thrower.go_home()
     thrower.set_yaw_target(0.0)
 

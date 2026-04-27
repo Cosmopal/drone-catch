@@ -139,14 +139,11 @@ class Drone:
 
     def _system_com_world(self) -> np.ndarray:
         """World-frame position of the multi-body system center of mass,
-        including base link + all child links. Used to apply thrust at the
-        actual CoM rather than the base link origin — without this, an
-        articulated arm shifts the system CoM away from the base origin and
-        creates a spurious torque every step (drone tilts and drifts).
-
-        Note: does NOT include the held body (e.g. gripped ball). For our
-        scale that's a 65g/650g = 10% effect we tolerate; gravity-comp
-        already accounts for held mass via `_held_mass()`.
+        including base link + all child links + the held body (if any).
+        Used to apply thrust at the actual CoM rather than the base link
+        origin — without this, an articulated arm AND/OR a held ball at the
+        end-effector shifts the system CoM, creating a spurious torque on
+        the body every step (drone tilts and drifts).
         """
         base_m = p.getDynamicsInfo(self.body_id, -1)[0]
         base_pos = np.array(p.getBasePositionAndOrientation(self.body_id)[0])
@@ -159,6 +156,15 @@ class Drone:
             link_com_world = np.array(p.getLinkState(self.body_id, j)[0])
             total_m += link_m
             com_sum += link_m * link_com_world
+        # Include held body (ball/cube) — it's rigidly constrained and its
+        # gravity acts at its own location, NOT the drone's COM.
+        if self.held_constraint is not None:
+            info = p.getConstraintInfo(self.held_constraint)
+            child_body = info[2]
+            held_m = p.getDynamicsInfo(child_body, -1)[0]
+            held_pos = np.array(p.getBasePositionAndOrientation(child_body)[0])
+            total_m += held_m
+            com_sum += held_m * held_pos
         return com_sum / total_m
 
     # ------------ control ------------
