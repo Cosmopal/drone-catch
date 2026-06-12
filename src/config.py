@@ -68,6 +68,13 @@ class ArmConfig:
     # naturally pitches drone past that)
     throw_max_tilt_deg: float = 60.0
 
+    # Effective rotational inertia of the arm about the shoulder, EXTENDED, no
+    # ball. Used for feedforward arm-reaction torque compensation.
+    # upper_arm rod-end (m·L²/3) + forearm parallel-axis + EE point-mass.
+    # See M1 paper calc in plan.
+    I_arm_extended: float = 0.004    # kg·m², no ball
+    I_arm_with_ball: float = 0.014   # kg·m² (for reference; held-mass aware FF could use this)
+
 
 @dataclass(frozen=True)
 class GameConfig:

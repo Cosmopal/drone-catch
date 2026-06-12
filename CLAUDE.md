@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Purpose
 
-PyBullet sandbox for prototyping a two-drone "play catch" indoor scenario plus arm-style object pickup. Pure Python; no ROS, no Gazebo. Intended for control/RL prototyping — port to Gazebo+ROS2+PX4 SITL only when targeting real hardware.
+PyBullet sandbox for prototyping a two-drone "play catch + arm pickup" indoor scenario. Pure Python, no ROS, no Gazebo. Intended for control / planning prototyping. We've moved well past the v1 "fixed gripper offset" toy and now have a full 2-link arm, cascaded attitude controller with feedforward, decomposed bowling-style throw, and a working end-to-end demo (throw → catch → cube pickup).
 
 ## Environment
 
@@ -12,76 +12,180 @@ Always use the `robots` conda env. Do not `pip install` against system Python.
 
 ```bash
 conda activate robots
-python src/main.py             # run demo with GUI
-python src/main.py --headless  # no viewer; use for sanity checks
-python src/main.py --duration 30
-
-# one-time setup:
-# conda create -n robots python=3.11 -y
-# conda activate robots && pip install -r requirements.txt
+python src/main.py             # full demo with GUI
+python src/main.py --headless  # no viewer; CI/sanity
+python src/main.py --headless --duration 22 --runs-dir runs/m4
 ```
 
-`src/main.py` imports siblings as top-level modules (`from world import setup`), so it must be run with `src/` as the working directory or by invoking the file path directly (Python adds the script's directory to `sys.path`). It is *not* a package — there's no `__init__.py`. Don't switch to `python -m src.main` without restructuring.
+`src/main.py` imports siblings as top-level modules (`from world import setup`); run with `src/` as cwd or invoke the file directly.
 
 ## Architecture
 
-Three layers, each one file:
+### Core modules
 
-1. **World** (`src/world.py`) — `setup(gui)` connects to PyBullet, loads `plane.urdf` from `pybullet_data`, builds four static box walls, sets gravity and a 240 Hz timestep. Returns the connection id. Caller owns `p.stepSimulation()` and `p.disconnect()`.
-
-2. **Drone** (`src/drone.py`) — `Drone` dataclass wraps one quadrotor body. **The dynamics model is intentionally simplified**: every `step()` applies a single net force in the *world frame* (PD on position/velocity + gravity feed-forward, clipped to `max_force`). It does **not** model rotor thrust, body torques, roll/pitch/yaw coupling, or attitude. This is enough to prototype catching trajectories but will not transfer to real flight controllers — anything that depends on underactuation (aggressive maneuvers, wind rejection, sim2real) needs a real attitude/thrust cascade before it's meaningful. The "arm" is also a stand-in: `grasp()` creates a `JOINT_FIXED` PyBullet constraint when the target body is within `max_distance`, and `release()` removes it (optionally setting a launch velocity for throws). There are no arm joints, no contact-based grip, no force closure.
-
-3. **Ball / prediction** (`src/ball.py`) — `spawn_ball()` instantiates a sphere with tuned mass/restitution/damping. `predict_landing(pos, vel, target_z)` solves the ballistic quadratic and returns the *later* (descending) root, used by the catcher to pick an interception XY at hover height. Assumes pure ballistic flight — no drag model.
-
-Demo orchestration (`src/main.py`) is a phase machine: `tracking → carry_to_cube → descend_to_cube → lift`. Each phase reassigns `catcher.set_target(...)` every step; transitions are distance-threshold checks. The thrower's release velocity is open-loop and hand-tuned (`throw_dir * 4.0 + [0,0,3.5]`) — the catcher does the closed-loop work.
+| File | Role |
+|---|---|
+| `src/world.py` | PyBullet setup: floor, four walls, ceiling, gravity, 240 Hz timestep. |
+| `src/drone.py` | `Drone` dataclass: state queries, cascade controller call, force/torque application, arm motor control, EE-aware grasp/release. **Now models real underactuated quadrotor dynamics + 2-link arm.** |
+| `src/controller.py` | `CascadeController`: outer position PD → desired thrust vector → inner Lee SO(3) attitude PI(D). Tilt cap, max_thrust/torque. **Has integrator on attitude error and accepts feedforward torque.** |
+| `src/ball.py` | Ball spawn, ballistic prediction (`predict_landing`). |
+| `src/planner.py` | Original grid+Pareto throw planner (matched-t backup). **Largely obsolete** — superseded by `throw.py` + decomposition. Kept for historical/baseline use. |
+| `src/throw.py` | Throw decomposition: given a target release_vel + arm length + release angle, computes (drone vx, ω, α). With pitch-correction option. |
+| `src/config.py` | `GameConfig` + `ArmConfig`: scene geometry, play areas, cube position, arm motor caps, FF inertia constants. |
+| `src/sim_setup.py` | Shared scaffolding for isolated tests: world, marker bundle, video, logger, tick wrapper, ball-at-EE spawn helper. |
+| `src/main.py` | Full demo orchestration: thrower charges + bowls; catcher predicts + soft-catches; cube pickup. Multi-cam video. |
 
 ### Quadrotor URDF (`assets/quadrotor.urdf`)
 
-Hand-authored: a `0.18 x 0.18 x 0.04` box base with four cosmetic prop disks fixed-jointed in. The disks have tiny inertials (1e-6) purely to silence PyBullet's "no inertial data" warnings — they're cosmetic, fixed-joint, and don't affect dynamics. Only `base_link` matters physically (`MASS = 0.5` in `drone.py` must match the URDF). Non-base reference URDFs (`plane.urdf`, `sphere_small.urdf`, `cube_small.urdf`, `pr2_gripper.urdf`) are pulled live from `pybullet_data` at runtime.
+Box base 0.18×0.18×0.04 m + 4 cosmetic prop disks + 2-link arm:
+
+- `shoulder_housing` (fixed) — mounting stub at top of base
+- `shoulder_joint` (revolute about body -y) — positive shoulder = forward sweep
+- `upper_arm` (cylinder, 0.20 m, ~0.030 kg)
+- `elbow_joint` (revolute about body +y) — kept at 0 always (arm always extended; folded-back inverts to inverted-pendulum trap)
+- `forearm` (0.20 m, ~0.030 kg)
+- `j_ee` (fixed) — attaches `end_effector` to forearm tip
+- `end_effector` (small green sphere, ~0.005 kg) — gripper attachment point
+
+Total mass 0.625 kg (drone class hardcodes `MASS = 0.625` — must match URDF).
+
+### Demo flow (`main.py`)
+
+1. **Setup**: world, two drones (thrower + catcher), cube, ball spawned at thrower EE, multi-cam video, noisy ball perception (`BallPerception`).
+2. **Plan**: ballistic to (catcher_home, hover_z) with aim-offset compensation. Decompose into (drone_vx, ω, release_α) via `throw.decompose_throw`. Auto-position thrower at the spin-trigger point.
+3. **Settle/preposition**: thrower flies to auto-start x; catcher pre-positions at intercept (body L_arm forward of predicted landing so backward-pointing EE is on the intercept).
+4. **Throw choreography**: closed-loop carrot cruise (drone_pos as pos target + ramped vel target) → adaptive spin trigger (when `drone_x + vx · sweep_time ≥ release_x`) → arm sweep at ω with 200 ms ramp → release at α=70° → arm brake (vel-mode hold at 0).
+5. **Catcher tracking**: see Soft-catch strategy below.
+6. **Carry**: catcher flies above cube at hover_z, releases ball.
+7. **Descend + pickup**: catcher extends arm down, descends to cube_z + L_arm + 5 cm, grasps cube.
+8. **Lift**: catcher elevates with cube.
+
+## Controller stack (built across M1–M4)
+
+The cascaded controller has accumulated several layers — each addresses a specific failure mode we documented. All are toggleable per-drone.
+
+| Layer | Toggle | Purpose | Status |
+|---|---|---|---|
+| Lee SO(3) attitude inner | always on | body torque from desired R_des | Working; has 180° singularity (avoid yaw=π) |
+| Position outer | always on | desired thrust vector from pos+vel error | Working |
+| Tilt cap (`max_tilt_deg`) | always on | clip horizontal thrust component | 35° default; bumped to 60° during throw + catch maneuvers |
+| Vertical-thrust floor | always on (when tilt < 90°) | drone always pushes up ≥ ½·g | Prevents nose-flip into no-vertical-authority regime |
+| **Arm-reaction torque FF** (`arm_reaction_ff`) | per-drone | predict body torque from commanded shoulder ω, pre-cancel | Works. Rate-limited finite difference of commanded ω, predicted τ = I_arm · α, applied as opposite body torque. Has a clamp at motor torque cap. See `Drone._arm_reaction_ff_body_torque`. |
+| **Attitude gain scheduling** (`attitude_gain_schedule`) | per-drone | rescale kR_y, kw_y to keep ω_n + ζ constant across arm-pose inertia changes | Works dramatically. Keeps cascade critically damped (ζ≈0.91) regardless of arm angle + held mass. M1b post-settle dropped 33 cm → 0.5 cm with this on. |
+| **Body-z translational FF** (`arm_translational_ff_z`) | per-drone | predict body-z disturbance from arm centripetal+tangential, add canceling thrust | Works. F_body_z_dist = −m_eff·(α·sin(θ) + ω²·cos(θ)). Drone holds altitude through sweep instead of dipping. |
+| **PI integrator on attitude** (`controller.kI`) | always (default kI=[0.05, 0.05, 0]) | absorb steady-state biases (gravity-on-arm, wind, model error) | Default on, low gain. Helps in compound disturbances but couldn't fix M1b alone (gain scheduling did). |
+
+What is **NOT** built (open):
+- Body-x translational FF (the "drone tilts forward during sweep, redirects arm tip vz to vx" coupling). We discussed it; chose to plan around it via `cruise_speed_for_release` + an empirical `EXPECTED_PITCH_RAD` correction in throw decomposition. The 30 cm aim offset in M3 plan_ballistic absorbs the residual.
+- Quaternion-error attitude controller (would fix the 180° singularity properly).
+- Disturbance observer (real-time wind / model-error rejection).
+
+## Throw decomposition (`src/throw.py`)
+
+The actual throw: drone provides forward velocity `v_drone`, arm provides vertical + extra horizontal via tip tangent. At release angle α from straight-down:
+
+```
+ω · L · sin(α) = vz_target
+v_drone + ω · L · cos(α) = vx_target
+```
+
+We pick α from config (default π/3 = 60°; bumped to 70° in main demo). Solve for ω and v_drone.
+
+Pitch-correction option (`expected_pitch_rad`): drone tilts forward ~5–10° during sweep; tilt rotates body-frame arm tip velocity in world frame. Pre-rotate target by −α_pitch so body-frame plan compensates. Empirical 7° correction halves residual aim error.
+
+`cruise_speed_for_release(decomp)` returns the cruise speed needed pre-sweep so that, after the sweep's natural translational push (centripetal force integral along the sweep arc), the drone arrives at release with `v_drone_horiz`. Approximates Δvx_during_sweep = −m_eff·ω·cos(α) / m_drone.
+
+## Soft-catch strategy (current state — work-in-progress)
+
+The catcher's job: position so EE is at predicted ball intercept (xy at z=hover_z, with body L_arm forward because EE is L_arm behind body in catch pose). Then absorb ball momentum without a hard constraint snap.
+
+### What's implemented
+
+1. **Pre-positioning during throw choreography**: catcher target = predicted intercept + L_arm offset. By the time ball is released, catcher is already at the catch point.
+2. **Ball perception with distance-scaled noise + latency** (`BallPerception`): models stereo-camera-class measurement (pos σ = 0.5 cm + 0.5%·dist, vel σ = 5 cm/s + 6%·dist, latency 50 ms). Catcher reads through `perception.observe(viewer_pos)` instead of god-mode `state(ball)`.
+3. **Phased catch**:
+   - **Phase A (no soft-catch)**: catcher holds at pre-positioned intercept (zero vel target). Engaged until ball is *committed* (vz < −0.5 AND past the centerline x > 0).
+   - **Phase B (soft catch)**: when time-to-intercept ≤ T_LEAD (250 ms), ramp catcher's xy vel target from 0 to ball's measured xy velocity at intercept. Linear ramp → constant accel.
+4. **Predicted-xy EWMA smoothing** (α=0.15) once ball-committed gate trips, to suppress per-tick noise jitter that whips the carrot around.
+5. **Catcher tilt cap bumped to 60°** for the catch maneuver (matching ball at ~4 m/s xy needs ~14 m/s² → 55° tilt).
+6. **Catch trigger**: `ee_to_ball < 0.15 m AND rel_vel < 1.5 m/s` → snap constraint via `catcher.grasp(ball, max_distance=0.15)`.
+
+### Compliant capture (validated in isolation — `tests/arm_catch_solo.py`)
+
+The velocity-matching approach hit a geometric wall: at the matched instant the arm tip's centripetal acceleration (ω²L ≈ 53 m/s², pointing up toward the shoulder) nearly opposes the ball's gravity vector, so the circle-vs-parabola tangency window is ~27 ms for a 1.5 m/s rel-vel gate. The replacement (per the adversarial-game decision: don't depend on the thrower throwing catchable balls) is **compliant capture** — drop the rel-vel gate entirely, trigger geometrically (d < 15 cm), and spread the momentum transfer:
+
+1. **Absorption sweep** (reduces rel-vel at contact): shoulder ramps to ω over a window sized T = 2·Δθ/ω so it lands on the velocity-matched angle (tip tangent ∥ ball velocity) exactly at intercept.
+2. **`soft_grasp`** (`drone.py`): point-to-point constraint capped at 8 N — ball decelerates over ~60–80 ms / ~10 cm instead of one rigid solver step. Stands in for foam pad + compliant fingers.
+3. **Back-drivable shoulder**: `spin_arm(..., torque_cap=0.3)` during absorption so the joint yields under ball load.
+4. **Two-stage lock**: at rel_vel < 0.3, `firm_grasp()` stiffens the constraint and the shoulder brakes to ω=0 in velocity mode.
+
+Validated 12/12 over the adversarial envelope (arrival speeds 3.2–7.1 m/s, descent 20–61°; `--grid`), contact rel-vel up to 4.6 m/s, peak constraint force ≤ 11.3 N (logged via `grasp_force()`). See `docs/iteration_findings.md` §11 for the failure modes found en route.
+
+### What's NOT yet working
+
+- **Integration into `main.py`**: the demo still uses the rigid `grasp` + 1.5 m/s rel-vel gate and does NOT currently catch (closest approach ~13 cm at rel-vel ~5 m/s). Port the compliant capture + sized sweep window from `arm_catch_solo.py` into the demo's phased catch. Keep the perception commitment gate (descending + past midline) — the isolation test dropped it because its launch is ground truth.
+- **3-finger gripper**: still the eventual hardware-honest mechanism (the soft constraint is its behavioral stand-in). URDF needs 3 revolute finger joints driven by single "close" command; catch detection becomes contact-force-based instead of distance-based.
+
+## Multi-cam video
+
+`VideoRecorder` in `main.py` renders 4 viewpoints per frame and concatenates as 2×2 grid (1280×960 total; each cell 640×480):
+- TL: side spectator view (static)
+- TR: thrower POV (camera mounted on thrower body, looking +x)
+- BL: catcher POV (looking -x toward incoming ball)
+- BR: ball-follow (camera trails ball at -y offset)
+
+Playback speed: 0.5× (slow-mo, set in `VideoRecorder.__init__`).
+
+## Play area geometry (current `main.py` overrides)
+
+- **Room**: 10 m × 10 m × 3 m (walls at ±5)
+- **Thrower**: home (-2, 0, 1.5), play x ∈ [-3.0, -0.5], y ∈ [-1.0, +1.0], z ∈ [0.8, 2.6] (2.5 m wide)
+- **Catcher**: home (+2, 0, 1.5), play x ∈ [+1.0, +3.0], y ∈ [-1.0, +1.0], z ∈ [0.4, 2.6] (z down to 0.4 so extended arm reaches cube)
+- **Gap**: x ∈ [-0.5, +1.0] (1.5 m of "no-fly" zone for the ball to travel through)
+- **Cube**: (1.5, -0.7, 0.05) — inside catcher's play area
 
 ## Engineering log
 
-Three living docs together cover the throw-and-catch design:
+Living docs covering specific iterations:
 
-- `docs/throw_planning.md` — *how* to plan a throw. Ballistic math, planner
-  algorithm (grid + Pareto), free variables, hard/soft constraints, the
-  matched-t single ramp insight.
-- `docs/iteration_findings.md` — *what surprised us* during the no-arm
-  tuning loop. Lee SO(3) singularity, paper estimates off by integer
-  multiples, choreography tricks (pre-flip windup), the marker-palette
-  debugging substrate, the diagnostic scripts.
-- `docs/arm_v1_status.md` — *where the 2-link arm work stands*. WIP doc
-  capturing what's built and verified (URDF, joint discovery, EE-aware
-  grasp, system-CoM thrust compensation, stationary throw skeleton),
-  what still doesn't work (EE world velocity is half of expected ω·L,
-  drone destabilizes during spin), and the list of open puzzles for the
-  next session. Read before resuming arm work.
+- `docs/throw_planning.md` — ballistic math, planner algorithm, matched-t single ramp insight (largely historical now).
+- `docs/iteration_findings.md` — Lee SO(3) singularity, paper estimates off by integer multiples, choreography tricks, marker palette.
+- `docs/arm_v1_status.md` — where the 2-link arm work *was* (mid-development snapshot). Largely superseded by what's described in this CLAUDE.md, but useful for understanding why specific things were built.
 
-Read these before re-tuning the throw or rewriting the controller, and
-append to them when the next iteration teaches you something non-obvious.
+Subsystem isolation tests (validated foundations):
+
+- `tests/arm_hover_spin.py` — M1 + M1b: drone hovers, arm sweeps -π/2 → +π/2. With FF + gain scheduling, passes both with-ball and without-ball variants.
+- `tests/arm_cruise_spin.py` — M2 + M2.1 + M2.1b: drone cruises forward, arm sweeps mid-flight. Tight choreography (sweep starts during accel, no wait for cruise to settle) outperforms the settled version.
+- `tests/throw_solo.py` — M3: solo throw to a target landing. Adaptive spin trigger + closed-loop cruise + pitch correction + 30 cm aim offset → throws land within 5 cm across 3.5–6.5 m range.
+- `tests/arm_catch_solo.py` — M5: compliant capture. Stationary catcher, ball launched to arrive at the EE with a chosen (vx, vz); absorption sweep + soft constraint + back-drivable shoulder + two-stage lock. `--grid` sweeps the adversarial velocity envelope (12/12 held). `--vx/--vz` for a single point.
+
+## Open design questions / parking lot
+
+1. **Integrate compliant capture into `main.py`** (next priority). The mechanism is validated in isolation (M5, see Soft-catch section); the demo still runs the old rigid grasp + rel-vel gate and doesn't catch. Port: soft_grasp trigger (geometric only), sized sweep window, back-drivable shoulder, two-stage lock — while keeping the perception commitment gate.
+2. **3-finger gripper URDF + grasp-on-contact**. The soft constraint (M5) is its behavioral stand-in; real fingers + friction → ball physically retained, catch detection becomes contact-force-based (matches real hardware: Dynamixel current sensing / FSR pad). Limitations: PyBullet rigid-body contacts (no soft deformation); friction model simplified; OK for demo, not paper-grade. Deliberately deferred until compliant-capture integration proves insufficient.
+3. **Unlock the elbow for catch-time parabola tracking**. 2-DOF arm lets the EE track the ball's path for ~250 ms instead of tangenting it at one instant, and widens the catchable approach-direction envelope (adversarial robustness). Needs 2-link IK on a moving base + FF/gain-schedule extension to elbow angle. Keep elbow range limited (~[0°, 100°]) to stay out of the inverted-pendulum trap.
+4. **Catcher facing the thrower / yaw=π**. Current geometry only works because catcher faces world +x while ball comes from -x — the EE backward-pointing pose happens to align. For corner balls / general direction, we'd need yaw control + a singularity-free attitude controller. Quaternion-error formulation is the standard fix.
+5. **Turn-by-turn rally game**. Discussed. Mechanically: after catch, swap roles, catcher (now thrower) plans throw back. Needs role-symmetric arm choreography + arm-swing-back as the role-switch (instead of yaw rotation, which hits the singularity).
+6. **Adversarial / cooperative game objectives**. Longest rally vs. beat-your-opponent. The latter is a planning problem (throw to opponent's reachable-area edge); the former is cooperation around accuracy.
+7. **Sim2real gap**. PyBullet's contact model is rigid; air drag is constant linear damping (no Re-dependent drag). Real drones have battery-state thrust falloff, motor delay, sensor noise, gimbal latency. Honest port to hardware would need PX4 SITL via Gazebo+ROS2.
+8. **Vision-based ball perception**. Currently god-mode + Gaussian noise + latency. A real version would render stereo from catcher's POV and run actual stereo + detection + filtering. Big jump in realism but probably right answer is to keep noise-model abstraction and validate with real data when we have it.
+9. **Body-x translational FF**. The remaining cascade-fights-recoil coupling that we plan around rather than cancel. The principled fix is FF; the user-preferred path was to plan around it (let drone gain forward velocity from sweep naturally, plan cruise lower so net at release is correct).
+10. **Catcher's noisy perception jitter** when ball is far. EWMA smoothing helps; gating by `ball_committed` (vz<−0.5 + past midline) helps more. Could add a Kalman filter for principled best-estimate.
 
 ## Tuning gotchas
 
-- `MASS` in `drone.py` and `<mass>` in the URDF must agree, otherwise gravity feed-forward is wrong and the drone drifts vertically.
-- When carrying via constraint, the drone's effective mass increases but the gravity feed-forward still uses `MASS` — expect a small steady-state z-error while holding objects. Acceptable for the demo; fix with feed-forward by held mass if it matters.
-- `grasp()` checks center-to-center distance only — set `max_distance` based on object size (cube_small ≈ 5cm half-extent, sphere_small ≈ 2.5cm radius). Loose thresholds make catching easier but mask controller errors.
-- The catcher's PID gains (`kp=[6,6,12]`, `kd=[4,4,6]`) are tuned for ~1 m/s tracking. Faster intercepts will need re-tuning or a feed-forward velocity term.
-- Throw velocity in `main.py` is hand-tuned for the specific drone separation. Change start positions and the open-loop throw will miss; consider closing the loop on the throw before adding more scenarios.
-
-## Deferred / future work
-
-A list of design ideas we've discussed but haven't implemented. Each one has a real motivation (referenced) — don't lose these.
-
-- **Extending arm / 1-DOF revolute or prismatic joint as the gripper.** The current gripper is a fixed offset 8 cm below the body, so the *whole drone* has to chase ball velocity (throw or catch). A real arm would let the drone hover steady while the arm swings/extends. Fixes three problems at once: (1) inefficient mass coupling, (2) catch geometry — gripper can articulate up to receive a ball from above instead of the ball hitting the body's +z surface, (3) throw release — arm can fling without the drone needing high body velocity. This is the right long-term direction.
-- **`thrust_mode = "vectored"` on `Drone`.** Optional flag for a drone whose thrust direction is decoupled from body orientation (omnidirectional / tilt-rotor / coaxial-with-gimbal style). Default stays `"underactuated"` (current cascaded controller). Use for prototyping launcher-arm or non-quad concepts. Same conceptual family as the extending-arm idea above — both decouple end-effector dynamics from body dynamics.
-- **Real catch geometry.** `Drone.grasp()` currently checks center-to-center distance only and snaps a fixed constraint regardless of orientation. A proper catch needs: (a) check ball is at the *gripper's* world position, not the body's COM; (b) catcher approaches from below/behind rather than colliding with the ball's path; (c) timed pitch-up at the moment of capture so the gripper sweeps up to meet the descending ball ("bird approaching its prey").
-- **Pre-throw windup dip.** Real throwers crouch before launching upward — drops the body to gain runway for the upward stroke. Adding a `dip` phase (target z=0.5 before the throw) would give us ~2 m of vertical lane instead of ~1 m, enabling stronger throws without hitting the ceiling.
-- **Wider arena and more drone separation.** Currently 6 m room with thrower/catcher 3 m apart; throws are short and the ball barely arcs. Bumping to 10 m room with drones at ±4 m makes the throw and catch genuinely interesting (more flight time, more room for prediction error).
-- **Gain scheduling on held mass.** Currently kR/kw are sized for the bare drone. Effective inertia is ~14% higher when holding the ball. PD absorbs it but we'd want explicit scaling for heavier loads.
-- **Soft catching (velocity-matched grasp).** The current `grasp()` snaps a fixed constraint the moment the ball is within `max_distance` regardless of relative velocity. In reality this would deliver a hard impulse — the constraint solver yanks the ball to the gripper frame in one step — that on real hardware would shock the airframe and the gripper mechanism. Soft catch: as the catcher closes on the ball, set its `vel_target` to match the ball's velocity (or ramp toward it) so that at grasp time the relative velocity is ~0 and the constraint forms with minimal jerk. Same idea as a person catching a baseball by drawing the glove backward to spread the impulse over more time.
-- **Geometric attitude controller singularity at 180°.** With `R_des` 180° from `R`, the vee-mapped error `0.5(R_des^T R − R^T R_des)` is exactly zero — the controller can't tell which way to rotate. Worse, in degenerate planar geometries (e.g., yaw=π and thrust_vec in the same plane as the desired body-x), the cascade becomes blind to the desired tilt and the drone freezes. Worked around so far by avoiding singular configurations (don't pre-yaw drones, don't face-the-ball during tracking). Proper fix: detect the singularity (e.g., `trace(R_des^T R) < threshold AND |e_R| small`) and inject a perturbation. Sensible choices for the perturbation direction, in order of preference: (1) the cross product `body_z × z_des` (rotates body-z toward where it should be), (2) the current angular velocity `ω` (continues whatever rotation is already happening rather than fighting it), (3) a small random axis (last resort if the body is perfectly stationary). Or switch to a quaternion-error formulation when geometric error is near the singularity (hybrid controller).
-- **Velocity-feedforward overshoot.** With `set_target(pos, vel)` and a static target, the drone overshoots position because at steady state (drone at pos with target_vel) the controller does nothing — drone keeps moving through. Current workaround is a lookahead target (aim past the desired release point along the velocity vector). Proper fix is a time-parameterized reference trajectory.
+- `MASS` in `drone.py` and `<mass>` in URDF must agree.
+- When carrying via constraint, gravity feedforward must include held mass (`_held_mass()`). The `_system_com_world` thrust application depends on this for translational accuracy.
+- Switching motor mode `spin → hold` (`spin_arm` → `extend_arm`/`hold_arm`) generates a 1-step torque kick that FF doesn't track. Always brake to ω=0 in velocity mode and stay there. We learned this the hard way (the "violent jerk at end of arm sweep" episode).
+- Cascade gains are tuned for body-only inertia. With held ball + extended arm, system inertia is 6× higher, ζ drops from 0.91 to 0.37 (ringy). Gain scheduling fixes this.
+- `set_target` clips to play area. If your throw needs the drone past `play_x_max`, widen the play area or lower the release point.
+- Isolation tests run in the DEFAULT room (8 m → walls at ±4); `main.py` overrides to 10 m. Spawn/launch math that assumes ±5 walls puts objects inside a wall — if a test's "closest approach" is meters off, check spawn geometry before blaming the controller.
+- Ramped arm choreography covers ∫ω dt = ω_max·T/2, not ω_max·T. Size the window from the rotation needed (T = 2·Δθ/ω_max) and recompute the ramp from time-to-intercept every tick — a one-shot engagement that latches full ω overshoots the target angle.
 
 ## Tests / lint
 
-None configured. There is no test suite, linter, or formatter. The only verification path is running `main.py --headless` and checking that the `[t=...] caught ball` and `[t=...] picked up cube` log lines appear before the duration ends.
+No formal test suite. Verification path:
+- Subsystem tests in `tests/` (arm_hover_spin, arm_cruise_spin, throw_solo, arm_catch_solo) print PASS/FAIL; `arm_catch_solo --grid` is the compliant-capture envelope check (must hold 12/12).
+- **Known-failing as of 2026-06**: `arm_hover_spin` and `arm_cruise_spin` FAIL (sweep-window drift ~14 cm + post-sweep ringing). Predates the compliant-capture work (verified by A/B-neutralizing the new torque-cap path — identical failure); likely broken by M3/M4-era tuning or the arena resize. Needs a bisect-style look at thresholds vs. behavior.
+- Full demo: `python src/main.py --headless --duration 22 --runs-dir runs/m4` then check for `caught ball` and `picked up cube` log lines.
+- Multi-cam video at `runs/m4/run_*.mp4` — eyeball the four views.

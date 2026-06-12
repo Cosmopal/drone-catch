@@ -26,6 +26,7 @@ URDF = os.path.join(ASSETS, "quadrotor.urdf")
 
 MASS = 0.625  # full URDF mass: base 0.546 + 4 props (4e-3) + arm (~0.075)
 G = 9.81
+DT = 1.0 / 240.0  # sim timestep, must match world.setup()
 
 
 @dataclass
@@ -49,6 +50,27 @@ class Drone:
     # current arm command — applied each step via _apply_arm()
     _arm_mode: str = field(default="hold", init=False)
     _arm_targets: dict = field(default_factory=dict, init=False)
+    # Arm-reaction feedforward toggle. When True, drone predicts the body
+    # torque that comes from accelerating the arm and adds the negation to
+    # the cascade torque output, so the cascade doesn't have to react to a
+    # disturbance it could have predicted. See M1 in plan.
+    arm_reaction_ff: bool = False
+    _shoulder_vel_cmd_prev: float = field(default=0.0, init=False)
+    # Translational feedforward for body-z disturbance from arm dynamics.
+    # During sweep, F_body_z = −m_eff·(α·sin(θ) + ω²·cos(θ)) — peaks downward
+    # at θ=0 (mid-sweep), pulls drone down. We add the canceling thrust as
+    # a world-frame z-force, separate from the cascade's thrust output.
+    arm_translational_ff_z: bool = False
+    # When True, recompute kR_y and kw_y each step from the current arm pose
+    # + held-mass-induced pitch inertia, so the cascade stays at its design
+    # ω_n and ζ across configurations. Off by default so static-gain
+    # behavior is preserved for the existing tests.
+    attitude_gain_schedule: bool = False
+    # Design points for gain scheduling — these match the body-only
+    # numerical defaults (kR=0.30, kw=0.05, I≈0.0025): ω_n ≈ 11 rad/s,
+    # ζ ≈ 0.91. We recompute kR, kw from these when scheduling is on.
+    target_omega_n_y: float = 11.0
+    target_zeta_y: float = 0.91
 
     def __post_init__(self):
         q0 = p.getQuaternionFromEuler([0.0, 0.0, self.start_yaw])
@@ -197,11 +219,16 @@ class Drone:
         """Hold the arm extended straight down (shoulder=0, elbow=0)."""
         self.hold_arm(0.0, self.arm_cfg.extended_elbow)
 
-    def spin_arm(self, shoulder_vel: float, elbow_vel: float = 0.0):
-        """Velocity-mode servo: arm spins at the given joint rates."""
+    def spin_arm(self, shoulder_vel: float, elbow_vel: float = 0.0,
+                 torque_cap: float | None = None):
+        """Velocity-mode servo: arm spins at the given joint rates.
+        `torque_cap` overrides arm_max_torque for this mode — a low cap makes
+        the joint back-drivable (it yields under external load), which is how
+        the arm absorbs ball momentum during a compliant catch."""
         self._arm_mode = "spin"
         self._arm_targets["shoulder_vel"] = float(shoulder_vel)
         self._arm_targets["elbow_vel"] = float(elbow_vel)
+        self._arm_targets["torque_cap"] = torque_cap
 
     def step(self):
         pos = self.position()
@@ -209,12 +236,17 @@ class Drone:
         R = np.array(p.getMatrixFromQuaternion(self.orientation())).reshape(3, 3)
         omega = self.angular_velocity()
 
+        if self.attitude_gain_schedule:
+            self._apply_attitude_gain_schedule()
+        ff_torque = self._arm_reaction_ff_body_torque() if self.arm_reaction_ff else None
+
         thrust_mag, torque = self.controller.compute(
             pos=pos, vel=vel, R=R, omega=omega,
             target=self.target, vel_target=self.vel_target,
             yaw_target=self.yaw_target,
             held_mass=self._held_mass(),
             MASS=MASS, G=G,
+            feedforward_torque_body=ff_torque,
         )
 
         # Body force: thrust along body-z, applied at the SYSTEM CoM (not the
@@ -225,6 +257,8 @@ class Drone:
         # WORLD_FRAME with the explicit world-frame application point
         # eliminates this. (See `_system_com_world` docstring.)
         force_world = R @ np.array([0.0, 0.0, thrust_mag])
+        if self.arm_translational_ff_z:
+            force_world = force_world + self._arm_translational_ff_world_force()
         com_world = self._system_com_world()
         p.applyExternalForce(self.body_id, -1,
                              force_world.tolist(), com_world.tolist(),
@@ -233,6 +267,143 @@ class Drone:
 
         # Arm motor commands (after body controller — they're independent)
         self._apply_arm()
+
+    def _effective_pitch_inertia(self) -> float:
+        """Effective body-pitch inertia (about body +y) including the arm and
+        any held mass, computed from current shoulder angle. Uses point-mass
+        approximations for arm CoM (at half-length) and ball at end-effector.
+
+        Geometry: shoulder is at body z=+0.040 m above body CoM (approx,
+        based on URDF top-of-base). Arm at angle θ from straight-down has:
+            arm CoM at body (sin(θ)·L/2, 0, -cos(θ)·L/2 - d_z)
+            ball at body (sin(θ)·L,    0, -cos(θ)·L    - d_z)
+        For pitch axis (+y), perpendicular distance² = x² + z²:
+            d² = r² + 2·r·d_z·cos(θ) + d_z²
+        where r is the position along the arm (L/2 for arm CoM, L for ball).
+        """
+        s_pos, _, _, _ = self.joint_states()
+        cos_t = float(np.cos(s_pos))
+        L_arm = self.arm_cfg.upper_arm_len + self.arm_cfg.forearm_len
+        d_z = 0.04
+        m_arm_total = 0.075  # arm + EE link mass (matches URDF)
+        r_arm = L_arm / 2
+        # Arm self-inertia about its own CoM (thin rod): m·L²/12 ≈ 0.001
+        I_arm_self = m_arm_total * L_arm**2 / 12.0
+        I_arm = I_arm_self + m_arm_total * (r_arm**2
+                                             + 2 * r_arm * d_z * cos_t
+                                             + d_z**2)
+        I_ball = 0.0
+        if self.held_constraint is not None:
+            m_held = self._held_mass()
+            I_ball = m_held * (L_arm**2 + 2 * L_arm * d_z * cos_t + d_z**2)
+        I_body = 0.0025  # body-alone pitch inertia (matches design tuning)
+        return I_body + I_arm + I_ball
+
+    def _apply_attitude_gain_schedule(self):
+        """Rescale controller's kR_y and kw_y to maintain target ω_n and ζ
+        across configurations. Roll axis (kR_x, kw_x) and yaw axis are left
+        alone — arm motion is purely in pitch."""
+        I_y = self._effective_pitch_inertia()
+        omega_n = self.target_omega_n_y
+        zeta = self.target_zeta_y
+        self.controller.kR[1] = omega_n * omega_n * I_y
+        self.controller.kw[1] = 2.0 * zeta * omega_n * I_y
+
+    def _arm_translational_ff_world_force(self) -> np.ndarray:
+        """Predicted world-frame force to cancel the body-z disturbance from
+        arm dynamics (centripetal + tangential components).
+
+        Body-frame z disturbance during sweep:
+            F_body_z_dist = −m_eff·(α·sin(θ) + ω²·cos(θ))
+        where m_eff = m_arm·(L/2) + m_held·L (point-mass approx),
+              θ = shoulder angle (0 = down, +π/2 = forward),
+              ω = measured shoulder angular velocity,
+              α = commanded shoulder angular acceleration (rate-limited).
+
+        We use the *measured* ω (from getJointState) for the centripetal
+        term — it tracks reality better than commanded during transients.
+        The α term uses commanded velocity finite-difference (same predictor
+        as the rotational FF), since "acceleration" doesn't have a clean
+        measurement.
+
+        Returns a world-frame 3-vec; we apply the negation of the body-z
+        disturbance, transformed into world via the drone's rotation matrix.
+        Drone level → body-z = world-z. Drone tilted → component projects.
+        """
+        s_pos, s_vel, _, _ = self.joint_states()
+        omega = float(s_vel)
+        cos_t = float(np.cos(s_pos))
+        sin_t = float(np.sin(s_pos))
+        # Use the rotational FF's prev tracker for α (same kinematic model)
+        cur_cmd = (self._arm_targets["shoulder_vel"]
+                   if self._arm_mode == "spin" else 0.0)
+        # Don't double-update prev; the rotational FF already does that
+        # this tick. We just read it and recompute alpha consistently.
+        prev = self._shoulder_vel_cmd_prev
+        I_arm = (self.arm_cfg.I_arm_with_ball
+                 if self.held_constraint is not None
+                 else self.arm_cfg.I_arm_extended)
+        alpha_max = self.arm_cfg.arm_max_torque / I_arm
+        delta_max = alpha_max * DT
+        delta = float(np.clip(cur_cmd - prev, -delta_max, +delta_max))
+        alpha_cmd = delta / DT
+
+        L = self.arm_cfg.upper_arm_len + self.arm_cfg.forearm_len
+        m_arm = 0.075
+        m_held = self._held_mass()
+        m_eff = m_arm * (L / 2.0) + m_held * L
+
+        # Body-frame disturbance on body
+        F_body_z_dist = -m_eff * (alpha_cmd * sin_t + omega * omega * cos_t)
+        # Cancel: apply opposite in body-z
+        F_body_z_ff = -F_body_z_dist  # = +m_eff·(α·sin + ω²·cos)
+        # Transform to world (drone may be tilted; project body-z direction)
+        R = np.array(p.getMatrixFromQuaternion(self.orientation())).reshape(3, 3)
+        body_z_world = R @ np.array([0.0, 0.0, 1.0])
+        return body_z_world * F_body_z_ff
+
+    def _arm_reaction_ff_body_torque(self) -> np.ndarray:
+        """Predict the body torque that cancels the arm-reaction torque
+        from changing the COMMANDED shoulder velocity.
+
+        Kinematic predictor: τ_reaction = I_arm · α_cmd, where α_cmd is
+        finite-difference of the commanded shoulder ω. We feed forward the
+        opposite to spare the cascade from reacting to a known disturbance.
+
+        Joint axis (URDF): shoulder = body -y. Motor torque +τ along the
+        joint axis gives the body a reaction +τ along +y direction. To
+        cancel, FF body torque = [0, -τ, 0] in LINK_FRAME.
+
+        Rate-limiting the transition: when commanded ω jumps in one step
+        (e.g., spin→hold), the raw finite difference implies α larger than
+        the motor can physically deliver. The motor will take several ticks
+        to actually brake the arm at its torque cap, so the body
+        disturbance lasts for that whole window. We rate-limit our
+        internal `_shoulder_vel_cmd_prev` to respect the physically-
+        achievable α_max = τ_max / I_arm, which makes the FF spread the
+        compensation across the same number of ticks as the real
+        disturbance. Side benefit: rules out the spurious one-tick FF
+        spike that double-counts during the kinematic step.
+
+        We deliberately do NOT use the cascade's *measured* steady-state
+        compensation — gravity on the arm is a baseline torque the cascade
+        already absorbs cleanly during hover. FF here only catches the
+        transients we know are coming from arm-acceleration commands.
+        """
+        cur_cmd = (self._arm_targets["shoulder_vel"]
+                   if self._arm_mode == "spin" else 0.0)
+        I_arm = (self.arm_cfg.I_arm_with_ball
+                 if self.held_constraint is not None
+                 else self.arm_cfg.I_arm_extended)
+        alpha_max = self.arm_cfg.arm_max_torque / I_arm
+        delta_max = alpha_max * DT
+        delta = cur_cmd - self._shoulder_vel_cmd_prev
+        delta = float(np.clip(delta, -delta_max, +delta_max))
+        new_prev = self._shoulder_vel_cmd_prev + delta
+        alpha = delta / DT  # rate-limited to ±alpha_max
+        self._shoulder_vel_cmd_prev = new_prev
+        tau_predicted = I_arm * alpha
+        return np.array([0.0, -tau_predicted, 0.0])
 
     def _apply_arm(self):
         """Drive shoulder + elbow joints based on current _arm_mode."""
@@ -249,14 +420,16 @@ class Drone:
                 positionGain=cfg.arm_kp, velocityGain=cfg.arm_kd,
                 force=cfg.arm_max_torque)
         elif self._arm_mode == "spin":
+            cap = self._arm_targets.get("torque_cap")
+            torque = cfg.arm_max_torque if cap is None else cap
             p.setJointMotorControl2(self.body_id, self.shoulder_joint,
                 p.VELOCITY_CONTROL,
                 targetVelocity=self._arm_targets["shoulder_vel"],
-                force=cfg.arm_max_torque)
+                force=torque)
             p.setJointMotorControl2(self.body_id, self.elbow_joint,
                 p.VELOCITY_CONTROL,
                 targetVelocity=self._arm_targets["elbow_vel"],
-                force=cfg.arm_max_torque)
+                force=torque)
 
     # ------------ "arm" gripper via constraint at end-effector link ------------
     def grasp(self, target_body: int, max_distance: float = 0.15) -> bool:
@@ -277,6 +450,42 @@ class Drone:
             childFramePosition=[0, 0, 0],    # at child body's COM
         )
         return True
+
+    def soft_grasp(self, target_body: int, max_distance: float = 0.15,
+                   max_force: float = 8.0) -> bool:
+        """Compliant capture: point-to-point constraint with a low force cap.
+        The ball decelerates over many steps (impulse spread over ~m·Δv/F_max
+        seconds) instead of a 1-step rigid snap — stands in for foam pad +
+        compliant fingers. Call `firm_grasp()` once relative velocity decays
+        to lock the carry."""
+        if self.held_constraint is not None:
+            return True
+        ee_pos = self.gripper_world_position()
+        their_pos, _ = p.getBasePositionAndOrientation(target_body)
+        if np.linalg.norm(ee_pos - np.array(their_pos)) > max_distance:
+            return False
+        self.held_constraint = p.createConstraint(
+            parentBodyUniqueId=self.body_id, parentLinkIndex=self.ee_link,
+            childBodyUniqueId=target_body, childLinkIndex=-1,
+            jointType=p.JOINT_POINT2POINT, jointAxis=[0, 0, 0],
+            parentFramePosition=[0, 0, 0],
+            childFramePosition=[0, 0, 0],
+        )
+        p.changeConstraint(self.held_constraint, maxForce=max_force)
+        return True
+
+    def firm_grasp(self, max_force: float = 200.0):
+        """Ratchet the held constraint stiff (absorption done → carry)."""
+        if self.held_constraint is not None:
+            p.changeConstraint(self.held_constraint, maxForce=max_force)
+
+    def grasp_force(self) -> float:
+        """Magnitude (N) of the constraint force currently applied to the
+        held body. 0 if nothing held."""
+        if self.held_constraint is None:
+            return 0.0
+        f = p.getConstraintState(self.held_constraint)
+        return float(np.linalg.norm(f[:3]))
 
     def _held_mass(self) -> float:
         if self.held_constraint is None:

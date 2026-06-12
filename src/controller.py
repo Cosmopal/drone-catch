@@ -23,6 +23,13 @@ class CascadeController:
     # inner (attitude) loop — sized for I ≈ 2-4 mN·m·s²
     kR: np.ndarray = field(default_factory=lambda: np.array([0.30, 0.30, 0.15]))
     kw: np.ndarray = field(default_factory=lambda: np.array([0.05, 0.05, 0.03]))
+    # Integral on attitude error — handles slow steady-state biases (gravity-
+    # on-held-arm at rest, wind, model error). Default low so it doesn't mess
+    # up tuning for known good cases; bumped via the dataclass default if a
+    # particular drone is in a config that needs it. Anti-windup: integral
+    # state clamped to ±integral_clamp per axis.
+    kI: np.ndarray = field(default_factory=lambda: np.array([0.05, 0.05, 0.0]))
+    integral_clamp: float = 1.0   # rad·s, clamp on integrated attitude error
     max_thrust: float = 20.0   # T/W ≈ 3.3 — racing-class. Heavier drone+arm
                                # (0.625 kg) + bowling throw needs bigger budget
                                # for the brake+spin maneuver with reduced floor
@@ -31,10 +38,27 @@ class CascadeController:
                                # is up to 2 N·m, cascade needs headroom to
                                # absorb that AND maintain attitude tracking.
     max_tilt_deg: float = 35.0  # cap on desired body tilt from vertical
+    DT: float = 1.0 / 240.0     # sim timestep (for integral accumulation)
+    # internal state — controller is otherwise stateless so we just keep
+    # the integral here, init in __post_init__
+    _e_R_integral: np.ndarray = field(init=False, default=None)
+
+    def __post_init__(self):
+        self._e_R_integral = np.zeros(3)
+
+    def reset_integral(self):
+        self._e_R_integral = np.zeros(3)
 
     def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,
-                held_mass, MASS, G):
-        """Return (thrust_mag_along_body_z, torque_body_3vec)."""
+                held_mass, MASS, G, feedforward_torque_body=None):
+        """Return (thrust_mag_along_body_z, torque_body_3vec).
+
+        `feedforward_torque_body` (optional): a 3-vector body-frame torque
+        added to the cascade output before the max_torque clip. Use for
+        disturbances we can predict (e.g., arm-reaction torque from
+        commanded shoulder ω changes) so the cascade doesn't have to react
+        to them after the fact.
+        """
         pos = np.asarray(pos, dtype=float)
         vel = np.asarray(vel, dtype=float)
         omega = np.asarray(omega, dtype=float)
@@ -91,7 +115,17 @@ class CascadeController:
         skew = 0.5 * (R_des.T @ R - R.T @ R_des)
         e_R = np.array([skew[2, 1], skew[0, 2], skew[1, 0]])
         omega_body = R.T @ omega
-        torque = -self.kR * e_R - self.kw * omega_body
+        # Integrate attitude error with anti-windup clamp
+        self._e_R_integral = np.clip(self._e_R_integral + e_R * self.DT,
+                                     -self.integral_clamp, +self.integral_clamp)
+        torque = -self.kR * e_R - self.kw * omega_body - self.kI * self._e_R_integral
+
+        # Add feedforward (arm-reaction etc.) before clipping, so the cascade
+        # output is "what the controller wants" + "what we already know is
+        # coming". Clip to max_torque after — the motor mix can't deliver
+        # more than that anyway.
+        if feedforward_torque_body is not None:
+            torque = torque + np.asarray(feedforward_torque_body, dtype=float)
 
         tn = np.linalg.norm(torque)
         if tn > self.max_torque:

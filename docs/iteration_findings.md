@@ -238,3 +238,48 @@ relevant to this iteration:
   for an actual play-catch, not just a one-shot throw + catch + pickup.
   The throw planner is now general enough to support this — the work is
   symmetrizing the demo phase machine.
+
+## 11. Compliant capture: stop velocity-matching, start impulse-spreading
+
+The rigid constraint snap forced a rel-vel gate (≤1.5 m/s) on the catch
+trigger, and the velocity-matched arm sweep alone couldn't hit it: at the
+matched instant the arm tip's centripetal acceleration (ω²L ≈ 53 m/s² toward
+the shoulder) opposes the ball's gravity vector, so the tangency window is
+~27 ms for the rel-vel gate, ~74 ms for the 15 cm distance gate. No amount of
+sweep tuning widens that — it's curvature mismatch between a circle and a
+parabola.
+
+The fix was to delete the rel-vel gate and absorb the residual through
+compliance (`tests/arm_catch_solo.py`, M5):
+
+- **`soft_grasp`**: point-to-point constraint capped at 8 N. The ball
+  decelerates over ~m·Δv/F_max (≈60–80 ms, ~10 cm stroke) instead of one
+  solver step. Stands in for foam pad + compliant fingers on hardware.
+- **Back-drivable shoulder**: during absorption the sweep keeps its velocity
+  target but with `torque_cap=0.3` N·m (vs 2.0 max), so the joint yields
+  under ball load — most of the absorption stroke happens here.
+- **Two-stage lock**: when rel_vel < 0.3 m/s, `firm_grasp` ratchets the
+  constraint stiff and the shoulder brakes to ω=0 in velocity mode (the
+  documented-safe transition).
+
+Validated across an adversarial incoming-velocity grid (vx 2.5–5.5,
+vz −2.0 to −4.5; speeds 3.2–7.1 m/s, descent angles 20–61°): **12/12
+caught and retained**, contact rel-vel up to 4.6 m/s, peak constraint force
+8–11.3 N, impulse matching m·Δv within the gravity contribution.
+
+Lessons earned along the way:
+
+- **Ramp integral must equal the rotation.** The absorption sweep ramps
+  ω from 0 to Ω over the window T, so it covers ∫ω dt = Ω·T/2 — not Ω·T.
+  Size T = 2·Δθ/Ω so the shoulder lands on the velocity-matched angle
+  exactly at intercept. Both "arrive late" (fixed 100 ms window) and
+  "arrive early" (margin factor > 1) turn catches into misses; the failure
+  pattern across the grid flips between fast-shallow and steep arrivals,
+  which is the diagnostic signature for a timing (not force) problem.
+- **Recompute the ramp from t_intercept every tick.** A one-shot engagement
+  that latches full ω overshoots the catch angle long before the ball
+  arrives.
+- **Tests run in the DEFAULT room (8 m → walls at ±4); the demo overrides
+  to 10 m.** A launch point computed at x = −4.3 spawns the ball inside the
+  west wall and it never arrives. If a test's "closest approach" is ~5 m,
+  check the spawn geometry before the controller.
