@@ -154,6 +154,7 @@ Living docs covering specific iterations:
 - `docs/throw_planning.md` — ballistic math, planner algorithm, matched-t single ramp insight (largely historical now).
 - `docs/iteration_findings.md` — Lee SO(3) singularity, paper estimates off by integer multiples, choreography tricks, marker palette.
 - `docs/arm_v1_status.md` — where the 2-link arm work *was* (mid-development snapshot). Largely superseded by what's described in this CLAUDE.md, but useful for understanding why specific things were built.
+- `docs/concepts/` — **learning companion** (a standing project objective: accrue transferable robotics/estimation/control knowledge). One short note per concept we use: what it is, where it lives in this codebase, what our experiments showed, what transfers to larger projects. Add a note whenever a new concept enters the work; keep the engineering narrative in iteration_findings.md and the conceptual reference here.
 
 Subsystem isolation tests (validated foundations):
 

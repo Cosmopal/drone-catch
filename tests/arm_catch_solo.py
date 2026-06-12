@@ -129,7 +129,7 @@ def launch_state_for_intercept(intercept, v_intercept):
 def run(gui: bool, runs_dir: str | None,
         ball_vx: float = BALL_VX_DEFAULT, ball_vz: float = BALL_VZ_DEFAULT,
         ball_vy: float = 0.0, dx: float = 0.0, dy: float = 0.0,
-        noise: bool = False, seed: int = 0,
+        noise: bool = False, seed: int = 0, latency_ms: float = 50.0,
         verbose: bool = True) -> dict:
     """dx/dy offset the intercept point from the catcher's home-aligned
     nominal — the catcher always *starts* at the head-on home and must
@@ -211,8 +211,11 @@ def run(gui: bool, runs_dir: str | None,
     # Sensing + estimation (noise mode): catcher's decisions read the
     # latency-compensated estimate, never the truth. Truth is only used for
     # physics, logging, and acceptance.
-    perception = BallPerception(ball, seed=seed) if noise else None
-    estimator = (BallEstimator(latency_s=12 * DT, dt=DT) if noise else None)
+    latency_steps = max(0, round(latency_ms / 1000.0 / DT))
+    perception = (BallPerception(ball, latency_steps=latency_steps, seed=seed)
+                  if noise else None)
+    estimator = (BallEstimator(latency_s=latency_steps * DT, dt=DT)
+                 if noise else None)
     gust = np.zeros(3)
 
     # State machine: absorbing (sweep engaged) → caught (soft constraint on)
@@ -438,7 +441,8 @@ def run(gui: bool, runs_dir: str | None,
     return result
 
 
-def run_cells(cells: list[dict], noise: bool, seeds: list[int]) -> int:
+def run_cells(cells: list[dict], noise: bool, seeds: list[int],
+              latency_ms: float = 50.0) -> int:
     """Run each cell (a dict of run() kwargs) once per seed, print a table,
     return 0 iff every run held the ball."""
     results = []
@@ -449,7 +453,7 @@ def run_cells(cells: list[dict], noise: bool, seeds: list[int]) -> int:
             p.connect(p.DIRECT)
             try:
                 r = run(gui=False, runs_dir=None, noise=noise, seed=s,
-                        verbose=False, **cell)
+                        latency_ms=latency_ms, verbose=False, **cell)
             finally:
                 p.disconnect()
             results.append(r)
@@ -511,19 +515,23 @@ def main():
     ap.add_argument("--vy", type=float, default=0.0)
     ap.add_argument("--ox", type=float, default=0.0, help="intercept x offset")
     ap.add_argument("--oy", type=float, default=0.0, help="intercept y offset")
+    ap.add_argument("--latency-ms", type=float, default=50.0,
+                    help="sensor latency for --noise mode")
     args = ap.parse_args()
 
     if args.grid or args.grid_pos:
         n = args.seeds if args.seeds is not None else (3 if args.noise else 1)
         cells = velocity_cells() if args.grid else position_cells()
-        return run_cells(cells, noise=args.noise, seeds=list(range(n)))
+        return run_cells(cells, noise=args.noise, seeds=list(range(n)),
+                         latency_ms=args.latency_ms)
 
     gui = not args.headless
     p.connect(p.GUI if gui else p.DIRECT)
     try:
         r = run(gui=gui, runs_dir=args.runs_dir,
                 ball_vx=args.vx, ball_vz=args.vz, ball_vy=args.vy,
-                dx=args.ox, dy=args.oy, noise=args.noise, seed=args.seed)
+                dx=args.ox, dy=args.oy, noise=args.noise, seed=args.seed,
+                latency_ms=args.latency_ms)
         return 0 if r["held"] else 1
     finally:
         p.disconnect()
