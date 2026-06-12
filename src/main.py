@@ -15,6 +15,7 @@ from ball import spawn_ball, predict_landing, state
 from planner import PlannerInputs, plan as plan_throw
 from config import GameConfig, DEFAULT as DEFAULT_GAME
 from throw import decompose_throw, cruise_speed_for_release
+from perception import BallPerception
 
 
 HOVER_Z = 1.5
@@ -120,61 +121,6 @@ class Marker:
         if self._visible:
             p.resetBasePositionAndOrientation(self.body, [0, 0, -10], [0, 0, 0, 1])
             self._visible = False
-
-
-class BallPerception:
-    """Simulated stereo-camera perception of the ball.
-
-    Realistic-ish characteristics (modeled after Intel RealSense D435 /
-    StereoLabs ZED 2 class):
-      - Latency: 50 ms (12 sim steps at 240 Hz).
-      - Position noise σ scales with distance from observer:
-        σ_pos ≈ 0.005 + 0.005 * dist (m). At 1 m distance: ~1 cm; at 4 m: ~2.5 cm.
-      - Velocity noise σ similarly distance-scaled, +floor.
-    Closer = more accurate, mirroring real stereo (depth uncertainty grows
-    with distance²).
-
-    Catcher reads `observe(viewer_pos)` — the viewer is the catcher, so
-    "distance" = distance from catcher to ball.
-    """
-    def __init__(self, ball_id, latency_steps=12,
-                 pos_sigma_floor=0.005, pos_sigma_per_m=0.005,
-                 vel_sigma_floor=0.05, vel_sigma_per_m=0.06,
-                 seed=0):
-        self.ball_id = ball_id
-        self.latency_steps = latency_steps
-        self.pos_sigma_floor = pos_sigma_floor
-        self.pos_sigma_per_m = pos_sigma_per_m
-        self.vel_sigma_floor = vel_sigma_floor
-        self.vel_sigma_per_m = vel_sigma_per_m
-        self._buf = []
-        self._rng = np.random.default_rng(seed)
-
-    def step_record(self):
-        from ball import state as ball_state
-        bp, bv = ball_state(self.ball_id)
-        self._buf.append((bp.copy(), bv.copy()))
-        if len(self._buf) > self.latency_steps + 1:
-            self._buf.pop(0)
-
-    def observe(self, viewer_pos=None):
-        """Return latency-delayed noisy (pos, vel) of the ball.
-        If viewer_pos is given, noise scales with distance from viewer
-        (closer = lower noise — matches real stereo perception)."""
-        if not self._buf:
-            from ball import state as ball_state
-            return ball_state(self.ball_id)
-        idx = max(0, len(self._buf) - 1 - self.latency_steps)
-        bp_true, bv_true = self._buf[idx]
-        if viewer_pos is not None:
-            dist = float(np.linalg.norm(np.asarray(viewer_pos) - bp_true))
-            ps = self.pos_sigma_floor + self.pos_sigma_per_m * dist
-            vs = self.vel_sigma_floor + self.vel_sigma_per_m * dist
-        else:
-            ps, vs = 0.015, 0.25
-        bp_noisy = bp_true + self._rng.normal(0, ps, 3)
-        bv_noisy = bv_true + self._rng.normal(0, vs, 3)
-        return bp_noisy, bv_noisy
 
 
 class VideoRecorder:

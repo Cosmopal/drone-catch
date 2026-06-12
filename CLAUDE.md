@@ -32,6 +32,7 @@ python src/main.py --headless --duration 22 --runs-dir runs/m4
 | `src/planner.py` | Original grid+Pareto throw planner (matched-t backup). **Largely obsolete** — superseded by `throw.py` + decomposition. Kept for historical/baseline use. |
 | `src/throw.py` | Throw decomposition: given a target release_vel + arm length + release angle, computes (drone vx, ω, α). With pitch-correction option. |
 | `src/config.py` | `GameConfig` + `ArmConfig`: scene geometry, play areas, cube position, arm motor caps, FF inertia constants. |
+| `src/perception.py` | `BallPerception` (stereo-class noise + 50 ms latency, distance-scaled) + `BallEstimator` (alpha-beta filter + latency compensation via ballistic extrapolation). Shared by demo and isolation tests. |
 | `src/sim_setup.py` | Shared scaffolding for isolated tests: world, marker bundle, video, logger, tick wrapper, ball-at-EE spawn helper. |
 | `src/main.py` | Full demo orchestration: thrower charges + bowls; catcher predicts + soft-catches; cube pickup. Multi-cam video. |
 
@@ -121,6 +122,8 @@ The velocity-matching approach hit a geometric wall: at the matched instant the 
 
 Validated 12/12 over the adversarial envelope (arrival speeds 3.2–7.1 m/s, descent 20–61°; `--grid`), contact rel-vel up to 4.6 m/s, peak constraint force ≤ 11.3 N (logged via `grasp_force()`). See `docs/iteration_findings.md` §11 for the failure modes found en route.
 
+**M5b — noise + positioning (also validated)**: the same test passes with stereo-class sensing noise + 50 ms latency, wind gusts, pre-position error (`--noise`), and with intercepts the ball is NOT aimed at — lateral offsets to 1 m, crossing balls ±0.8 m/s, depth offsets ±0.3 m (`--grid-pos`). **96/96** across all four grids (3 seeds/noisy cell). The three load-bearing pieces: `BallEstimator` latency compensation (acting on raw delayed measurements costs 23 cm at nominal speeds — estimate error at contact is 0.2–0.7 cm after), catcher-local stiffer position gains (kp [12,12,14], kd [7,7,7] → ωn≈3.5, ζ≈1.0 — defaults lag 15–20 cm on 1 m repositions inside one ball flight), and compliance absorbing the residual. Decisions read only the estimate, never truth. See `docs/iteration_findings.md` §12, including why velocity-target carrots are the wrong fix (they're gain changes in disguise) and why the elbow can't help with lateral misses (both joints rotate about y).
+
 ### What's NOT yet working
 
 - **Integration into `main.py`**: the demo still uses the rigid `grasp` + 1.5 m/s rel-vel gate and does NOT currently catch (closest approach ~13 cm at rel-vel ~5 m/s). Port the compliant capture + sized sweep window from `arm_catch_solo.py` into the demo's phased catch. Keep the perception commitment gate (descending + past midline) — the isolation test dropped it because its launch is ground truth.
@@ -157,7 +160,7 @@ Subsystem isolation tests (validated foundations):
 - `tests/arm_hover_spin.py` — M1 + M1b: drone hovers, arm sweeps -π/2 → +π/2. With FF + gain scheduling, passes both with-ball and without-ball variants.
 - `tests/arm_cruise_spin.py` — M2 + M2.1 + M2.1b: drone cruises forward, arm sweeps mid-flight. Tight choreography (sweep starts during accel, no wait for cruise to settle) outperforms the settled version.
 - `tests/throw_solo.py` — M3: solo throw to a target landing. Adaptive spin trigger + closed-loop cruise + pitch correction + 30 cm aim offset → throws land within 5 cm across 3.5–6.5 m range.
-- `tests/arm_catch_solo.py` — M5: compliant capture. Stationary catcher, ball launched to arrive at the EE with a chosen (vx, vz); absorption sweep + soft constraint + back-drivable shoulder + two-stage lock. `--grid` sweeps the adversarial velocity envelope (12/12 held). `--vx/--vz` for a single point.
+- `tests/arm_catch_solo.py` — M5/M5b: compliant capture under realism. Ball launched to arrive at a chosen intercept with chosen velocity; absorption sweep + soft constraint + back-drivable shoulder + two-stage lock. `--grid` (velocity envelope), `--grid-pos` (offset/crossing intercepts the catcher must fly to), `--noise` (sensing+latency+estimation+gusts+pre-position error), `--seeds N`. All four grid combinations pass 96/96. Single point: `--vx/--vz/--vy/--ox/--oy/--seed`.
 
 ## Open design questions / parking lot
 
@@ -181,6 +184,8 @@ Subsystem isolation tests (validated foundations):
 - `set_target` clips to play area. If your throw needs the drone past `play_x_max`, widen the play area or lower the release point.
 - Isolation tests run in the DEFAULT room (8 m → walls at ±4); `main.py` overrides to 10 m. Spawn/launch math that assumes ±5 walls puts objects inside a wall — if a test's "closest approach" is meters off, check spawn geometry before blaming the controller.
 - Ramped arm choreography covers ∫ω dt = ω_max·T/2, not ω_max·T. Size the window from the rotation needed (T = 2·Δθ/ω_max) and recompute the ramp from time-to-intercept every tick — a one-shot engagement that latches full ω overshoots the target angle.
+- Don't "speed up" the position loop via `vel_target` carrots. The outer loop is accel = kp·err + kd·(vtgt−v); vtgt = K·err is a hidden kp increase with no matching kd (ζ collapses, body oscillates), and vtgt = dist/t_remaining caps the cascade at a just-in-time crawl. Retune kp/kd together (per-drone — `controller.kp/kd` are instance fields).
+- PyBullet constraint `maxForce` caps each axis independently — an "8 N" soft grasp can apply up to 8·√3 ≈ 13.9 N vector force. Budget the √3 when reasoning about loads.
 
 ## Tests / lint
 

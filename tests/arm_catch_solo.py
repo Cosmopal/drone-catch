@@ -40,6 +40,7 @@ from sim_setup import (Logger, MarkerSet, Marker, VideoRecorder, Sim,
                        rotate_runs, DT)
 from config import DEFAULT as DEFAULT_GAME
 from ball import spawn_ball, state as ball_state, predict_landing
+from perception import BallPerception, BallEstimator
 
 G = 9.81
 L_ARM = 0.4
@@ -75,39 +76,73 @@ HOLD_REL_VEL = 0.5      # acceptance: rel vel below this at end
 SETTLE_S = 1.0
 FLOOR_MARGIN = 0.15     # launch point must be above this z
 LAUNCH_X_MIN = -3.7     # and inside the west wall (room is 8 m → wall at -4)
+LAUNCH_Y_ABS = 3.7      # |y| bound for launch point (walls at ±4)
+
+# Noise / disturbance model (--noise). Sensing + estimation use the same
+# BallPerception (stereo-class noise, 50 ms latency) as the full demo; the
+# estimator latency-compensates by extrapolating under gravity.
+GUST_TAU = 0.5                                  # s, OU gust time constant
+GUST_SIGMA = np.array([0.30, 0.30, 0.15])       # N stationary std (~5% weight)
+PREPOS_SIGMA = np.array([0.05, 0.05, 0.03])     # m catcher pre-position error
+
+# Catch-task position gains (catcher-local; defaults are kp=[6,6,12],
+# kd=[4,4,6] → ωn≈2.45, settle too slow for 1 m repositions inside one ball
+# flight, and an 8 cm static offset under 0.3 N gusts). Stiffer + matched
+# damping: ωn≈3.5, ζ≈1.0, gust offset ~4 cm. Lateral (y) error is body-only
+# — both arm joints rotate about y — so this loop is the only thing that
+# can fix a lateral miss.
+# NOTE: do NOT try to speed the body up via vel_target carrots instead:
+# vtgt = K·err is algebraically a kp increase without the matching kd
+# (ζ 0.82 → 0.58, oscillates through the catch window), and
+# vtgt = dist/t_remaining caps the cascade at a just-in-time crawl. Both
+# regressed the clean positioning grid to 0/12.
+CATCH_KP = np.array([12.0, 12.0, 14.0])
+CATCH_KD = np.array([7.0, 7.0, 7.0])
 
 
-def launch_state_for_intercept(ee_pos, vx_at_intercept, vz_at_intercept):
-    """Compute (launch_pos, launch_vel, t_flight) so the ball arrives at
-    ee_pos with the given velocity (gravity only, no drag).
+def launch_state_for_intercept(intercept, v_intercept):
+    """Compute (launch_pos, launch_vel, t_flight) so the ball arrives at the
+    3D `intercept` point with velocity `v_intercept` (gravity only, no drag).
 
     Flight time is chosen as long as possible subject to the launch point
-    staying inside the room (z ≥ FLOOR_MARGIN, x ≥ LAUNCH_X_MIN), so grid
-    points with slow/steep arrivals don't ask for a launch below the floor.
+    staying inside the room (z ≥ FLOOR_MARGIN, x ≥ LAUNCH_X_MIN, |y| ≤
+    LAUNCH_Y_ABS), so grid points with slow/steep arrivals don't ask for a
+    launch below the floor or inside a wall.
     """
-    ee_x, ee_z = ee_pos[0], ee_pos[2]
-    vz = vz_at_intercept
-    # z_launch(t) = ee_z - vz·t - ½g·t² is decreasing in t; later root of
+    ix, iy, iz = float(intercept[0]), float(intercept[1]), float(intercept[2])
+    vx, vy, vz = float(v_intercept[0]), float(v_intercept[1]), float(v_intercept[2])
+    # z_launch(t) = iz - vz·t - ½g·t² is decreasing in t; later root of
     # z_launch = FLOOR_MARGIN gives the max flight time the floor allows.
-    t_floor = (-vz + math.sqrt(vz * vz + 2 * G * (ee_z - FLOOR_MARGIN))) / G
-    t_wall = (ee_x - LAUNCH_X_MIN) / vx_at_intercept
-    t = min(t_floor, t_wall)
+    t = (-vz + math.sqrt(vz * vz + 2 * G * (iz - FLOOR_MARGIN))) / G
+    t = min(t, (ix - LAUNCH_X_MIN) / vx)
+    if vy > 1e-6:
+        t = min(t, (iy + LAUNCH_Y_ABS) / vy)
+    elif vy < -1e-6:
+        t = min(t, (iy - LAUNCH_Y_ABS) / vy)
     vz_launch = vz + G * t
-    z_launch = ee_z - vz * t - 0.5 * G * t * t
-    x_launch = ee_x - vx_at_intercept * t
-    return (np.array([x_launch, 0.0, z_launch]),
-            np.array([vx_at_intercept, 0.0, vz_launch]),
-            t)
+    launch = np.array([ix - vx * t,
+                       iy - vy * t,
+                       iz - vz * t - 0.5 * G * t * t])
+    return launch, np.array([vx, vy, vz_launch]), t
 
 
 def run(gui: bool, runs_dir: str | None,
         ball_vx: float = BALL_VX_DEFAULT, ball_vz: float = BALL_VZ_DEFAULT,
+        ball_vy: float = 0.0, dx: float = 0.0, dy: float = 0.0,
+        noise: bool = False, seed: int = 0,
         verbose: bool = True) -> dict:
+    """dx/dy offset the intercept point from the catcher's home-aligned
+    nominal — the catcher always *starts* at the head-on home and must
+    discover the real intercept from (possibly noisy) prediction and fly
+    there. ball_vy adds lateral crossing velocity. noise enables sensing
+    noise + latency, estimation, wind gusts, and pre-position error."""
     log_path, video_path = auto_run_paths(runs_dir)
     make_world(DEFAULT_GAME, gui=gui)
+    rng = np.random.default_rng(seed + 7919)
 
     # Velocity-matched shoulder angle: arm tip tangential velocity direction
-    # parallel to ball velocity at intercept.
+    # parallel to ball velocity at intercept (planar — vy is unmatched and
+    # absorbed by compliance).
     shoulder_at_catch = -math.atan2(-ball_vz, ball_vx)
     # Sweep window sized so the ramped sweep (∫ω = OMEGA_S·T/2) covers the
     # rotation from catch pose to the matched angle by intercept time. A
@@ -117,25 +152,35 @@ def run(gui: bool, runs_dir: str | None,
     sweep_dtheta = shoulder_at_catch - SHOULDER_CATCH
     t_absorb = max(T_ABSORB_MIN,
                    SWEEP_MARGIN * 2.0 * sweep_dtheta / OMEGA_S)
-    # Catcher body position so EE meets ball at shoulder_at_catch.
-    # ee_body(θ) = (L·sin(θ), 0, -L·cos(θ)). Body = ball - ee_body.
+    # The actual intercept point is offset (dx, dy) from the nominal — the
+    # catcher does NOT know this; it must fly there from prediction.
+    intercept = np.array([EE_INTERCEPT_X + dx, dy, EE_INTERCEPT_Z])
+
+    # Head-on nominal home: body position so EE meets a ball at the nominal
+    # intercept at shoulder_at_catch. ee_body(θ) = (L·sin(θ), 0, -L·cos(θ));
+    # body = ball - ee_body.
     catcher_home = np.array([
         EE_INTERCEPT_X - L_ARM * math.sin(shoulder_at_catch),
         0.0,
         EE_INTERCEPT_Z + L_ARM * math.cos(shoulder_at_catch),
     ])
+    start_pos = catcher_home.copy()
+    if noise:
+        start_pos = start_pos + rng.normal(0.0, 1.0, 3) * PREPOS_SIGMA
 
-    catcher = make_solo_drone(tuple(catcher_home),
+    catcher = make_solo_drone(tuple(start_pos),
                               play_extent=(4.0, 4.0, 1.2))
     catcher.set_target(catcher_home)
     catcher.arm_reaction_ff = True
     catcher.attitude_gain_schedule = True
     catcher.arm_translational_ff_z = True
     catcher.controller.max_tilt_deg = 60.0
+    catcher.controller.kp = CATCH_KP.copy()
+    catcher.controller.kd = CATCH_KD.copy()
     catcher.hold_arm(SHOULDER_CATCH, 0.0)
 
     markers = MarkerSet()
-    markers.intent.set([EE_INTERCEPT_X, 0.0, EE_INTERCEPT_Z])
+    markers.intent.set(intercept.tolist())
     m_pred = Marker([0.1, 0.9, 1.0, 0.9], radius=0.05)
 
     logger = Logger(log_path, decimate=2)
@@ -148,12 +193,12 @@ def run(gui: bool, runs_dir: str | None,
     for _ in range(int(SETTLE_S / DT)):
         sim.tick("settle")
 
-    ee_intercept = np.array([EE_INTERCEPT_X, 0.0, EE_INTERCEPT_Z])
     launch_pos, launch_vel, t_flight = launch_state_for_intercept(
-        ee_intercept, ball_vx, ball_vz)
+        intercept, (ball_vx, ball_vy, ball_vz))
     if verbose:
-        print(f"EE catch target: {ee_intercept.tolist()}  "
-              f"shoulder@catch={math.degrees(shoulder_at_catch):.1f}°")
+        print(f"EE catch target: {intercept.tolist()}  "
+              f"shoulder@catch={math.degrees(shoulder_at_catch):.1f}°  "
+              f"noise={noise} seed={seed}")
         print(f"Launch: pos={np.round(launch_pos, 3).tolist()} "
               f"vel={np.round(launch_vel, 3).tolist()} t_flight={t_flight:.3f}s")
     ball = spawn_ball(launch_pos)
@@ -163,13 +208,22 @@ def run(gui: bool, runs_dir: str | None,
     p.changeDynamics(ball, -1, linearDamping=0.0, angularDamping=0.0)
     p.resetBaseVelocity(ball, linearVelocity=launch_vel.tolist())
 
+    # Sensing + estimation (noise mode): catcher's decisions read the
+    # latency-compensated estimate, never the truth. Truth is only used for
+    # physics, logging, and acceptance.
+    perception = BallPerception(ball, seed=seed) if noise else None
+    estimator = (BallEstimator(latency_s=12 * DT, dt=DT) if noise else None)
+    gust = np.zeros(3)
+
     # State machine: absorbing (sweep engaged) → caught (soft constraint on)
     # → locked (firm constraint, shoulder braked).
     absorbing = False
     caught = False
     locked = False
     result = {
-        "vx": ball_vx, "vz": ball_vz, "speed": math.hypot(ball_vx, ball_vz),
+        "vx": ball_vx, "vz": ball_vz, "vy": ball_vy,
+        "dx": dx, "dy": dy, "noise": noise, "seed": seed,
+        "speed": math.hypot(ball_vx, ball_vz),
         "caught": False, "held": False,
         "contact_rel": None, "contact_d": None, "catch_t": None,
         "lock_t": None, "peak_force": 0.0, "impulse": 0.0,
@@ -179,14 +233,25 @@ def run(gui: bool, runs_dir: str | None,
     timeout_s = t_flight + 1.5
 
     for i in range(int(timeout_s / DT)):
-        bp, bv = ball_state(ball)
+        bp, bv = ball_state(ball)          # truth: physics, logging, acceptance
         ee_pos = catcher.gripper_world_position()
         ee_vel = catcher.gripper_world_velocity()
         d = float(np.linalg.norm(ee_pos - bp))
         rel = float(np.linalg.norm(bv - ee_vel))
 
-        # Time-to-intercept (later root, ball descending to EE_z)
-        a, b, c = -0.5 * G, bv[2], bp[2] - EE_INTERCEPT_Z
+        # What the catcher actually knows
+        if noise:
+            perception.step_record()
+            meas_p, meas_v = perception.observe(catcher.position())
+            estimator.update(meas_p, meas_v)
+            est_p, est_v = estimator.estimate()
+        else:
+            est_p, est_v = bp, bv
+        est_d = float(np.linalg.norm(ee_pos - est_p))
+
+        # Time-to-intercept (later root, ball descending to EE_z) — from
+        # the estimate, like everything decision-side.
+        a, b, c = -0.5 * G, est_v[2], est_p[2] - EE_INTERCEPT_Z
         disc = b * b - 4 * a * c
         t_intercept = None
         if disc >= 0:
@@ -196,8 +261,11 @@ def run(gui: bool, runs_dir: str | None,
             if roots:
                 t_intercept = max(roots)
 
-        # --- Compliant capture trigger: geometric only ---
-        if not caught and d < CATCH_DIST:
+        # --- Compliant capture trigger: geometric only, on the estimate.
+        # soft_grasp enforces TRUE distance ≤ CATCH_DIST internally (fingers
+        # can't close on a ball that isn't there) — a too-eager attempt just
+        # returns False and retries next tick. ---
+        if not caught and est_d < CATCH_DIST:
             if catcher.soft_grasp(ball, max_distance=CATCH_DIST,
                                   max_force=SOFT_MAX_FORCE):
                 caught = True
@@ -247,11 +315,10 @@ def run(gui: bool, runs_dir: str | None,
             phase = "absorb"
         else:
             # In the full game, a perception-driven commitment gate
-            # (descending + past midline) lives in main.py. Here the launch
-            # is ground truth — the ball is committed from the moment it
-            # exists, and gating engagement on it truncated the sweep window
-            # for fast/shallow arrivals.
-            predicted_xy, _ = predict_landing(bp, bv, EE_INTERCEPT_Z)
+            # (descending + past midline) lives in main.py. Here the ball is
+            # committed from the moment it exists, and gating engagement on
+            # it truncated the sweep window for fast/shallow arrivals.
+            predicted_xy, _ = predict_landing(est_p, est_v, EE_INTERCEPT_Z)
             if predicted_xy is not None:
                 m_pred.set([predicted_xy[0], predicted_xy[1], EE_INTERCEPT_Z])
                 # Body sits offset from the EE catch point so that EE meets
@@ -289,12 +356,24 @@ def run(gui: bool, runs_dir: str | None,
         })
 
         if d < result["min_d"]:
-            result.update(min_d=d, min_t=i * DT, min_rel_vel=rel)
+            result.update(min_d=d, min_t=i * DT, min_rel_vel=rel,
+                          miss_vec=(ee_pos - bp).tolist(),
+                          est_err_at_min=float(np.linalg.norm(est_p - bp)))
+
+        # Wind gust (OU process) — must be re-applied every tick; PyBullet
+        # clears external forces after each step.
+        if noise:
+            th = DT / GUST_TAU
+            gust = (gust * (1.0 - th)
+                    + GUST_SIGMA * math.sqrt(2.0 * th) * rng.standard_normal(3))
+            p.applyExternalForce(catcher.body_id, -1, gust.tolist(),
+                                 catcher.position().tolist(), p.WORLD_FRAME)
 
         sim.tick(phase, extra_payload={
             "ball_pos": bp.tolist(), "ball_vel": bv.tolist(),
             "ee_pos": ee_pos.tolist(), "ee_vel": ee_vel.tolist(),
-            "ee_to_ball": d, "rel_vel": rel,
+            "ee_to_ball": d, "est_to_ball_err": float(np.linalg.norm(est_p - bp)),
+            "rel_vel": rel,
             "grasp_force": catch_trace[-1]["grasp_force"],
             "t_intercept": t_intercept if t_intercept is not None else -1,
         })
@@ -359,21 +438,18 @@ def run(gui: bool, runs_dir: str | None,
     return result
 
 
-def run_grid(headless: bool) -> int:
-    """Sweep the adversarial incoming-velocity envelope. Arrival speeds
-    3.2–7.1 m/s, descent angles ~20–61° — roughly what the room geometry +
-    thrower physics permit."""
-    vxs = [2.5, 3.3, 4.5, 5.5]
-    vzs = [-2.0, -3.2, -4.5]
+def run_cells(cells: list[dict], noise: bool, seeds: list[int]) -> int:
+    """Run each cell (a dict of run() kwargs) once per seed, print a table,
+    return 0 iff every run held the ball."""
     results = []
-    print(f"{'vx':>5} {'vz':>5} {'spd':>5} | {'caught':>6} {'held':>5} "
-          f"{'rel@hit':>7} {'peakF':>6} {'impulse':>7} {'absorb':>7}")
-    for vx in vxs:
-        for vz in vzs:
+    print(f"{'vx':>5} {'vz':>5} {'vy':>5} {'dx':>5} {'dy':>5} {'seed':>4} | "
+          f"{'caught':>6} {'held':>5} {'rel@hit':>7} {'peakF':>6} {'absorb':>7}")
+    for cell in cells:
+        for s in seeds:
             p.connect(p.DIRECT)
             try:
-                r = run(gui=False, runs_dir=None,
-                        ball_vx=vx, ball_vz=vz, verbose=False)
+                r = run(gui=False, runs_dir=None, noise=noise, seed=s,
+                        verbose=False, **cell)
             finally:
                 p.disconnect()
             results.append(r)
@@ -383,14 +459,37 @@ def run_grid(headless: bool) -> int:
             rel_s = (f"{r['contact_rel']:7.2f}"
                      if r["contact_rel"] is not None else "   miss")
             absorb_s = f"{absorb:5.0f}ms" if absorb is not None else "      —"
-            print(f"{vx:5.1f} {vz:5.1f} {r['speed']:5.2f} | "
+            print(f"{r['vx']:5.1f} {r['vz']:5.1f} {r['vy']:5.1f} "
+                  f"{r['dx']:5.2f} {r['dy']:5.2f} {s:4d} | "
                   f"{str(r['caught']):>6} {str(r['held']):>5} "
-                  f"{rel_s} {r['peak_force']:6.2f} {r['impulse']:7.3f} "
-                  f"{absorb_s}")
+                  f"{rel_s} {r['peak_force']:6.2f} {absorb_s}")
     held = sum(1 for r in results if r["held"])
-    print(f"\nheld {held}/{len(results)}  "
-          f"max peak force {max(r['peak_force'] for r in results):.1f}N")
+    print(f"\nheld {held}/{len(results)}"
+          + (f"  max peak force "
+             f"{max(r['peak_force'] for r in results):.1f}N"
+             if any(r["caught"] for r in results) else ""))
     return 0 if held == len(results) else 1
+
+
+def velocity_cells() -> list[dict]:
+    """Adversarial incoming-velocity envelope, head-on. Arrival speeds
+    3.2–7.1 m/s, descent angles ~20–61° — roughly what the room geometry +
+    thrower physics permit."""
+    return [{"ball_vx": vx, "ball_vz": vz}
+            for vx in [2.5, 3.3, 4.5, 5.5]
+            for vz in [-2.0, -3.2, -4.5]]
+
+
+def position_cells() -> list[dict]:
+    """Positioning envelope at nominal arrival velocity: intercept offset
+    laterally (catcher must fly there) and/or ball crossing with lateral
+    velocity (unmatched by the planar sweep — compliance absorbs it)."""
+    cells = [{"dy": dy} for dy in [-1.0, -0.5, +0.5, +1.0]]
+    cells += [{"dy": dy, "ball_vy": vy}
+              for dy in [-0.5, +0.5] for vy in [-0.8, +0.8]]
+    cells += [{"dx": dx, "dy": dy}
+              for dx in [-0.3, +0.3] for dy in [-0.7, +0.7]]
+    return cells
 
 
 def main():
@@ -399,18 +498,32 @@ def main():
     ap.add_argument("--runs-dir", default=None)
     ap.add_argument("--grid", action="store_true",
                     help="sweep incoming-velocity envelope (forces headless)")
+    ap.add_argument("--grid-pos", action="store_true",
+                    help="sweep positioning envelope (forces headless)")
+    ap.add_argument("--noise", action="store_true",
+                    help="sensing noise + latency, estimation, gusts, "
+                         "pre-position error")
+    ap.add_argument("--seeds", type=int, default=None,
+                    help="seeds per grid cell (default: 3 with --noise, 1 without)")
+    ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--vx", type=float, default=BALL_VX_DEFAULT)
     ap.add_argument("--vz", type=float, default=BALL_VZ_DEFAULT)
+    ap.add_argument("--vy", type=float, default=0.0)
+    ap.add_argument("--ox", type=float, default=0.0, help="intercept x offset")
+    ap.add_argument("--oy", type=float, default=0.0, help="intercept y offset")
     args = ap.parse_args()
 
-    if args.grid:
-        return run_grid(headless=True)
+    if args.grid or args.grid_pos:
+        n = args.seeds if args.seeds is not None else (3 if args.noise else 1)
+        cells = velocity_cells() if args.grid else position_cells()
+        return run_cells(cells, noise=args.noise, seeds=list(range(n)))
 
     gui = not args.headless
     p.connect(p.GUI if gui else p.DIRECT)
     try:
         r = run(gui=gui, runs_dir=args.runs_dir,
-                ball_vx=args.vx, ball_vz=args.vz)
+                ball_vx=args.vx, ball_vz=args.vz, ball_vy=args.vy,
+                dx=args.ox, dy=args.oy, noise=args.noise, seed=args.seed)
         return 0 if r["held"] else 1
     finally:
         p.disconnect()

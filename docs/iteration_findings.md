@@ -283,3 +283,48 @@ Lessons earned along the way:
   to 10 m.** A launch point computed at x = −4.3 spawns the ball inside the
   west wall and it never arrives. If a test's "closest approach" is ~5 m,
   check the spawn geometry before the controller.
+
+## 12. Noise + positioning: the catch is information-and-stiffness limited, not arm-limited
+
+Extended `arm_catch_solo` (M5b) with the question "does compliant capture
+survive realism?": stereo-class sensing noise + 50 ms latency (the demo's
+`BallPerception`, now shared via `src/perception.py`), wind gusts (OU
+process, ~5% of weight), catcher pre-position error, and — separately —
+intercepts the ball is NOT aimed at (lateral offsets up to 1 m, crossing
+balls with vy up to ±0.8 m/s, ±0.3 m depth offsets).
+
+Results after fixes: **96/96** across four grids (velocity envelope ×
+{clean, noise}, positioning envelope × {clean, noise}, 3 seeds per noisy
+cell). What it took, and what we learned:
+
+- **Latency compensation is mandatory, and trivial.** Acting on the raw
+  50 ms-delayed measurement costs rel_speed·latency ≈ 23 cm at nominal —
+  more than the whole 15 cm catch radius. An alpha-beta filter on the
+  delayed state, extrapolated forward by the latency under gravity
+  (`BallEstimator`), brought estimate error at contact to 0.2–0.7 cm.
+  Estimation was never the bottleneck after this.
+- **Miss anatomy beats hypothesizing.** Logging the miss *vector* at
+  closest approach showed noisy-positioning failures were 10–21 cm in
+  **y** with sub-cm estimate error: pure body-positioning lag, not
+  sensing. This killed two attractive wrong fixes (see below) and answered
+  the "do we need the elbow?" question: **no** — both arm joints rotate
+  about y, so lateral error is body-only; no arm DOF can recover it.
+- **Velocity-target carrots are gain changes in disguise.** The cascade's
+  outer loop is accel = kp·err + kd·(vtgt − v). Commanding vtgt = K·err is
+  algebraically a kp increase of kd·K with no matching kd: ζ fell 0.82 →
+  0.58 and the body oscillated through the catch window (clean grid 12/12
+  → 0/12). Commanding vtgt = dist/t_remaining is worse: the kd term
+  *punishes* exceeding the just-in-time average, capping the body at a
+  crawl, and any fade-out brakes it while still off-station. If the loop
+  is too slow, retune the loop.
+- **The actual fix was two numbers.** Catcher-local kp [6,6,12]→[12,12,14],
+  kd [4,4,6]→[7,7,7]: ωn 2.45→3.5 rad/s at ζ≈1.0. Bonus: static gust
+  offset (F/(m·kp)) halved to ~4 cm. Attitude inner loop at ~11 rad/s keeps
+  ≥3× separation, and gain scheduling holds that across arm poses.
+- **PyBullet constraint maxForce caps each axis independently** — observed
+  peak force saturates at 8·√3 ≈ 13.9 N with an 8 N "cap". Budget for the
+  √3 factor when reasoning about airframe loads.
+
+The elbow stays in the parking lot: it becomes relevant for in-plane
+terminal correction when tolerances tighten (3-finger gripper contact
+geometry), not for making the current catch robust.
