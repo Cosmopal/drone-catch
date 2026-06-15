@@ -64,10 +64,46 @@ Two punchlines:
    timing slip, not 100. Errors that displace the path are deadly;
    errors that shift time only spend margin.
 
+## Variable latency, and why sensors carry timestamps
+
+Real latency isn't a constant — it *jitters* (variable exposure, scheduling,
+USB/network transfer, frame drops). If you compensate with a fixed assumed
+τ, every measurement is off by `(true_age − assumed_τ)`, which extrapolation
+turns into a position error of `velocity × jitter`. Estimation error near
+the catch instant (ball at 7 m/s, mean latency 100 ms, 20 trials), measured
+in `/tmp/variable_latency.py`:
+
+| latency jitter | fixed-τ assumption | per-measurement timestamp |
+|---|---|---|
+| ±0 ms  | 1.5 cm | 1.5 cm |
+| ±10 ms | 1.9 cm | 1.4 cm |
+| ±20 ms | 2.9 cm | 1.5 cm |
+| ±40 ms | 5.8 cm | 1.6 cm |
+| ±80 ms | 11.0 cm | 1.5 cm |
+
+The fix is the answer to "do sensors timestamp their data?": **yes, and
+that's exactly why.** A real driver stamps each measurement with the
+*capture* time (not arrival time), so the estimator knows each sample's true
+age and extrapolates by *that*, not by an assumed mean. The timestamp column
+above stays flat at the noise floor regardless of jitter — the jitter is
+fully absorbed.
+
+This generalizes to the **out-of-sequence / late-measurement problem**: with
+timestamps the estimator can fuse a measurement at its correct point in
+time even if a fresher one already arrived (rewind the filter, apply the
+late sample, re-roll forward — or keep a short buffer of past states). The
+discipline is "the estimator runs in *sensor time*, the controller runs in
+*wall-clock time*, and the timestamp is the bridge." Without timestamps you
+can only assume a mean and eat the jitter; this is the single biggest reason
+mature robotics stacks (ROS, PX4, every VIO system) propagate hardware
+timestamps end-to-end.
+
 ## For larger projects
 
 Measure your pipeline's latency end-to-end (timestamp at sensor, compare
-at decision) — then model it explicitly. Cheap insurance: prefer
+at decision) — then model it explicitly. Always carry the sensor's *capture*
+timestamp through the pipeline; compensate per-measurement, not by an
+assumed mean. Cheap insurance when you have no timestamp: prefer
 *overestimating* τ slightly. And remember extrapolation quality = model
 quality: against maneuvering targets or strong drag, long-τ extrapolation
 degrades from "exact" to "guess," and τ becomes a real ceiling on
