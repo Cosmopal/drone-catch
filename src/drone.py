@@ -33,12 +33,14 @@ DT = 1.0 / 240.0  # sim timestep, must match world.setup()
 class Drone:
     start_pos: tuple
     start_yaw: float = 0.0
+    urdf_path: Optional[str] = None   # default: plain quadrotor (no fingers)
     home_pos: Optional[tuple] = None
     play_area_min_offset: tuple = (-1.5, -1.5, -1.0)
     play_area_max_offset: tuple = (+1.5, +1.5, +1.0)
     controller: CascadeController = field(default_factory=CascadeController)
     arm_cfg: ArmConfig = field(default_factory=ArmConfig)
     body_id: int = field(init=False)
+    mass: float = field(init=False)   # actual total model mass (base + links)
     target: np.ndarray = field(init=False)
     vel_target: np.ndarray = field(init=False)
     yaw_target: float = field(init=False)
@@ -47,6 +49,11 @@ class Drone:
     shoulder_joint: int = field(init=False)
     elbow_joint: int = field(init=False)
     ee_link: int = field(init=False)
+    # finger joints (only present with the gripper URDF). Each entry is
+    # (prox_joint, dist_joint); link indices == joint indices in PyBullet.
+    finger_joints: list = field(default_factory=list, init=False)
+    finger_links: list = field(default_factory=list, init=False)
+    _gripper_cmd: Optional[dict] = field(default=None, init=False)
     # current arm command — applied each step via _apply_arm()
     _arm_mode: str = field(default="hold", init=False)
     _arm_targets: dict = field(default_factory=dict, init=False)
@@ -74,7 +81,7 @@ class Drone:
 
     def __post_init__(self):
         q0 = p.getQuaternionFromEuler([0.0, 0.0, self.start_yaw])
-        self.body_id = p.loadURDF(URDF,
+        self.body_id = p.loadURDF(self.urdf_path or URDF,
                                   basePosition=list(self.start_pos),
                                   baseOrientation=q0)
         if self.home_pos is None:
@@ -90,6 +97,7 @@ class Drone:
         self.shoulder_joint = -1
         self.elbow_joint = -1
         self.ee_link = -1
+        prox, dist = {}, {}
         for j in range(p.getNumJoints(self.body_id)):
             info = p.getJointInfo(self.body_id, j)
             jname = info[1].decode()
@@ -98,11 +106,27 @@ class Drone:
                 self.shoulder_joint = j
             elif jname == "elbow_joint":
                 self.elbow_joint = j
+            elif jname.startswith("finger") and jname.endswith("_joint"):
+                # finger{i}_prox_joint / finger{i}_dist_joint
+                fid = int(jname[len("finger"):].split("_")[0])
+                (prox if "_prox_" in jname else dist)[fid] = j
             if child_link_name == "end_effector":
                 self.ee_link = j  # link index == joint index whose child is this link
         assert self.shoulder_joint >= 0 and self.elbow_joint >= 0 and self.ee_link >= 0, \
             f"URDF missing expected joints/links: shoulder={self.shoulder_joint} " \
             f"elbow={self.elbow_joint} ee={self.ee_link}"
+        # Pair up finger joints by id; record both joints and the link indices
+        # (link index == joint index of the joint whose child is that link).
+        for fid in sorted(prox):
+            self.finger_joints.append((prox[fid], dist[fid]))
+            self.finger_links.extend([prox[fid], dist[fid]])
+
+        # Actual total mass from the loaded model (base + all links). The
+        # gripper URDF adds finger mass, so a hardcoded constant would make
+        # gravity feedforward undershoot → steady-state sag. Compute it.
+        self.mass = p.getDynamicsInfo(self.body_id, -1)[0]
+        for j in range(p.getNumJoints(self.body_id)):
+            self.mass += p.getDynamicsInfo(self.body_id, j)[0]
 
         # Initial pose: arm folded, holding pose with motor PD
         p.resetJointState(self.body_id, self.shoulder_joint,
@@ -116,6 +140,14 @@ class Drone:
             "shoulder_vel": 0.0,
             "elbow_vel": 0.0,
         }
+        # Fingers (gripper URDF only): start splayed open and hold there.
+        if self.finger_joints:
+            for prox_j, dist_j in self.finger_joints:
+                p.resetJointState(self.body_id, prox_j,
+                                  targetValue=self.arm_cfg.finger_open_prox)
+                p.resetJointState(self.body_id, dist_j,
+                                  targetValue=self.arm_cfg.finger_open_dist)
+            self._gripper_cmd = {"mode": "open"}
 
     # ------------ state ------------
     def position(self) -> np.ndarray:
@@ -230,6 +262,66 @@ class Drone:
         self._arm_targets["elbow_vel"] = float(elbow_vel)
         self._arm_targets["torque_cap"] = torque_cap
 
+    # ------------ caging gripper (fingers) ------------
+    def open_gripper(self):
+        """Splay fingers to the open pose (wide mouth to receive a ball)."""
+        if self.finger_joints:
+            self._gripper_cmd = {"mode": "open"}
+
+    def close_gripper(self):
+        """Curl fingers inward to cage. Position control to the closed pose
+        with a torque cap, so the fingers stall (and squeeze) against the ball
+        instead of crushing through it — caging + friction, no constraint."""
+        if self.finger_joints:
+            self._gripper_cmd = {"mode": "close"}
+
+    def gripper_is_closing(self) -> bool:
+        return bool(self._gripper_cmd and self._gripper_cmd["mode"] == "close")
+
+    def _apply_gripper(self):
+        if not self.finger_joints or self._gripper_cmd is None:
+            return
+        cfg = self.arm_cfg
+        closing = self._gripper_cmd["mode"] == "close"
+        tp = cfg.finger_close_prox if closing else cfg.finger_open_prox
+        td = cfg.finger_close_dist if closing else cfg.finger_open_dist
+        # Pure gentle position control. The force cap (finger_close_torque)
+        # both limits squeeze on the ball AND, far from the target, sets how
+        # hard the finger drives closed — so closing is fast (low finger
+        # inertia) yet compliant on contact. Gains are kept low: stiff finger
+        # servos flap and excite the body's yaw singularity (§13).
+        for prox_j, dist_j in self.finger_joints:
+            for jidx, tgt in ((prox_j, tp), (dist_j, td)):
+                p.setJointMotorControl2(
+                    self.body_id, jidx, p.POSITION_CONTROL,
+                    targetPosition=tgt, force=cfg.finger_close_torque,
+                    positionGain=cfg.finger_pos_gain,
+                    velocityGain=cfg.finger_vel_gain)
+
+    def fingers_touching(self, ball_id: int) -> int:
+        """Number of distinct fingers (not segments) in contact with the
+        ball — the caging signal. A ball held by ≥2 opposing fingers is
+        geometrically trapped."""
+        pts = p.getContactPoints(bodyA=self.body_id, bodyB=ball_id)
+        touched = set()
+        for c in pts:
+            link_a = c[3]
+            for fid, (prox_j, dist_j) in enumerate(self.finger_joints):
+                if link_a in (prox_j, dist_j):
+                    touched.add(fid)
+        return len(touched)
+
+    def set_finger_dynamics(self, lateral_friction=1.4, restitution=0.1,
+                            contact_stiffness=None, contact_damping=None):
+        """Tune the finger pads: high friction + low restitution + (optional)
+        soft contact = foam-lined fingers that grip and don't bounce."""
+        for link in self.finger_links:
+            kw = dict(lateralFriction=lateral_friction, restitution=restitution)
+            if contact_stiffness is not None:
+                kw.update(contactStiffness=contact_stiffness,
+                          contactDamping=contact_damping)
+            p.changeDynamics(self.body_id, link, **kw)
+
     def step(self):
         pos = self.position()
         vel = self.velocity()
@@ -245,7 +337,7 @@ class Drone:
             target=self.target, vel_target=self.vel_target,
             yaw_target=self.yaw_target,
             held_mass=self._held_mass(),
-            MASS=MASS, G=G,
+            MASS=self.mass, G=G,
             feedforward_torque_body=ff_torque,
         )
 
@@ -267,6 +359,7 @@ class Drone:
 
         # Arm motor commands (after body controller — they're independent)
         self._apply_arm()
+        self._apply_gripper()
 
     def _effective_pitch_inertia(self) -> float:
         """Effective body-pitch inertia (about body +y) including the arm and

@@ -328,3 +328,79 @@ cell). What it took, and what we learned:
 The elbow stays in the parking lot: it becomes relevant for in-plane
 terminal correction when tolerances tighten (3-finger gripper contact
 geometry), not for making the current catch robust.
+
+## 13. Finger (caging-gripper) catch: feasibility probe — mechanism works, dynamic rendezvous doesn't (yet)
+
+The force-limited constraint ("foam stick", §11–12) is a *behavioral* stand-in
+for a real gripper: it can snap to a ball 15 cm away at any relative velocity.
+To test whether a physically honest catch — fingers caging the ball, held by
+friction, no constraint — is feasible, we built a 3-finger gripper
+(`assets/make_gripper_urdf.py` → `quadrotor_gripper.urdf`, two-segment
+fingers) and `tests/finger_catch_solo.py`.
+
+**Verdict: the gripper cages reliably when the ball is placed in the cup, but
+the in-flight rendezvous can't yet put the cup on the ball.** Getting even
+this far required fixing a cascade of platform problems the foam stick hid —
+which is itself the answer to "is the foam stick a good proxy?": no.
+
+What broke, in order, and why:
+
+1. **Finger motors excite the attitude yaw singularity.** With the arm
+   extended horizontally (catch pose) and the gripper open, a stiff or
+   velocity-driven finger servo injects a dynamic disturbance that drives the
+   body's yaw toward ±90–180°, straight into the Lee SO(3) singularity (§1) —
+   the drone flips and flies away (180 cm error). Diagnosis was decisive:
+   freezing the fingers kinematically → 2 cm error, 0° yaw; motorizing them →
+   180 cm, 179° yaw. Fix: **gentle pure position control** on the fingers
+   (positionGain 0.6; higher gains are *also* unstable — PyBullet's explicit
+   joint-motor PD goes numerically unstable at high gain on near-massless
+   links). The static asymmetric gripper is fine (its gravity torque is pure
+   pitch, which the cascade rejects); only the *motor dynamics* hurt.
+
+2. **Two steady offsets the demo never needed.** The gripper's COM offset
+   gives a ~12 cm hover position sag (no position integrator existed), and the
+   residual finger yaw torque leaves an ~18° steady yaw (attitude `kI` had a
+   zero yaw term) — and since the arm points body-−x, 18° of yaw throws the
+   EE 12 cm sideways. Both became direct EE-to-ball miss. Fixes: a
+   position-error integrator (`controller.kI_pos`, default off) and a nonzero
+   yaw integral. Both null their offset to ~1–2 cm but need ~2.5 s to wind up,
+   so the catcher now settles longer before the throw.
+
+3. **Mass was hardcoded.** `MASS=0.625` vs the gripper's real ~0.646 kg →
+   gravity-FF undershoot. Replaced with `self.mass` summed from the model at
+   load (negligible change for the plain drone; correct for the gripper).
+
+4. **The fingers ~double the arm's rotational inertia** (≈0.004 kg·m² added at
+   the tip), so the velocity-matched absorption sweep lags — and the timing is
+   *sensitive*: ±0.2 in the sweep-start margin swings the closest approach by
+   ~7 cm, and at the closest instant the shoulder is at −54° or −23° rather
+   than the intended −44°. Torque doesn't help (the sweep is ω-limited, not
+   torque-limited).
+
+5. **Cup depth, not palm rim.** The fingers converge ~4 cm beyond the
+   end_effector link, not at it. Targeting the EE-link onto the ball left the
+   ball at the rim; a stationary-ball cage test found the sweet spot
+   (`cup_depth=0.04` → 3 fingers, caged; 0.06 → ball falls through behind the
+   closing fingers). Targeting now uses an effective arm length `L+cup_depth`.
+
+After all five, the static cage works (ball placed at the cup → held), the
+contact relative velocity at close drops to ~0.5 m/s (good velocity match),
+but the **dynamic closest approach plateaus at ~7–10 cm of cup-to-ball miss,
+roughly independent of ball speed (1.8–4.6 m/s)** — so it's not a
+contact-window problem, it's a *rendezvous-precision* problem. The single
+shoulder DOF sweeps the cup through an arc, and landing that arc on the ball
+at exactly the intercept instant — with the heavier arm's lagging dynamics —
+is too tight. The miss is dominated by vertical and the swept-angle error.
+
+**The clean implication: this is what the elbow is for.** A 2-DOF arm can
+servo the EE to a *point* (and track it for a window) instead of sweeping a
+1-DOF arc through it — turning a knife-edge timing problem into a tracking
+problem. That moves parking-lot item "unlock the elbow" from nice-to-have to
+the critical path for a contact catch. The constraint-based compliant capture
+(§11–12) remains the working catch for the demo; the finger gripper is a
+validated *mechanism* waiting on 2-DOF terminal guidance.
+
+Reusable infrastructure landed regardless: the URDF gripper generator, the
+`Drone` finger API (`open_gripper`/`close_gripper`/`fingers_touching`/
+`set_finger_dynamics`), model-derived mass, and the position + yaw integrators
+(all default-off, so existing tests are unaffected — re-verified).

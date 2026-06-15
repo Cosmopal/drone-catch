@@ -75,6 +75,22 @@ class ArmConfig:
     I_arm_extended: float = 0.004    # kg·m², no ball
     I_arm_with_ball: float = 0.014   # kg·m² (for reference; held-mass aware FF could use this)
 
+    # ---- Caging gripper (quadrotor_gripper.urdf only) ----
+    # Finger joint targets. Angle 0 = segment straight down; positive curls
+    # inward (fingertips converge); negative splays outward (open mouth).
+    finger_open_prox: float = -0.5   # rad — splayed to receive the ball
+    finger_open_dist: float = -0.2
+    finger_close_prox: float = 1.3   # rad — proximal wraps around
+    finger_close_dist: float = 1.6   # rad — distal curls MORE, gets under the ball
+    finger_close_torque: float = 0.5   # N·m motor force while closing/holding
+    # Finger servo PD gains. Kept GENTLE on purpose: stiff finger motors
+    # (high gain, or a velocity-drive branch) inject a dynamic disturbance
+    # that — with the arm extended horizontally — excites the attitude
+    # controller's yaw singularity and flips the drone. Soft position control
+    # holds the pose without flapping. See docs/iteration_findings.md §13.
+    finger_pos_gain: float = 0.6
+    finger_vel_gain: float = 0.8
+
 
 @dataclass(frozen=True)
 class GameConfig:

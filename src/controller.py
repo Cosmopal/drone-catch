@@ -42,12 +42,21 @@ class CascadeController:
     # internal state — controller is otherwise stateless so we just keep
     # the integral here, init in __post_init__
     _e_R_integral: np.ndarray = field(init=False, default=None)
+    # Integral on POSITION error — nulls steady-state offsets the position PD
+    # leaves under a persistent disturbance (e.g. a COM-offset gripper, or an
+    # unmodeled held-ball weight). Default 0 so existing tuning is unchanged;
+    # the finger-gripper catcher turns it on.
+    kI_pos: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 0.0]))
+    pos_integral_clamp: float = 0.5   # m·s, anti-windup clamp per axis
+    _e_pos_integral: np.ndarray = field(init=False, default=None)
 
     def __post_init__(self):
         self._e_R_integral = np.zeros(3)
+        self._e_pos_integral = np.zeros(3)
 
     def reset_integral(self):
         self._e_R_integral = np.zeros(3)
+        self._e_pos_integral = np.zeros(3)
 
     def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,
                 held_mass, MASS, G, feedforward_torque_body=None):
@@ -68,11 +77,18 @@ class CascadeController:
         # --- Outer loop: desired thrust vector in world frame ---
         err = target - pos
         derr = vel_target - vel
+        # Position integral with anti-windup (only accumulates when kI_pos is
+        # active, so the default-off path costs nothing and never winds up).
+        if np.any(self.kI_pos):
+            self._e_pos_integral = np.clip(
+                self._e_pos_integral + err * self.DT,
+                -self.pos_integral_clamp, self.pos_integral_clamp)
         # Gravity feed-forward includes any held body's mass so we don't droop
         # while carrying. (Constraint couples the two bodies rigidly, so the
         # drone has to support both.)
         total_mass = MASS + held_mass
-        thrust_vec = (MASS * (self.kp * err + self.kd * derr)
+        thrust_vec = (MASS * (self.kp * err + self.kd * derr
+                              + self.kI_pos * self._e_pos_integral)
                       + total_mass * np.array([0.0, 0.0, G]))
 
         # Cap desired body tilt: when a big horizontal target makes the desired

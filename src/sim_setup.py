@@ -118,14 +118,17 @@ def make_world(cfg: GameConfig = DEFAULT_GAME, gui: bool = True):
 
 
 def make_solo_drone(home_pos=(0.0, 0.0, 1.5),
-                    play_extent=(5.0, 5.0, 1.2)):
+                    play_extent=(5.0, 5.0, 1.2), urdf_path=None):
     """Single drone, centered, with a wide play area (default ±5 m horiz,
     ±1.2 m vert). Tests that traverse meaningful distance should pass an
     explicit play_extent or set home_pos near the middle of their workspace
     so set_target doesn't clip targets at the boundary.
+
+    `urdf_path` selects the body model (default: plain quadrotor; pass the
+    gripper URDF for the caging-finger catcher).
     """
     px, py, pz = play_extent
-    return Drone(start_pos=home_pos, home_pos=home_pos,
+    return Drone(start_pos=home_pos, home_pos=home_pos, urdf_path=urdf_path,
                  play_area_min_offset=(-px, -py, -pz),
                  play_area_max_offset=(+px, +py, +pz))
 
