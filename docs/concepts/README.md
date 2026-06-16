@@ -21,6 +21,7 @@ Reading order roughly follows the control stack, bottom-up:
 7. [Ballistic prediction & interception](07-ballistic-prediction-interception.md)
 8. [Disturbance modeling (OU gusts)](08-disturbance-modeling.md)
 9. [Grasping, caging & actuator-induced disturbance](09-grasping-caging-and-actuator-disturbance.md)
+10. [Forward/inverse kinematics & tracking vs sweeping](10-forward-inverse-kinematics-tracking.md)
 
 Conventions: equations are for unit mass unless stated; our sim runs at
 240 Hz (`DT = 1/240 s`); the drone weighs 0.625 kg, the ball 0.065 kg,

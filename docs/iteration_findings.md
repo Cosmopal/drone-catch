@@ -404,3 +404,54 @@ Reusable infrastructure landed regardless: the URDF gripper generator, the
 `Drone` finger API (`open_gripper`/`close_gripper`/`fingers_touching`/
 `set_finger_dynamics`), model-derived mass, and the position + yaw integrators
 (all default-off, so existing tests are unaffected — re-verified).
+
+## 14. Unlocking the elbow: 2-DOF tracking turns the catch from tangency into rendezvous (M7)
+
+§13 ended with the 1-DOF finger catch stuck at a ~7–10 cm rendezvous miss:
+one shoulder joint sweeps the cup through an *arc*, and landing that arc on
+the ball at the exact intercept instant is a knife-edge. Unlocking the elbow
+gives the end-effector 2 planar DOF — so instead of sweeping through the ball,
+the arm **servos the cup onto the ball and tracks it**.
+
+Foundation: `src/arm_kinematics.py` — forward + inverse kinematics for the
+2-link arm in the body sagittal (xz) plane. Both joints rotate about ±y, so
+the arm is a planar 2R manipulator; with equal 0.2 m links the IK is closed
+form (`r = 2L·cos(θ₂/2)`, take the θ₂≥0 elbow-forward branch, cap below the
+inverted-pendulum fold). **Verified exact (0.0 mm) against PyBullet's
+`getLinkState`** across poses, which also confirmed the elbow sign (forearm
+absolute angle = θ₁ − θ₂).
+
+Catch strategy (`tests/elbow_catch_solo.py`): station the body so the
+shoulder sits ~0.32 m *above* the intercept (arm hangs into the ball's path);
+each tick, IK the desired cup position (ball + small ballistic lead) to
+(shoulder, elbow) and command both via `hold_arm`; body holds the x-station
+and tracks the ball's y (the arm is planar — can't move laterally); fingers
+cage as in §13.
+
+**Result: it works.** Nominal (4.6 m/s arrival): the cup tracks to **0.9–1.3
+cm** of the ball (vs 7–10 cm for the 1-DOF sweep), 3 fingers cage, held
+through a 30 cm lift. That is the headline — 2-DOF tracking converts the
+rendezvous-precision wall into a solved tracking problem at the design point.
+
+**Robustness across the full velocity envelope is not there yet: 4/12 held**
+(`--grid`). The mechanism is sound everywhere — several misses get the cup to
+1–3 cm — but two control-quality gaps remain:
+- *Tracking accuracy* degrades for the fastest/steepest balls (cup miss
+  7–11 cm): the arm slews at its joint-rate limit and the ball is in the disk
+  only briefly. A continuous pre-aim (extend the arm toward the ball, clamped
+  to the reach boundary, before it enters the disk) *hurt* — the arm chases a
+  moving clamped point — so the fix is proper feedforward tracking, not a
+  geometric hack.
+- *Capture timing*: some cells reach ~2 cm cup-miss but still don't cage —
+  the ball crosses the cup with too much relative velocity for the fingers to
+  wrap in time. Needs the cup to **velocity-match** (track the ball's velocity,
+  not just position) at contact, plus possibly a faster finger close.
+
+So M7 validates the elbow as the right unlock and clears the §13 blocker at
+the design point; making it hold across the adversarial envelope is a
+tracking-control problem (velocity-matched IK tracking + capture timing),
+not a kinematics or mechanism one. Open items: extend the arm-reaction FF and
+gain schedule to the elbow angle (currently shoulder-only, so the FF is
+approximate with the elbow bent — the body integrators have been absorbing
+the residual), and add lateral (y) approaches once a singularity-free
+attitude controller exists.

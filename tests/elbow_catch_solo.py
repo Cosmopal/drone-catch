@@ -1,0 +1,284 @@
+"""2-DOF (shoulder + elbow) tracking catch — M7.
+
+The 1-DOF sweep (arm_catch_solo / finger_catch_solo) had to land a swept arc
+ON the ball at one instant — a knife-edge that left the finger catch ~7-10 cm
+short. With the elbow unlocked, the end-effector has 2 planar DOF: instead of
+sweeping through the ball, the arm SERVOS the cup onto the ball's predicted
+position and TRACKS it for a window. Body stations above the intercept so the
+arm hangs into the ball's path; IK (src/arm_kinematics.py) maps the desired
+cup position to (shoulder, elbow) every tick.
+
+Catch: fingers close when the ball is in the cup; capture = ≥2 fingers
+touching (caging + friction, no constraint — same as finger_catch_solo).
+
+Usage:
+    python tests/elbow_catch_solo.py --headless --runs-dir runs/elbow
+    python tests/elbow_catch_solo.py --headless --grid
+    python tests/elbow_catch_solo.py --headless --vx 4.5 --vz -3.2
+"""
+from __future__ import annotations
+import argparse
+import sys
+import os
+import math
+import numpy as np
+import pybullet as p
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from sim_setup import (Logger, MarkerSet, Marker, VideoRecorder, Sim,
+                       make_world, make_solo_drone, auto_run_paths,
+                       rotate_runs, DT)
+from config import DEFAULT as DEFAULT_GAME
+from drone import ASSETS
+from ball import spawn_ball, state as ball_state, predict_landing
+import arm_kinematics as ak
+from arm_catch_solo import (G, EE_INTERCEPT_X, EE_INTERCEPT_Z,
+                            launch_state_for_intercept, CATCH_KP, CATCH_KD)
+
+GRIPPER_URDF = os.path.join(ASSETS, "quadrotor_gripper.urdf")
+
+BALL_VX_DEFAULT = 3.3
+BALL_VZ_DEFAULT = -3.2
+
+STATION_H = 0.32        # shoulder height above the intercept (arm hangs down)
+READY_TH1, READY_TH2 = 0.0, 0.9   # ready pose while waiting (mid-elbow)
+TRACK_RANGE = 0.45      # start IK-tracking when ball within this of shoulder
+LEAD_S = 0.03           # aim where the ball will be this far ahead
+CUP_DEPTH = 0.04        # cage sweet spot beyond the EE link
+CLOSE_DIST = 0.06       # close fingers when cup-to-ball within this
+BALL_RESTITUTION = 0.10
+BALL_FRICTION = 1.4
+PAD_FRICTION = 1.4
+HOLD_DIST = 0.10
+HOLD_REL_VEL = 0.6
+SETTLE_S = 2.5
+
+
+def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
+        verbose=True):
+    log_path, video_path = auto_run_paths(runs_dir)
+    make_world(DEFAULT_GAME, gui=gui)
+
+    intercept = np.array([EE_INTERCEPT_X, 0.0, EE_INTERCEPT_Z])
+    # Body so the shoulder sits STATION_H above the intercept.
+    catcher_home = np.array([EE_INTERCEPT_X, 0.0,
+                             EE_INTERCEPT_Z + STATION_H - ak.SHOULDER_Z])
+
+    catcher = make_solo_drone(tuple(catcher_home), play_extent=(4.0, 4.0, 1.2),
+                              urdf_path=GRIPPER_URDF)
+    catcher.set_target(catcher_home)
+    catcher.arm_reaction_ff = True
+    catcher.attitude_gain_schedule = True
+    catcher.arm_translational_ff_z = True
+    catcher.controller.max_tilt_deg = 60.0
+    catcher.controller.kp = CATCH_KP.copy()
+    catcher.controller.kd = CATCH_KD.copy()
+    catcher.controller.kI_pos = np.array([20.0, 20.0, 20.0])
+    catcher.controller.kI = catcher.controller.kI.copy()
+    catcher.controller.kI[2] = 0.3
+    catcher.hold_arm(READY_TH1, READY_TH2)
+    catcher.open_gripper()
+    catcher.set_finger_dynamics(lateral_friction=PAD_FRICTION,
+                                restitution=BALL_RESTITUTION)
+
+    markers = MarkerSet()
+    markers.intent.set(intercept.tolist())
+    m_cup = Marker([1.0, 0.5, 0.1, 0.9], radius=0.03)
+    logger = Logger(log_path, decimate=2)
+    video = VideoRecorder(video_path, every=8, eye=(0.5, -3.0, 1.8),
+                          target=(0.5, 0.0, 1.4), fov=70)
+    sim = Sim([catcher], markers, logger, video, gui=gui)
+
+    for _ in range(int(SETTLE_S / DT)):
+        sim.tick("settle")
+
+    launch_pos, launch_vel, t_flight = launch_state_for_intercept(
+        intercept, (ball_vx, 0.0, ball_vz))
+    if verbose:
+        print(f"intercept={intercept.tolist()} station_H={STATION_H} "
+              f"t_flight={t_flight:.3f}s")
+    ball = spawn_ball(launch_pos)
+    p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.3, 0.3, 1])
+    p.changeDynamics(ball, -1, linearDamping=0.0, angularDamping=0.0,
+                     restitution=BALL_RESTITUTION, lateralFriction=BALL_FRICTION)
+    p.resetBaseVelocity(ball, linearVelocity=launch_vel.tolist())
+
+    closing = False
+    captured = False
+    result = {"vx": ball_vx, "vz": ball_vz, "speed": math.hypot(ball_vx, ball_vz),
+              "closed": False, "caught": False, "held": False,
+              "close_t": None, "close_rel": None, "max_fingers": 0,
+              "min_cup_d": 1e9, "_dbg": None}
+    trace = []
+    timeout_s = t_flight + 2.5
+    lift_started = None
+
+    def shoulder_world():
+        bp = catcher.position()
+        R = np.array(p.getMatrixFromQuaternion(catcher.orientation())).reshape(3, 3)
+        return bp + R @ np.array([ak.SHOULDER_X, 0.0, ak.SHOULDER_Z])
+
+    def cup_world():
+        ee = catcher.gripper_world_position()
+        th1, _, th2, _ = catcher.joint_states()
+        R = np.array(p.getMatrixFromQuaternion(catcher.orientation())).reshape(3, 3)
+        fdir = R @ np.array([math.sin(th1 - th2), 0.0, -math.cos(th1 - th2)])
+        return ee + CUP_DEPTH * fdir, fdir
+
+    for i in range(int(timeout_s / DT)):
+        t = i * DT
+        bp, bv = ball_state(ball)
+        ee = catcher.gripper_world_position()
+        ee_v = catcher.gripper_world_velocity()
+        cup, fdir = cup_world()
+        cup_d = float(np.linalg.norm(cup - bp))
+        rel = float(np.linalg.norm(bv - ee_v))
+        nf = catcher.fingers_touching(ball)
+        result["max_fingers"] = max(result["max_fingers"], nf)
+        if cup_d < result["min_cup_d"]:
+            result["min_cup_d"] = cup_d
+            result["_dbg"] = (f"cup={np.round(cup,3).tolist()} "
+                              f"ball={np.round(bp,3).tolist()} "
+                              f"th=({math.degrees(catcher.joint_states()[0]):.0f},"
+                              f"{math.degrees(catcher.joint_states()[2]):.0f})deg")
+
+        if nf >= 2:
+            captured = True
+
+        sh = shoulder_world()
+        ball_dist = float(np.linalg.norm(bp - sh))
+
+        if captured:
+            phase = "hold"
+            if lift_started is None:
+                lift_started = t
+                result["close_t"] = result["close_t"] or t
+            elapsed = t - lift_started
+            if elapsed > 0.4:
+                phase = "lift"
+                catcher.set_target(catcher_home + np.array([0, 0, min(0.3, (elapsed-0.4)*0.5)]),
+                                   vel=(0, 0, 0))
+            else:
+                catcher.set_target(catcher.position(), vel=(0, 0, 0))
+        elif bv[2] < 0 and ball_dist < TRACK_RANGE:
+            # --- 2-DOF IK tracking with continuous pre-aim ---
+            phase = "track"
+            # Aim where the ball will be LEAD_S ahead (ballistic).
+            tgt_ball = bp + bv * LEAD_S + 0.5 * np.array([0, 0, -G]) * LEAD_S**2
+            # We want the CUP at tgt_ball → EE at tgt_ball - CUP_DEPTH*fdir.
+            ee_tgt = tgt_ball - CUP_DEPTH * fdir
+            R = np.array(p.getMatrixFromQuaternion(catcher.orientation())).reshape(3, 3)
+            tgt_body = R.T @ (ee_tgt - catcher.position())   # EE target, body frame
+            rx, rz = tgt_body[0] - ak.SHOULDER_X, tgt_body[2] - ak.SHOULDER_Z
+            r = math.hypot(rx, rz)
+            if r > ak.REACH * 0.98:
+                # Ball still beyond reach: extend the arm fully TOWARD it so the
+                # cup is pre-positioned on the approach line and only has to
+                # retract as the ball enters the disk (no big slew at the edge).
+                s = ak.REACH * 0.98 / r
+                rx, rz = rx * s, rz * s
+            sol = ak.ik(rx, rz)
+            if sol is not None:
+                catcher.hold_arm(sol[0], sol[1])
+            # Body: hold x station, track ball y (lateral — arm can't), hold z.
+            catcher.set_target([catcher_home[0], bp[1], catcher_home[2]], vel=(0, 0, 0))
+            m_cup.set(cup.tolist())
+            if not closing and cup_d < CLOSE_DIST:
+                catcher.close_gripper()
+                closing = True
+                result.update(closed=True, close_rel=rel)
+                if verbose:
+                    print(f"[t={t:.3f}s] CLOSE  cup_d={cup_d*100:.1f}cm rel={rel:.2f}")
+        else:
+            phase = "wait"
+            catcher.set_target(catcher_home, vel=(0, 0, 0))
+            if not closing:
+                catcher.hold_arm(READY_TH1, READY_TH2)
+
+        trace.append({"t": t, "phase": phase, "cup_d": cup_d, "rel": rel,
+                      "nf": nf, "ball_z": bp[2]})
+        sim.tick(phase, extra_payload={"cup_to_ball": cup_d, "rel_vel": rel,
+                                       "fingers": nf, "ball_pos": bp.tolist()})
+
+        if captured and result["close_t"] is not None and t - result["close_t"] > 1.6:
+            break
+        if not captured and bp[2] < 0.05:
+            break
+        if closing and not captured and bp[2] < EE_INTERCEPT_Z - 0.4:
+            break
+
+    bp, bv = ball_state(ball)
+    ee = catcher.gripper_world_position()
+    ee_v = catcher.gripper_world_velocity()
+    cup, _ = cup_world()
+    end_d = float(np.linalg.norm(cup - bp))
+    end_rel = float(np.linalg.norm(bv - ee_v))
+    nf = catcher.fingers_touching(ball)
+    result["captured"] = captured
+    result["caught"] = bool(captured and end_d < HOLD_DIST and nf >= 2)
+    result["held"] = bool(result["caught"] and end_rel < HOLD_REL_VEL)
+    result["end_d"] = end_d
+    result["end_fingers"] = nf
+
+    sim.logger.close()
+    sim.video.close()
+
+    if verbose:
+        print("\n=== RESULT ===")
+        print(f"closed={result['closed']} captured={captured} caught={result['caught']} held={result['held']}")
+        print(f"min cup-to-ball: {result['min_cup_d']*100:.1f}cm   at: {result['_dbg']}")
+        print(f"end: cup_d={end_d*100:.1f}cm fingers={nf} max_fingers={result['max_fingers']}")
+        last = None
+        for r in trace:
+            if r["phase"] != last:
+                print(f"  t={r['t']:.3f} -> {r['phase']:6s} cup_d={r['cup_d']*100:.1f}cm "
+                      f"rel={r['rel']:.2f} nf={r['nf']} ball_z={r['ball_z']:.3f}")
+                last = r["phase"]
+
+    if runs_dir:
+        rotate_runs(__import__("pathlib").Path(runs_dir), keep=5)
+    return result
+
+
+def run_grid():
+    cells = [(vx, vz) for vx in [2.5, 3.3, 4.5, 5.5] for vz in [-2.0, -3.2, -4.5]]
+    results = []
+    print(f"{'vx':>5} {'vz':>5} {'spd':>5} | {'closed':>6} {'caught':>6} {'held':>5} "
+          f"{'mincup':>7} {'maxF':>4}")
+    for vx, vz in cells:
+        p.connect(p.DIRECT)
+        try:
+            r = run(gui=False, runs_dir=None, ball_vx=vx, ball_vz=vz, verbose=False)
+        finally:
+            p.disconnect()
+        results.append(r)
+        print(f"{vx:5.1f} {vz:5.1f} {r['speed']:5.2f} | {str(r['closed']):>6} "
+              f"{str(r['caught']):>6} {str(r['held']):>5} {r['min_cup_d']*100:6.1f}cm "
+              f"{r['max_fingers']:>4}")
+    held = sum(1 for r in results if r["held"])
+    print(f"\nheld {held}/{len(results)}")
+    return 0 if held == len(results) else 1
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--headless", action="store_true")
+    ap.add_argument("--runs-dir", default=None)
+    ap.add_argument("--grid", action="store_true")
+    ap.add_argument("--vx", type=float, default=BALL_VX_DEFAULT)
+    ap.add_argument("--vz", type=float, default=BALL_VZ_DEFAULT)
+    args = ap.parse_args()
+    if args.grid:
+        return run_grid()
+    gui = not args.headless
+    p.connect(p.GUI if gui else p.DIRECT)
+    try:
+        r = run(gui=gui, runs_dir=args.runs_dir, ball_vx=args.vx, ball_vz=args.vz)
+        return 0 if r["held"] else 1
+    finally:
+        p.disconnect()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
