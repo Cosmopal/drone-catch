@@ -36,14 +36,25 @@ See `docs/iteration_findings.md` §13 for the full build narrative.
   behind the closing fingers. We found it with a stationary-ball test before
   trusting any moving catch — *isolate the geometry from the dynamics.*
 
-- **A flying gripper's servo can flip the aircraft.** Stiff or velocity-driven
-  finger motors, with the arm extended, injected enough body-yaw disturbance
-  to drive our attitude controller into its singularity (§1) and crash it.
-  The static gripper was harmless; the *motor dynamics* were the problem.
-  Diagnosis: freeze the fingers kinematically vs motorize them — the freeze
-  was rock-stable, the motors diverged. Fix: gentle position control. (And a
-  PyBullet-specific trap: its explicit joint-motor PD goes numerically
-  unstable at *high* gain on near-massless links — so "stiffer" is not safer.)
+- **A flying gripper's servo can flip the aircraft — and the mechanism is
+  subtle.** Symmetric fingers moving together *should* produce zero net
+  reaction (the 3 joint-axis vectors sum to zero, so equal torques cancel).
+  Two things break that, both needing the arm **horizontal** (the catch pose):
+  (1) the finger joint axes are perpendicular to the arm, so when the arm is
+  horizontal those axes point partly *vertical* — i.e. finger torque now has a
+  **yaw** component (with the arm vertical, the axes are horizontal → no yaw);
+  (2) a horizontal arm loads the three fingers *unequally* under gravity (each
+  at a different clock angle), so the motors hold them with unequal torques —
+  which therefore *don't* cancel. Measured in the catch pose: per-finger hold
+  torques +0.22 / +0.28 / −0.29 N·m onto axes with world-z components
+  +1.0 / −0.47 / −0.53 → **net +0.24 N·m of body yaw**; the same arm pointing
+  straight down gives −0.03 N·m (≈10× less). That steady yaw torque, on the
+  weakly-gained yaw channel with no integral, drives the body toward the Lee
+  SO(3) singularity (§1) and crashes it. It is *not* the closing motion —
+  freezing the fingers kinematically (zero motor torque) is rock-stable;
+  motorizing them produces the yaw. Fixes: gentle position control + a yaw
+  integral. (PyBullet trap: its explicit joint-motor PD goes numerically
+  unstable at *high* gain on near-massless links — "stiffer" is not safer.)
 
 - **Persistent disturbances need integrators, not just stiffer P.** The
   gripper's mass offset (→ position sag) and residual yaw torque (→ steady
