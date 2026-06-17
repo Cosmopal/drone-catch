@@ -119,105 +119,195 @@
     <origin xyz="0 0 -0.20"/>
   </joint>
 
-  <link name="finger0_prox">
-    <inertial><origin xyz="0 0 -0.0300"/><mass value="0.004"/>
+  <link name="finger0_seg0">
+    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.004"/>
       <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
-    <visual><origin xyz="0 0 -0.0300"/>
-      <geometry><box size="0.014 0.014 0.060"/></geometry>
-      <material name="finger"><color rgba="0.85 0.85 0.20 1"/></material></visual>
-    <collision><origin xyz="0 0 -0.0300"/>
-      <geometry><box size="0.014 0.014 0.060"/></geometry></collision>
+    <visual><origin xyz="0 0 -0.0275"/>
+      <geometry><box size="0.014 0.014 0.055"/></geometry>
+      <material name="seg00"><color rgba="0.85 0.85 0.20 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0275"/>
+      <geometry><box size="0.014 0.014 0.055"/></geometry></collision>
   </link>
-  <joint name="finger0_prox_joint" type="revolute">
-    <parent link="forearm"/><child link="finger0_prox"/>
-    <origin xyz="0.0000 0.0250 -0.20"/>
+  <joint name="finger0_seg0_joint" type="revolute">
+    <parent link="forearm"/><child link="finger0_seg0"/>
+    <origin xyz="0.0000 0.0340 -0.20"/>
     <axis xyz="-1.0000 0.0000 0"/>
-    <limit lower="-0.8" upper="1.7" effort="0.6" velocity="15"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
   </joint>
-
-  <link name="finger0_dist">
-    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.003"/>
-      <inertia ixx="2e-6" ixy="0" ixz="0" iyy="2e-6" iyz="0" izz="1e-6"/></inertial>
-    <visual><origin xyz="0 0 -0.0275"/>
-      <geometry><box size="0.014 0.014 0.055"/></geometry>
-      <material name="fingertip"><color rgba="0.95 0.55 0.10 1"/></material></visual>
-    <collision><origin xyz="0 0 -0.0275"/>
-      <geometry><box size="0.014 0.014 0.055"/></geometry></collision>
+  <link name="finger0_seg1">
+    <inertial><origin xyz="0 0 -0.0160"/><mass value="0.0035"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry>
+      <material name="seg01"><color rgba="0.95 0.55 0.10 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry></collision>
   </link>
-  <joint name="finger0_dist_joint" type="revolute">
-    <parent link="finger0_prox"/><child link="finger0_dist"/>
-    <origin xyz="0 0 -0.0600"/>
+  <joint name="finger0_seg1_joint" type="revolute">
+    <parent link="finger0_seg0"/><child link="finger0_seg1"/>
+    <origin xyz="0 0 -0.0550"/>
     <axis xyz="-1.0000 0.0000 0"/>
-    <limit lower="-0.4" upper="1.9" effort="0.5" velocity="15"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
   </joint>
-
-  <link name="finger1_prox">
-    <inertial><origin xyz="0 0 -0.0300"/><mass value="0.004"/>
+  <link name="finger0_seg2">
+    <inertial><origin xyz="0 0 -0.0125"/><mass value="0.003"/>
       <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
-    <visual><origin xyz="0 0 -0.0300"/>
-      <geometry><box size="0.014 0.014 0.060"/></geometry>
-      <material name="finger"><color rgba="0.85 0.85 0.20 1"/></material></visual>
-    <collision><origin xyz="0 0 -0.0300"/>
-      <geometry><box size="0.014 0.014 0.060"/></geometry></collision>
+    <visual><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry>
+      <material name="seg02"><color rgba="0.20 0.45 0.95 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry></collision>
   </link>
-  <joint name="finger1_prox_joint" type="revolute">
-    <parent link="forearm"/><child link="finger1_prox"/>
-    <origin xyz="-0.0217 -0.0125 -0.20"/>
-    <axis xyz="0.5000 -0.8660 0"/>
-    <limit lower="-0.8" upper="1.7" effort="0.6" velocity="15"/>
+  <joint name="finger0_seg2_joint" type="revolute">
+    <parent link="finger0_seg1"/><child link="finger0_seg2"/>
+    <origin xyz="0 0 -0.0320"/>
+    <axis xyz="-1.0000 0.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
   </joint>
-
-  <link name="finger1_dist">
-    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.003"/>
-      <inertia ixx="2e-6" ixy="0" ixz="0" iyy="2e-6" iyz="0" izz="1e-6"/></inertial>
+  <link name="finger1_seg0">
+    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.004"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
     <visual><origin xyz="0 0 -0.0275"/>
       <geometry><box size="0.014 0.014 0.055"/></geometry>
-      <material name="fingertip"><color rgba="0.95 0.55 0.10 1"/></material></visual>
+      <material name="seg10"><color rgba="0.85 0.85 0.20 1"/></material></visual>
     <collision><origin xyz="0 0 -0.0275"/>
       <geometry><box size="0.014 0.014 0.055"/></geometry></collision>
   </link>
-  <joint name="finger1_dist_joint" type="revolute">
-    <parent link="finger1_prox"/><child link="finger1_dist"/>
-    <origin xyz="0 0 -0.0600"/>
-    <axis xyz="0.5000 -0.8660 0"/>
-    <limit lower="-0.4" upper="1.9" effort="0.5" velocity="15"/>
+  <joint name="finger1_seg0_joint" type="revolute">
+    <parent link="forearm"/><child link="finger1_seg0"/>
+    <origin xyz="-0.0340 0.0000 -0.20"/>
+    <axis xyz="-0.0000 -1.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
   </joint>
-
-  <link name="finger2_prox">
-    <inertial><origin xyz="0 0 -0.0300"/><mass value="0.004"/>
+  <link name="finger1_seg1">
+    <inertial><origin xyz="0 0 -0.0160"/><mass value="0.0035"/>
       <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
-    <visual><origin xyz="0 0 -0.0300"/>
-      <geometry><box size="0.014 0.014 0.060"/></geometry>
-      <material name="finger"><color rgba="0.85 0.85 0.20 1"/></material></visual>
-    <collision><origin xyz="0 0 -0.0300"/>
-      <geometry><box size="0.014 0.014 0.060"/></geometry></collision>
+    <visual><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry>
+      <material name="seg11"><color rgba="0.95 0.55 0.10 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry></collision>
   </link>
-  <joint name="finger2_prox_joint" type="revolute">
-    <parent link="forearm"/><child link="finger2_prox"/>
-    <origin xyz="0.0217 -0.0125 -0.20"/>
-    <axis xyz="0.5000 0.8660 0"/>
-    <limit lower="-0.8" upper="1.7" effort="0.6" velocity="15"/>
+  <joint name="finger1_seg1_joint" type="revolute">
+    <parent link="finger1_seg0"/><child link="finger1_seg1"/>
+    <origin xyz="0 0 -0.0550"/>
+    <axis xyz="-0.0000 -1.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
   </joint>
-
-  <link name="finger2_dist">
-    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.003"/>
-      <inertia ixx="2e-6" ixy="0" ixz="0" iyy="2e-6" iyz="0" izz="1e-6"/></inertial>
+  <link name="finger1_seg2">
+    <inertial><origin xyz="0 0 -0.0125"/><mass value="0.003"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry>
+      <material name="seg12"><color rgba="0.20 0.45 0.95 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry></collision>
+  </link>
+  <joint name="finger1_seg2_joint" type="revolute">
+    <parent link="finger1_seg1"/><child link="finger1_seg2"/>
+    <origin xyz="0 0 -0.0320"/>
+    <axis xyz="-0.0000 -1.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
+    <dynamics damping="0.002" friction="0.001"/>
+  </joint>
+  <link name="finger2_seg0">
+    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.004"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
     <visual><origin xyz="0 0 -0.0275"/>
       <geometry><box size="0.014 0.014 0.055"/></geometry>
-      <material name="fingertip"><color rgba="0.95 0.55 0.10 1"/></material></visual>
+      <material name="seg20"><color rgba="0.85 0.85 0.20 1"/></material></visual>
     <collision><origin xyz="0 0 -0.0275"/>
       <geometry><box size="0.014 0.014 0.055"/></geometry></collision>
   </link>
-  <joint name="finger2_dist_joint" type="revolute">
-    <parent link="finger2_prox"/><child link="finger2_dist"/>
-    <origin xyz="0 0 -0.0600"/>
-    <axis xyz="0.5000 0.8660 0"/>
-    <limit lower="-0.4" upper="1.9" effort="0.5" velocity="15"/>
+  <joint name="finger2_seg0_joint" type="revolute">
+    <parent link="forearm"/><child link="finger2_seg0"/>
+    <origin xyz="-0.0000 -0.0340 -0.20"/>
+    <axis xyz="1.0000 -0.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
   </joint>
-</robot>
+  <link name="finger2_seg1">
+    <inertial><origin xyz="0 0 -0.0160"/><mass value="0.0035"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry>
+      <material name="seg21"><color rgba="0.95 0.55 0.10 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry></collision>
+  </link>
+  <joint name="finger2_seg1_joint" type="revolute">
+    <parent link="finger2_seg0"/><child link="finger2_seg1"/>
+    <origin xyz="0 0 -0.0550"/>
+    <axis xyz="1.0000 -0.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
+    <dynamics damping="0.002" friction="0.001"/>
+  </joint>
+  <link name="finger2_seg2">
+    <inertial><origin xyz="0 0 -0.0125"/><mass value="0.003"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry>
+      <material name="seg22"><color rgba="0.20 0.45 0.95 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry></collision>
+  </link>
+  <joint name="finger2_seg2_joint" type="revolute">
+    <parent link="finger2_seg1"/><child link="finger2_seg2"/>
+    <origin xyz="0 0 -0.0320"/>
+    <axis xyz="1.0000 -0.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
+    <dynamics damping="0.002" friction="0.001"/>
+  </joint>
+  <link name="finger3_seg0">
+    <inertial><origin xyz="0 0 -0.0275"/><mass value="0.004"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0275"/>
+      <geometry><box size="0.014 0.014 0.055"/></geometry>
+      <material name="seg30"><color rgba="0.85 0.85 0.20 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0275"/>
+      <geometry><box size="0.014 0.014 0.055"/></geometry></collision>
+  </link>
+  <joint name="finger3_seg0_joint" type="revolute">
+    <parent link="forearm"/><child link="finger3_seg0"/>
+    <origin xyz="0.0340 -0.0000 -0.20"/>
+    <axis xyz="0.0000 1.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
+    <dynamics damping="0.002" friction="0.001"/>
+  </joint>
+  <link name="finger3_seg1">
+    <inertial><origin xyz="0 0 -0.0160"/><mass value="0.0035"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry>
+      <material name="seg31"><color rgba="0.95 0.55 0.10 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0160"/>
+      <geometry><box size="0.014 0.014 0.032"/></geometry></collision>
+  </link>
+  <joint name="finger3_seg1_joint" type="revolute">
+    <parent link="finger3_seg0"/><child link="finger3_seg1"/>
+    <origin xyz="0 0 -0.0550"/>
+    <axis xyz="0.0000 1.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
+    <dynamics damping="0.002" friction="0.001"/>
+  </joint>
+  <link name="finger3_seg2">
+    <inertial><origin xyz="0 0 -0.0125"/><mass value="0.003"/>
+      <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
+    <visual><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry>
+      <material name="seg32"><color rgba="0.20 0.45 0.95 1"/></material></visual>
+    <collision><origin xyz="0 0 -0.0125"/>
+      <geometry><box size="0.014 0.014 0.025"/></geometry></collision>
+  </link>
+  <joint name="finger3_seg2_joint" type="revolute">
+    <parent link="finger3_seg1"/><child link="finger3_seg2"/>
+    <origin xyz="0 0 -0.0320"/>
+    <axis xyz="0.0000 1.0000 0"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
+    <dynamics damping="0.002" friction="0.001"/>
+  </joint></robot>

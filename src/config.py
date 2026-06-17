@@ -76,12 +76,13 @@ class ArmConfig:
     I_arm_with_ball: float = 0.014   # kg·m² (for reference; held-mass aware FF could use this)
 
     # ---- Caging gripper (quadrotor_gripper.urdf only) ----
-    # Finger joint targets. Angle 0 = segment straight down; positive curls
-    # inward (fingertips converge); negative splays outward (open mouth).
-    finger_open_prox: float = -0.5   # rad — splayed to receive the ball
-    finger_open_dist: float = -0.2
-    finger_close_prox: float = 1.3   # rad — proximal wraps around
-    finger_close_dist: float = 1.6   # rad — distal curls MORE, gets under the ball
+    # Per-segment finger joint targets (proximal→distal). Angle 0 = segment
+    # straight down; positive curls inward (fingertips converge); negative
+    # splays outward (open mouth). 3 segments: long proximal reaches the ball
+    # equator, middle+distal curl UNDER it for form closure (§15, validated
+    # by the inversion test).
+    finger_open: tuple = (-0.4, -0.2, 0.0)   # splayed funnel to receive the ball
+    finger_close: tuple = (0.5, 1.0, 1.3)    # wrap: prox to equator, mid+dist under
     finger_close_torque: float = 0.5   # N·m motor force while closing/holding
     # Finger servo PD gains. Kept GENTLE on purpose: stiff finger motors
     # (high gain, or a velocity-drive branch) inject a dynamic disturbance

@@ -86,3 +86,35 @@ See `docs/iteration_findings.md` §13 for the full build narrative.
   is geometry or dynamics. That one habit saved us from chasing a control bug
   that was really a 2 cm cup-depth error — and from trusting a "catch" whose
   real problem was the platform flipping.
+
+## Update (M8): from force closure to form closure
+
+The 2-segment fingers above only achieved **force closure** — friction at a
+few contact points, which is orientation-fragile (a ball it "held" in an
+upright cup fell out the moment the hand tilted ~90°). The honest gate is the
+**inversion test**: close on the object, rotate 180°, does it stay? Force
+closure fails it; **form closure** (geometric trapping) passes it.
+
+Form closure of a sphere needed three things, all geometric:
+- **Mount ring ≥ object radius** so fingers start *outside* the ball and can
+  wrap around it (ours started inside — they couldn't enclose what they were
+  mounted within).
+- **Three-jointed fingers** (not two) so each finger curls into a tight "C".
+- **A long proximal phalanx** (human-like) so the finger reaches *down past
+  the equator* before the shorter middle/distal segments curl *under* — that
+  under-tuck is what closes the basket and survives inversion.
+
+Process lesson that recurred: a **screenshot review caught the bug**. The
+"caged" catch had really been containment-in-an-upright-cup the whole time;
+the rendered close pose showed fingers folding back over the wrist instead of
+enclosing. Render your mechanism in the pose that matters and look at it —
+numbers (contact count, "held through a vertical lift") hid the failure that
+one picture made obvious.
+
+Platform lesson: **N PD-controlled joints on a floating base can overwhelm
+the contact solver.** 12 finger joints (4×3) diverged the body ~80 cm even
+though the fingers were barely moving — the *static* hand was fine, the motor
+loops weren't. Pinning the fingers kinematically while open (and only
+motorizing to close) gave the tightest hover; raising solver iterations also
+worked. Tight station-keeping matters directly: the catch's tracking accuracy
+is set by how well the body holds station.

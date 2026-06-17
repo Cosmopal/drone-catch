@@ -97,7 +97,7 @@ class Drone:
         self.shoulder_joint = -1
         self.elbow_joint = -1
         self.ee_link = -1
-        prox, dist = {}, {}
+        fseg = {}   # {finger_id: {seg_id: joint_index}}
         for j in range(p.getNumJoints(self.body_id)):
             info = p.getJointInfo(self.body_id, j)
             jname = info[1].decode()
@@ -106,20 +106,22 @@ class Drone:
                 self.shoulder_joint = j
             elif jname == "elbow_joint":
                 self.elbow_joint = j
-            elif jname.startswith("finger") and jname.endswith("_joint"):
-                # finger{i}_prox_joint / finger{i}_dist_joint
+            elif jname.startswith("finger") and "_seg" in jname:
+                # finger{i}_seg{k}_joint — N fingers, M segments each
                 fid = int(jname[len("finger"):].split("_")[0])
-                (prox if "_prox_" in jname else dist)[fid] = j
+                sid = int(jname.split("_seg")[1].split("_")[0])
+                fseg.setdefault(fid, {})[sid] = j
             if child_link_name == "end_effector":
                 self.ee_link = j  # link index == joint index whose child is this link
         assert self.shoulder_joint >= 0 and self.elbow_joint >= 0 and self.ee_link >= 0, \
             f"URDF missing expected joints/links: shoulder={self.shoulder_joint} " \
             f"elbow={self.elbow_joint} ee={self.ee_link}"
-        # Pair up finger joints by id; record both joints and the link indices
-        # (link index == joint index of the joint whose child is that link).
-        for fid in sorted(prox):
-            self.finger_joints.append((prox[fid], dist[fid]))
-            self.finger_links.extend([prox[fid], dist[fid]])
+        # finger_joints[i] = [seg0_joint, seg1_joint, ...] (proximal→distal).
+        # Link index == joint index of the joint whose child is that link.
+        for fid in sorted(fseg):
+            segs = [fseg[fid][sid] for sid in sorted(fseg[fid])]
+            self.finger_joints.append(segs)
+            self.finger_links.extend(segs)
 
         # Actual total mass from the loaded model (base + all links). The
         # gripper URDF adds finger mass, so a hardcoded constant would make
@@ -142,11 +144,10 @@ class Drone:
         }
         # Fingers (gripper URDF only): start splayed open and hold there.
         if self.finger_joints:
-            for prox_j, dist_j in self.finger_joints:
-                p.resetJointState(self.body_id, prox_j,
-                                  targetValue=self.arm_cfg.finger_open_prox)
-                p.resetJointState(self.body_id, dist_j,
-                                  targetValue=self.arm_cfg.finger_open_dist)
+            for segs in self.finger_joints:
+                for k, j in enumerate(segs):
+                    p.resetJointState(self.body_id, j,
+                                      targetValue=self.arm_cfg.finger_open[k])
             self._gripper_cmd = {"mode": "open"}
 
     # ------------ state ------------
@@ -283,31 +284,44 @@ class Drone:
             return
         cfg = self.arm_cfg
         closing = self._gripper_cmd["mode"] == "close"
-        tp = cfg.finger_close_prox if closing else cfg.finger_open_prox
-        td = cfg.finger_close_dist if closing else cfg.finger_open_dist
-        # Pure gentle position control. The force cap (finger_close_torque)
-        # both limits squeeze on the ball AND, far from the target, sets how
-        # hard the finger drives closed — so closing is fast (low finger
-        # inertia) yet compliant on contact. Gains are kept low: stiff finger
-        # servos flap and excite the body's yaw singularity (§13).
-        for prox_j, dist_j in self.finger_joints:
-            for jidx, tgt in ((prox_j, tp), (dist_j, td)):
+        if not closing:
+            # OPEN/waiting: pin the fingers kinematically at the open pose.
+            # Motorizing 12 finger PD joints on a floating base overwhelms the
+            # contact solver and the body diverges (~80 cm); pinning makes the
+            # open hand effectively rigid → tight station-keeping (the catch's
+            # tracking accuracy is set by how well the body holds station).
+            # See iteration_findings §15.
+            for segs in self.finger_joints:
+                for k, jidx in enumerate(segs):
+                    p.resetJointState(self.body_id, jidx,
+                                      targetValue=cfg.finger_open[k],
+                                      targetVelocity=0.0)
+            return
+        # CLOSING: gentle position control per segment. The force cap
+        # (finger_close_torque) both limits squeeze on the ball AND, far from
+        # the target, sets how hard the finger drives closed — fast yet
+        # compliant on contact. Gains kept low: stiff finger servos flap and
+        # excite the body's yaw singularity (§13). With 3-segment fingers the
+        # long proximal reaches the ball's equator and middle+distal curl
+        # under it (form closure, §15).
+        for segs in self.finger_joints:
+            for k, jidx in enumerate(segs):
                 p.setJointMotorControl2(
                     self.body_id, jidx, p.POSITION_CONTROL,
-                    targetPosition=tgt, force=cfg.finger_close_torque,
+                    targetPosition=cfg.finger_close[k], force=cfg.finger_close_torque,
                     positionGain=cfg.finger_pos_gain,
                     velocityGain=cfg.finger_vel_gain)
 
     def fingers_touching(self, ball_id: int) -> int:
         """Number of distinct fingers (not segments) in contact with the
-        ball — the caging signal. A ball held by ≥2 opposing fingers is
-        geometrically trapped."""
+        ball — the caging signal. A ball held by ≥3 wrapping fingers is
+        geometrically trapped (form closure)."""
         pts = p.getContactPoints(bodyA=self.body_id, bodyB=ball_id)
         touched = set()
         for c in pts:
             link_a = c[3]
-            for fid, (prox_j, dist_j) in enumerate(self.finger_joints):
-                if link_a in (prox_j, dist_j):
+            for fid, segs in enumerate(self.finger_joints):
+                if link_a in segs:
                     touched.add(fid)
         return len(touched)
 

@@ -11,11 +11,11 @@ Geometry (forearm-tip / "palm" frame, z down the arm, -z = outward):
   - A small `end_effector` sphere stays at the forearm tip as the palm
     center, so existing ee_link positioning code is unchanged.
   - N fingers mount on a ring of radius MOUNT_R around the -z axis.
-  - Each finger = 2 segments: a proximal joint at the palm ring and a
-    distal joint partway out. Both curl INWARD (toward the -z axis) as
-    their angle increases, so a closing command wraps the fingertips
-    under a ball sitting in the cup. The distal is geared to curl more
-    (set by the controller), which is what gets *under* the sphere.
+  - Each finger = M segments (human-like). A LONG proximal phalanx reaches
+    down past the ball's equator; the shorter middle + distal segments curl
+    UNDER the ball to meet beneath it — form closure, not just a pinch. This
+    is what survives full inversion (a 2-segment finger could not — it folded
+    back over the wrist). See docs/iteration_findings.md §15.
 
 Joint sign convention: angle 0 = segment points straight down (-z),
 positive = curl inward (fingertips converge), negative = splay outward
@@ -26,11 +26,12 @@ Run:  python assets/make_gripper_urdf.py
 import math
 import os
 
-N_FINGERS = 3
-MOUNT_R = 0.025          # m, palm ring radius fingers mount on
-PROX_LEN = 0.060         # m, proximal segment length
-DIST_LEN = 0.055         # m, distal segment length  (reach ~0.115 m so a
-                         # ~9 cm positioning residual still lands in the cup)
+N_FINGERS = 4
+MOUNT_R = 0.034          # m, palm ring radius (>= ball radius 0.03 so fingers
+                         # start OUTSIDE the ball and can wrap around it)
+# Segment lengths from palm outward: long proximal, then shorter middle +
+# distal that curl under. Validated as a form-closure cage (inversion test).
+SEG_LENS = (0.055, 0.032, 0.025)
 FINGER_HALF = 0.007      # m, finger half-thickness (box cross-section)
 PAD_FRICTION = 1.4       # lateral friction of finger pads (rubber-ish)
 
@@ -137,51 +138,43 @@ ARM = '''
 
 
 def finger_block(idx, phi):
-    """One 2-segment finger at azimuth phi around the -z (palm) axis,
-    mounted at the forearm tip (z=-0.20 in forearm frame)."""
+    """One M-segment finger at azimuth phi around the -z (palm) axis, mounted
+    at the forearm tip (z=-0.20 in forearm frame). Segments named
+    finger{idx}_seg{k}; each curls inward about the tangential axis."""
     c, s = math.cos(phi), math.sin(phi)
     mx, my = MOUNT_R * c, MOUNT_R * s
     # Joint axis is tangential so +angle curls the finger toward the -z axis.
     ax, ay = -s, c
-    prox, dist = f"finger{idx}_prox", f"finger{idx}_dist"
     half = FINGER_HALF
-    # Proximal: box centered PROX_LEN/2 below its joint.
-    # Distal: box centered DIST_LEN/2 below its joint, joint at prox tip.
-    return f'''
-  <link name="{prox}">
-    <inertial><origin xyz="0 0 {-PROX_LEN/2:.4f}"/><mass value="0.004"/>
+    masses = [0.004, 0.0035, 0.003, 0.0025]   # proximal heaviest
+    colors = ["0.85 0.85 0.20 1", "0.95 0.55 0.10 1",
+              "0.20 0.45 0.95 1", "0.6 0.3 0.8 1"]
+    out = []
+    for k, L in enumerate(SEG_LENS):
+        link = f"finger{idx}_seg{k}"
+        parent = "forearm" if k == 0 else f"finger{idx}_seg{k-1}"
+        origin = (f"{mx:.4f} {my:.4f} -0.20" if k == 0
+                  else f"0 0 {-SEG_LENS[k-1]:.4f}")
+        m = masses[min(k, len(masses) - 1)]
+        col = colors[min(k, len(colors) - 1)]
+        out.append(f'''
+  <link name="{link}">
+    <inertial><origin xyz="0 0 {-L/2:.4f}"/><mass value="{m}"/>
       <inertia ixx="3e-6" ixy="0" ixz="0" iyy="3e-6" iyz="0" izz="1e-6"/></inertial>
-    <visual><origin xyz="0 0 {-PROX_LEN/2:.4f}"/>
-      <geometry><box size="{2*half:.3f} {2*half:.3f} {PROX_LEN:.3f}"/></geometry>
-      <material name="finger"><color rgba="0.85 0.85 0.20 1"/></material></visual>
-    <collision><origin xyz="0 0 {-PROX_LEN/2:.4f}"/>
-      <geometry><box size="{2*half:.3f} {2*half:.3f} {PROX_LEN:.3f}"/></geometry></collision>
+    <visual><origin xyz="0 0 {-L/2:.4f}"/>
+      <geometry><box size="{2*half:.3f} {2*half:.3f} {L:.3f}"/></geometry>
+      <material name="seg{idx}{k}"><color rgba="{col}"/></material></visual>
+    <collision><origin xyz="0 0 {-L/2:.4f}"/>
+      <geometry><box size="{2*half:.3f} {2*half:.3f} {L:.3f}"/></geometry></collision>
   </link>
-  <joint name="{prox}_joint" type="revolute">
-    <parent link="forearm"/><child link="{prox}"/>
-    <origin xyz="{mx:.4f} {my:.4f} -0.20"/>
+  <joint name="{link}_joint" type="revolute">
+    <parent link="{parent}"/><child link="{link}"/>
+    <origin xyz="{origin}"/>
     <axis xyz="{ax:.4f} {ay:.4f} 0"/>
-    <limit lower="-0.8" upper="1.7" effort="0.6" velocity="15"/>
+    <limit lower="-0.8" upper="2.0" effort="0.6" velocity="15"/>
     <dynamics damping="0.002" friction="0.001"/>
-  </joint>
-
-  <link name="{dist}">
-    <inertial><origin xyz="0 0 {-DIST_LEN/2:.4f}"/><mass value="0.003"/>
-      <inertia ixx="2e-6" ixy="0" ixz="0" iyy="2e-6" iyz="0" izz="1e-6"/></inertial>
-    <visual><origin xyz="0 0 {-DIST_LEN/2:.4f}"/>
-      <geometry><box size="{2*half:.3f} {2*half:.3f} {DIST_LEN:.3f}"/></geometry>
-      <material name="fingertip"><color rgba="0.95 0.55 0.10 1"/></material></visual>
-    <collision><origin xyz="0 0 {-DIST_LEN/2:.4f}"/>
-      <geometry><box size="{2*half:.3f} {2*half:.3f} {DIST_LEN:.3f}"/></geometry></collision>
-  </link>
-  <joint name="{dist}_joint" type="revolute">
-    <parent link="{prox}"/><child link="{dist}"/>
-    <origin xyz="0 0 {-PROX_LEN:.4f}"/>
-    <axis xyz="{ax:.4f} {ay:.4f} 0"/>
-    <limit lower="-0.4" upper="1.9" effort="0.5" velocity="15"/>
-    <dynamics damping="0.002" friction="0.001"/>
-  </joint>
-'''
+  </joint>''')
+    return "".join(out)
 
 
 def main():
@@ -192,8 +185,8 @@ def main():
     out = os.path.join(os.path.dirname(__file__), "quadrotor_gripper.urdf")
     with open(out, "w") as f:
         f.write("".join(parts))
-    print(f"wrote {out}  ({N_FINGERS} fingers, "
-          f"reach ~{PROX_LEN + DIST_LEN:.3f} m, pad friction {PAD_FRICTION})")
+    print(f"wrote {out}  ({N_FINGERS} fingers x {len(SEG_LENS)} segments, "
+          f"reach ~{sum(SEG_LENS):.3f} m, pad friction {PAD_FRICTION})")
 
 
 if __name__ == "__main__":

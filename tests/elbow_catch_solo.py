@@ -21,6 +21,7 @@ import argparse
 import sys
 import os
 import math
+import dataclasses
 import numpy as np
 import pybullet as p
 
@@ -45,7 +46,8 @@ STATION_H = 0.32        # shoulder height above the intercept (arm hangs down)
 READY_TH1, READY_TH2 = 0.0, 0.9   # ready pose while waiting (mid-elbow)
 TRACK_RANGE = 0.45      # start IK-tracking when ball within this of shoulder
 LEAD_S = 0.03           # aim where the ball will be this far ahead
-CUP_DEPTH = 0.04        # cage sweet spot beyond the EE link
+CUP_DEPTH = 0.045       # enclosure center beyond the EE link (4-finger,
+                        # 3-segment caging hand wraps a ball ~4.5 cm out)
 CLOSE_DIST = 0.06       # close fingers when cup-to-ball within this
 BALL_RESTITUTION = 0.10
 BALL_FRICTION = 1.4
@@ -59,6 +61,11 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
         verbose=True):
     log_path, video_path = auto_run_paths(runs_dir)
     make_world(DEFAULT_GAME, gui=gui)
+    # The caging gripper adds 12 finger joints; the default solver iteration
+    # count can't hold that many PD joints on a floating base (body diverges
+    # ~80 cm). Bumping iterations fixes it (local to this test so it doesn't
+    # perturb the constraint-based arm_catch_solo). See iteration_findings §15.
+    p.setPhysicsEngineParameter(numSolverIterations=150)
 
     intercept = np.array([EE_INTERCEPT_X, 0.0, EE_INTERCEPT_Z])
     # Body so the shoulder sits STATION_H above the intercept.
@@ -143,8 +150,8 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                               f"th=({math.degrees(catcher.joint_states()[0]):.0f},"
                               f"{math.degrees(catcher.joint_states()[2]):.0f})deg")
 
-        if nf >= 2:
-            captured = True
+        if nf >= 3:
+            captured = True   # ≥3 wrapping fingers = a real cage (not a rim brush)
 
         sh = shoulder_world()
         ball_dist = float(np.linalg.norm(bp - sh))
@@ -154,10 +161,18 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
             if lift_started is None:
                 lift_started = t
                 result["close_t"] = result["close_t"] or t
+                # Firm the grip once caged so the ball's residual momentum
+                # doesn't punch back out during the carry (two-stage, like
+                # compliant capture's lock).
+                catcher.arm_cfg = dataclasses.replace(
+                    catcher.arm_cfg, finger_close_torque=2.0)
             elapsed = t - lift_started
-            if elapsed > 0.4:
+            # Hold still longer (let the ball settle in the cage), then lift
+            # gently (0.2 m, slow) — an aggressive lift shakes a just-caged
+            # moving ball loose.
+            if elapsed > 0.8:
                 phase = "lift"
-                catcher.set_target(catcher_home + np.array([0, 0, min(0.3, (elapsed-0.4)*0.5)]),
+                catcher.set_target(catcher_home + np.array([0, 0, min(0.2, (elapsed-0.8)*0.25)]),
                                    vel=(0, 0, 0))
             else:
                 catcher.set_target(catcher.position(), vel=(0, 0, 0))

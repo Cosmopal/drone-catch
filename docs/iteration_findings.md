@@ -455,3 +455,50 @@ gain schedule to the elbow angle (currently shoulder-only, so the FF is
 approximate with the elbow bent — the body integrators have been absorbing
 the residual), and add lateral (y) approaches once a singularity-free
 attitude controller exists.
+
+## 15. Caging gripper that actually cages: 3-joint long-proximal fingers (M8)
+
+§13 left the finger gripper *containing* a ball in an upright cup but not
+*caging* it — a screenshot review exposed that the 2-segment fingers, with a
+mount ring (2.5 cm) smaller than the ball radius (3.0 cm), folded back over
+the wrist instead of enclosing. The honest gate is the **inversion test**:
+close on the ball, rotate 180°, does it stay? The 2-segment hand failed it in
+every one of ~58 configs (mount radius, lengths, angles, force, friction,
+soft contact) — 3 thin rigid fingers achieve *force closure* (friction at a
+few points, orientation-fragile), not *form closure*.
+
+The fix (user's idea) was **3-joint fingers with a long proximal phalanx**,
+human-like: a long proximal (≈55 mm) reaches down past the ball's equator,
+then shorter middle (≈32 mm) + distal (≈25 mm) curl UNDER it to meet
+beneath — geometric trapping. Mount ring raised to 3.4 cm (> ball radius so
+fingers start outside the ball). With this, **8/… configs pass the inversion
+test**; 4 fingers is the most robust (more enclosure, more contacts). The key
+was the long proximal — equal/short segments curl into a loop near the mount
+and never reach down to the ball.
+
+Productionized into the real catcher (M8):
+- `make_gripper_urdf.py` generalized to N-segment fingers (`finger{i}_seg{k}`);
+  default 4 fingers × 3 segments, `SEG_LENS=(0.055,0.032,0.025)`.
+- `Drone` finger API generalized: `finger_joints` is now a list of per-finger
+  segment lists; open/close drive per-segment angle tuples (`config.finger_open`
+  / `finger_close`). `fingers_touching` unchanged.
+- **12 PD finger joints on a floating base diverge the body (~80 cm)** — the
+  default contact solver can't hold them (the *static* hand is fine; it's the
+  motor loops). Two fixes: `numSolverIterations=150` (→ 4.9 cm) and, better,
+  **pin the fingers kinematically while OPEN** (`resetJointState` each step →
+  1.2 cm hover) and only motorize to close. Pin-open is now the default in
+  `_apply_gripper`; the catch test also bumps solver iterations. The old yaw
+  singularity (§13) does not recur with this.
+- Validated on the drone: hover stable, 4 fingers close on a ball at the cup,
+  **held through a 30 cm lift** (static-ball).
+
+**Dynamic catch status (`tests/elbow_catch_solo.py` with the new hand):** the
+2-DOF IK tracking puts the cup on the ball to **2.0 cm** and all **4 fingers
+contact** — but it does NOT yet retain: the ball arrives at ~2.3 m/s relative
+and punches through the cup before the fingers firm. Position tracking is
+solved; **velocity matching is not.** To cage a *moving* ball the cup must
+move WITH it at contact (match velocity, not just position), which needs
+Jacobian-based joint-velocity control on the 2R arm — the M7 frontier, now
+the single critical-path item for a retained physical catch. The pin-open
+(tight station-keeping) and firm-grip-after-cage + gentle-lift pieces are in
+place; they're necessary but not sufficient without velocity matching.
