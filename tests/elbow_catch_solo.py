@@ -84,7 +84,12 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
     catcher.controller.kI_pos = np.array([20.0, 20.0, 20.0])
     catcher.controller.kI = catcher.controller.kI.copy()
     catcher.controller.kI[2] = 0.3
-    catcher.hold_arm(READY_TH1, READY_TH2)
+    # Pre-position the arm so the cup sits at the nominal intercept from the
+    # start (cup is CUP_DEPTH below the EE; arm hangs ~straight down). Holding
+    # here through settle means no last-moment slew when the ball arrives.
+    ee0 = intercept + np.array([0, 0, CUP_DEPTH]) - catcher_home  # EE target, body frame (arm down)
+    sol0 = ak.ik(ee0[0] - ak.SHOULDER_X, ee0[2] - ak.SHOULDER_Z)
+    catcher.hold_arm(*(sol0 if sol0 else (READY_TH1, READY_TH2)))
     catcher.open_gripper()
     catcher.set_finger_dynamics(lateral_friction=PAD_FRICTION,
                                 restitution=BALL_RESTITUTION)
@@ -161,55 +166,56 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
             if lift_started is None:
                 lift_started = t
                 result["close_t"] = result["close_t"] or t
-                # Firm the grip once caged so the ball's residual momentum
-                # doesn't punch back out during the carry (two-stage, like
-                # compliant capture's lock).
-                catcher.arm_cfg = dataclasses.replace(
-                    catcher.arm_cfg, finger_close_torque=2.0)
             elapsed = t - lift_started
-            # Hold still longer (let the ball settle in the cage), then lift
-            # gently (0.2 m, slow) — an aggressive lift shakes a just-caged
-            # moving ball loose.
-            if elapsed > 0.8:
+            # The form-closure cage already retains the ball with the gentle
+            # close torque — do NOT firm the grip (over-squeezing a rigid ball
+            # produces 100+ N contacts that eject it). Hold position to let the
+            # ball settle, then lift VERY gently to prove retention.
+            if elapsed > 1.0:
                 phase = "lift"
-                catcher.set_target(catcher_home + np.array([0, 0, min(0.2, (elapsed-0.8)*0.25)]),
+                catcher.set_target(catcher_home + np.array([0, 0, min(0.2, (elapsed-1.0)*0.12)]),
                                    vel=(0, 0, 0))
             else:
                 catcher.set_target(catcher.position(), vel=(0, 0, 0))
-        elif bv[2] < 0 and ball_dist < TRACK_RANGE:
-            # --- 2-DOF IK tracking with continuous pre-aim ---
-            phase = "track"
-            # Aim where the ball will be LEAD_S ahead (ballistic).
-            tgt_ball = bp + bv * LEAD_S + 0.5 * np.array([0, 0, -G]) * LEAD_S**2
-            # We want the CUP at tgt_ball → EE at tgt_ball - CUP_DEPTH*fdir.
-            ee_tgt = tgt_ball - CUP_DEPTH * fdir
+        else:
+            # --- Pre-position + track (no snap) ---
+            # From the start, put the cup at the PREDICTED intercept and hold
+            # it there; refine to the ACTUAL ball only once it's close. The arm
+            # is already in place when the ball arrives, so there's no violent
+            # last-moment slew, and it engages early instead of waiting.
+            pred_xy, _ = predict_landing(bp, bv, EE_INTERCEPT_Z)
+            near = bv[2] < 0 and ball_dist < TRACK_RANGE
+            if near:
+                phase = "track"
+                tgt_cup = bp + bv * LEAD_S + 0.5 * np.array([0, 0, -G]) * LEAD_S**2
+                body_y = bp[1]
+            elif pred_xy is not None:
+                phase = "prepos"
+                tgt_cup = np.array([pred_xy[0], pred_xy[1], EE_INTERCEPT_Z])
+                body_y = pred_xy[1]
+            else:
+                phase = "prepos"
+                tgt_cup = intercept
+                body_y = 0.0
+            ee_tgt = tgt_cup - CUP_DEPTH * fdir
             R = np.array(p.getMatrixFromQuaternion(catcher.orientation())).reshape(3, 3)
             tgt_body = R.T @ (ee_tgt - catcher.position())   # EE target, body frame
             rx, rz = tgt_body[0] - ak.SHOULDER_X, tgt_body[2] - ak.SHOULDER_Z
             r = math.hypot(rx, rz)
             if r > ak.REACH * 0.98:
-                # Ball still beyond reach: extend the arm fully TOWARD it so the
-                # cup is pre-positioned on the approach line and only has to
-                # retract as the ball enters the disk (no big slew at the edge).
                 s = ak.REACH * 0.98 / r
                 rx, rz = rx * s, rz * s
             sol = ak.ik(rx, rz)
             if sol is not None:
                 catcher.hold_arm(sol[0], sol[1])
-            # Body: hold x station, track ball y (lateral — arm can't), hold z.
-            catcher.set_target([catcher_home[0], bp[1], catcher_home[2]], vel=(0, 0, 0))
+            catcher.set_target([catcher_home[0], body_y, catcher_home[2]], vel=(0, 0, 0))
             m_cup.set(cup.tolist())
-            if not closing and cup_d < CLOSE_DIST:
+            if not closing and near and cup_d < CLOSE_DIST:
                 catcher.close_gripper()
                 closing = True
                 result.update(closed=True, close_rel=rel)
                 if verbose:
                     print(f"[t={t:.3f}s] CLOSE  cup_d={cup_d*100:.1f}cm rel={rel:.2f}")
-        else:
-            phase = "wait"
-            catcher.set_target(catcher_home, vel=(0, 0, 0))
-            if not closing:
-                catcher.hold_arm(READY_TH1, READY_TH2)
 
         trace.append({"t": t, "phase": phase, "cup_d": cup_d, "rel": rel,
                       "nf": nf, "ball_z": bp[2]})

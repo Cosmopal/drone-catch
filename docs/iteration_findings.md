@@ -502,3 +502,53 @@ Jacobian-based joint-velocity control on the 2R arm — the M7 frontier, now
 the single critical-path item for a retained physical catch. The pin-open
 (tight station-keeping) and firm-grip-after-cage + gentle-lift pieces are in
 place; they're necessary but not sufficient without velocity matching.
+
+## 16. Pre-positioning lands the first retained physical catch (M8b)
+
+The M8 catch tracked the cup to ~2.7 cm and caged the ball with 4 fingers but
+did NOT retain it. Diagnosis (per a video review):
+- **The arm engaged ~90 ms before contact** — it sat in a READY pose until the
+  ball entered TRACK_RANGE, then *snapped* to the tracking IK solution
+  (shoulder 0°→−25°, elbow 51°→96° in ~0.1 s). Violent, and late.
+- **The ball seated at the cup RIM (~3 cm off-center), not the center.** The
+  static cage (ball placed at center) held through inversion + lift; a
+  rim-seated ball gets only partial form closure → it works loose in ~1 s and
+  any acceleration ejects it.
+- **The post-catch logic ejected it.** Firming the grip to 2.0 N·m produced
+  100–166 N contact forces on a 0.64 N ball (rigid sphere in rigid cage) and a
+  lift jolted the rim-seated ball out. Removing the firm-grip → held ~1 s in
+  place, but the gentle lift still lost it.
+
+**Fix: pre-position the cup at the PREDICTED intercept from the start and hold
+it there, refining to the actual ball only when close.** Result on the
+nominal throw: cup-to-ball **0.7 → 0.5 cm**, the ball seats at cup-center, 4
+fingers cage it, and it is **HELD through the lift — caught=True, held=True.**
+First retained physical catch. No snap (the arm is already in place; the
+prepos→track transition is smooth because the ball arrives where it was
+predicted).
+
+**Why this works where the M7 "pre-aim" failed.** The two are NOT the same.
+M7 pre-*aim* extended the arm toward the *moving ball*, clamped to the reach
+circle — which (a) targets the ball's radial projection, a different point
+than where its parabola actually enters the disk; (b) chases a point that
+races around the circle as the ball nears, at the joint rate limit; (c) parks
+the arm at near-full extension, a Jacobian-singular pose, right when it must
+retract. Pre-*positioning* at the *fixed predicted landing* has none of that:
+the arm sits still at a good pose and waits for the ball to fall into the cup.
+The lesson: aim at where the ball *will be* (the intercept), not at where it
+*is* (the moving target).
+
+**Still open: full-envelope robustness (2/12 grid).** Off-nominal velocities
+arrive at the intercept on different approach lines/timing than the fixed
+pre-position + station height anticipate, so the cup misses by 4–12 cm there.
+Closing that needs velocity-matched tracking + per-velocity station/pre-
+position adaptation. But the mechanism + nominal catch are now real:
+4-finger form-closure cage, ball seated at center, gentle grip (no 100 N
+squeeze), retained through a lift.
+
+Side notes answering review questions: **4 fingers is not too sparse** — with
+the ball seated at center the form-closure cage holds; the earlier slip was
+*seating* (rim), not finger count. **Gentle is better than firm** — the
+removed firm-grip was the main ejector. **"Arm fully down" is the wrong
+default** — the principled start pose is the IK pre-position that puts the cup
+at the intercept (arm angled), not straight down (cup straight below body).
