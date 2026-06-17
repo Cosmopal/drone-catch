@@ -597,3 +597,28 @@ trajectory, not the instantaneous noisy position) and (b) possibly a more
 forgiving cage (bigger mouth / more fingers / compliant pads) so center-
 seating isn't required to sub-cm. Both are the same lesson as the snap: track
 where the ball *will be*, smoothly, not where the noisy estimate says it *is*.
+
+### 17b. Tried "glide the arm in early" — the snap is an active SCOOP, not wasted motion
+
+Review idea: the arm sits idle for ~0.8 s then does everything in 0.1 s — so
+glide it into the pre-aim pose over the available flight time instead of
+snapping. Implemented it properly: pre-position the cup at the MEETING point
+(where the ball crosses MEET_Z=1.62 on its descent, above the intercept) and
+let the arm glide there over the whole flight, so the final move is a small
+correction. **It missed (7–8 cm), same graze.** With a tracking latch it
+chased the deflected ball out to x=1.48.
+
+The reason is mechanically important: the working "snap" gives the cup
+**upward velocity** at the instant it meets the ball — the cup mouth *scoops*
+the descending ball inward. A stationary or gently-gliding cup, even correctly
+positioned at the meeting altitude, presents the upward-splayed open finger
+TIPS to the falling ball, which deflects off them. So the snap is not wasted
+motion to smooth away — it's the active scoop that makes this gripper catch.
+Every "slow it down" variant (slew-limit, track-landing-point, track-xy-at-
+height, meeting-point glide) removed the scoop and grazed.
+
+Implication: a gentle/smooth catch needs either (a) a passive basket-style
+end-effector (mouth-up funnel the ball simply falls into — no scoop needed),
+or (b) velocity-matched tracking where the cup is already descending WITH the
+ball so contact has ~zero relative velocity and no graze. The current 3-finger
+caging hand is an active scooper; that's the trade for its form-closure grip.
