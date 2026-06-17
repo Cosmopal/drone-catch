@@ -33,6 +33,7 @@ from sim_setup import (Logger, MarkerSet, Marker, VideoRecorder, Sim,
 from config import DEFAULT as DEFAULT_GAME
 from drone import ASSETS
 from ball import spawn_ball, state as ball_state, predict_landing
+from perception import BallPerception, BallEstimator
 import arm_kinematics as ak
 from arm_catch_solo import (G, EE_INTERCEPT_X, EE_INTERCEPT_Z,
                             launch_state_for_intercept, CATCH_KP, CATCH_KD)
@@ -58,7 +59,7 @@ SETTLE_S = 2.5
 
 
 def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
-        verbose=True):
+        noise=False, seed=0, verbose=True):
     log_path, video_path = auto_run_paths(runs_dir)
     make_world(DEFAULT_GAME, gui=gui)
     # The caging gripper adds 12 finger joints; the default solver iteration
@@ -116,6 +117,11 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                      restitution=BALL_RESTITUTION, lateralFriction=BALL_FRICTION)
     p.resetBaseVelocity(ball, linearVelocity=launch_vel.tolist())
 
+    # Perception: catcher decides on the latency-compensated ESTIMATE, not
+    # truth, when noise is on. Truth is only used for physics + scoring.
+    perception = BallPerception(ball, seed=seed) if noise else None
+    estimator = BallEstimator(latency_s=12 * DT, dt=DT) if noise else None
+
     closing = False
     captured = False
     result = {"vx": ball_vx, "vz": ball_vz, "speed": math.hypot(ball_vx, ball_vz),
@@ -140,7 +146,14 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
 
     for i in range(int(timeout_s / DT)):
         t = i * DT
-        bp, bv = ball_state(ball)
+        bp, bv = ball_state(ball)          # truth: physics + scoring
+        if noise:
+            perception.step_record()
+            mp, mv = perception.observe(catcher.position())
+            estimator.update(mp, mv)
+            est_p, est_v = estimator.estimate()
+        else:
+            est_p, est_v = bp, bv
         ee = catcher.gripper_world_position()
         ee_v = catcher.gripper_world_velocity()
         cup, fdir = cup_world()
@@ -178,17 +191,26 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
             else:
                 catcher.set_target(catcher.position(), vel=(0, 0, 0))
         else:
-            # --- Pre-position + track (no snap) ---
-            # From the start, put the cup at the PREDICTED intercept and hold
-            # it there; refine to the ACTUAL ball only once it's close. The arm
-            # is already in place when the ball arrives, so there's no violent
-            # last-moment slew, and it engages early instead of waiting.
-            pred_xy, _ = predict_landing(bp, bv, EE_INTERCEPT_Z)
-            near = bv[2] < 0 and ball_dist < TRACK_RANGE
+            # --- Pre-position, then track the descending ball (slew-limited) ---
+            # Far: hold the cup at the predicted landing point (intercept
+            # plane). Near: track the ball's actual 3-D position so the cup
+            # descends WITH it (an aligned approach — a stationary cup lets the
+            # ball graze the open fingers and deflect). The transition would
+            # snap the arm UP to the high ball; a per-tick joint SLEW LIMIT
+            # spreads that into a smooth fast move. See §16–17.
+            pred_xy, _ = predict_landing(est_p, est_v, EE_INTERCEPT_Z)
+            near = est_v[2] < 0 and ball_dist < TRACK_RANGE
             if near:
                 phase = "track"
-                tgt_cup = bp + bv * LEAD_S + 0.5 * np.array([0, 0, -G]) * LEAD_S**2
-                body_y = bp[1]
+                # Track the ball's actual 3-D position: the cup rises to MEET
+                # the ball and descends WITH it, presenting the cup mouth so the
+                # ball enters cleanly (a stationary cup lets the ball fall onto
+                # the splayed finger tips and deflect). The rise is the "snap"
+                # the user sees — it's how this gripper receives the ball; a
+                # truly smooth version needs velocity-matched tracking from
+                # apex (open problem, §17).
+                tgt_cup = est_p + est_v * LEAD_S + 0.5 * np.array([0, 0, -G]) * LEAD_S**2
+                body_y = est_p[1]
             elif pred_xy is not None:
                 phase = "prepos"
                 tgt_cup = np.array([pred_xy[0], pred_xy[1], EE_INTERCEPT_Z])
@@ -262,21 +284,23 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
     return result
 
 
-def run_grid():
+def run_grid(noise=False, seeds=1):
     cells = [(vx, vz) for vx in [2.5, 3.3, 4.5, 5.5] for vz in [-2.0, -3.2, -4.5]]
     results = []
-    print(f"{'vx':>5} {'vz':>5} {'spd':>5} | {'closed':>6} {'caught':>6} {'held':>5} "
+    print(f"{'vx':>5} {'vz':>5} {'spd':>5} {'seed':>4} | {'caught':>6} {'held':>5} "
           f"{'mincup':>7} {'maxF':>4}")
     for vx, vz in cells:
-        p.connect(p.DIRECT)
-        try:
-            r = run(gui=False, runs_dir=None, ball_vx=vx, ball_vz=vz, verbose=False)
-        finally:
-            p.disconnect()
-        results.append(r)
-        print(f"{vx:5.1f} {vz:5.1f} {r['speed']:5.2f} | {str(r['closed']):>6} "
-              f"{str(r['caught']):>6} {str(r['held']):>5} {r['min_cup_d']*100:6.1f}cm "
-              f"{r['max_fingers']:>4}")
+        for s in range(seeds):
+            p.connect(p.DIRECT)
+            try:
+                r = run(gui=False, runs_dir=None, ball_vx=vx, ball_vz=vz,
+                        noise=noise, seed=s, verbose=False)
+            finally:
+                p.disconnect()
+            results.append(r)
+            print(f"{vx:5.1f} {vz:5.1f} {r['speed']:5.2f} {s:4d} | "
+                  f"{str(r['caught']):>6} {str(r['held']):>5} "
+                  f"{r['min_cup_d']*100:6.1f}cm {r['max_fingers']:>4}")
     held = sum(1 for r in results if r["held"])
     print(f"\nheld {held}/{len(results)}")
     return 0 if held == len(results) else 1
@@ -287,15 +311,21 @@ def main():
     ap.add_argument("--headless", action="store_true")
     ap.add_argument("--runs-dir", default=None)
     ap.add_argument("--grid", action="store_true")
+    ap.add_argument("--noise", action="store_true",
+                    help="sensing noise + 50 ms latency + estimation")
+    ap.add_argument("--seeds", type=int, default=None, help="seeds/cell in --grid")
+    ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--vx", type=float, default=BALL_VX_DEFAULT)
     ap.add_argument("--vz", type=float, default=BALL_VZ_DEFAULT)
     args = ap.parse_args()
     if args.grid:
-        return run_grid()
+        n = args.seeds if args.seeds is not None else (3 if args.noise else 1)
+        return run_grid(noise=args.noise, seeds=n)
     gui = not args.headless
     p.connect(p.GUI if gui else p.DIRECT)
     try:
-        r = run(gui=gui, runs_dir=args.runs_dir, ball_vx=args.vx, ball_vz=args.vz)
+        r = run(gui=gui, runs_dir=args.runs_dir, ball_vx=args.vx, ball_vz=args.vz,
+                noise=args.noise, seed=args.seed)
         return 0 if r["held"] else 1
     finally:
         p.disconnect()

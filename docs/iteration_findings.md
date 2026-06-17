@@ -552,3 +552,48 @@ the ball seated at center the form-closure cage holds; the earlier slip was
 removed firm-grip was the main ejector. **"Arm fully down" is the wrong
 default** — the principled start pose is the IK pre-position that puts the cup
 at the intercept (arm angled), not straight down (cup straight below body).
+
+## 17. Why the snap is intrinsic, and the cage catch is noise-fragile (M8c)
+
+Two review questions: the arm still *snaps* into place, and does it survive
+sensing noise?
+
+**The snap is intrinsic to how this gripper receives the ball.** Traced it:
+during "prepos" the arm holds the cup at the intercept (z=1.5); when tracking
+engages (ball within TRACK_RANGE, t≈0.82), the cup target jumps to the ball's
+actual 3-D position (z≈1.79) and the elbow rockets 45°→96° (~1600°/s). Tried
+three ways to remove it, all of which BROKE the catch:
+- *Track the predicted landing point* (cup waits at z=1.5, ball falls in):
+  the ball grazes the upward-splayed OPEN finger tips ~8 cm above the cup,
+  deflects, and the prediction jumps → cup chases away. Clean miss.
+- *Track the ball's xy at intercept height* (cup slides under the ball, no z
+  rise): same graze — the ball lands on the finger tips, not in the cup.
+- *Slew-limit the joints*: the arm lags the fast descending ball → miss.
+
+Root cause: the cup must RISE to **meet** the ball and descend WITH it, so the
+cup *mouth* faces the incoming ball and the ball enters cleanly. A stationary
+or below-the-ball cup presents the finger tips, which deflect it. The "snap"
+is that rise. TRACK_RANGE=0.45 is a sweet spot (later → ball deflects before
+the cup arrives; earlier → cup chases the ball from out of reach). A genuinely
+smooth version needs **velocity-matched tracking from apex** — the cup follows
+the ball's predicted trajectory down continuously, matching its velocity, so
+there's no engagement step. That remains the open problem (the M7/M16
+frontier); the snap and the noise-fragility below are two faces of it.
+
+**The cage catch is precision-tight and noise-fragile.** Added perception
+(`--noise`: stereo-class noise + 50 ms latency + `BallEstimator`). The nominal
+catch that holds cleanly on ground truth **fails 0/3 under noise** — min
+cup-to-ball blows out to ~22 cm because the chase tracks the jittery
+*estimate* of the ball's instantaneous 3-D position, and the descent flag
+(est_v_z<0) flickers, oscillating track/prepos. Contrast the constraint-based
+**compliant capture (§12): 96/96 under the same noise.** The difference is the
+catch *radius*: the soft constraint snaps anything within 15 cm, forgiving the
+estimate error; the finger cage needs the ball seated at the cup CENTER
+(~1–3 cm), which sensing noise destroys. **The hardware-honest gripper is far
+less noise-tolerant than the behavioral soft-constraint stand-in** — caging
+demands precision the constraint didn't. Closing this needs (a) velocity-
+matched tracking on the *smoothed* estimate (track the predicted landing/
+trajectory, not the instantaneous noisy position) and (b) possibly a more
+forgiving cage (bigger mouth / more fingers / compliant pads) so center-
+seating isn't required to sub-cm. Both are the same lesson as the snap: track
+where the ball *will be*, smoothly, not where the noisy estimate says it *is*.
