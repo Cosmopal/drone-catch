@@ -726,3 +726,32 @@ diagonal pose**: retune the position loop / add a COM-offset feedforward for
 the forward-and-tilted hold, then the tangent catch + absorb should follow.
 The committed working catch stays the SCOOP (`elbow_catch_solo.py`, nominal
 caught+held); the diagonal version is the WIP toward the smooth folded catch.
+
+## 21b. Startup ceiling-launch: a feedforward firing on the arm's init snap
+
+User asked why the catcher rockets ~1 m up at t=0. A/B isolated it cleanly:
+`arm_translational_ff_z` ON → peak z-error **+1.01 m**; OFF → **+0.01 m**.
+
+Mechanism: the `Drone` inits the arm at its folded rest pose (shoulder −π/2).
+`hold_arm(pre_pose)` then drives it ~85° to the catch pre-pose. The arm inertia
+is tiny (~0.004 kg·m²), so even the 2 N·m motor cap gives α ≈ 500 rad/s² — it
+slews the 85° in ~0.1 s (and overshoots). `arm_translational_ff_z` predicts the
+body-z disturbance from arm motion and pre-cancels it; it's meant for the
+*throw's* controlled sweep, so it reads this violent init slew as a giant
+disturbance and slams in upward thrust → launch. (Answers a second user
+question — *yes*, the motors really can snap it that fast; the arm is light, the
+cap isn't the limit.) Fix: `resetJointState` the arm to the pre-pose at init so
+there's no slew. Removes the launch (peak +0.01 m).
+
+Side effect worth noting: removing the launch made the diagonal catch's miss
+*consistent* (~11.5 cm across all kI_pos/kd) instead of a lucky 3 cm — the
+3 cm had depended on the launch transient putting the body at a fortunate
+settle phase. The honest state: the body settles to a steady COM-sag offset and
+the cup lands ~11 cm low/back. That steady, known offset is precisely what a COM
+feedforward cancels (§21) — feedback tuning can't, it only moves the phase.
+
+Finger-cam (user request) confirmed the capture-side failure: the ball sits at
+the cage RIM, off-center, and the closing fingers on the near side *paddle it
+out* rather than wrapping it (the cup must seat the ball past the fingertips —
+§09 sweet spot). So there are two independent gaps to a retained catch: body
+station-keeping (COM FF) AND cup-centering at contact.

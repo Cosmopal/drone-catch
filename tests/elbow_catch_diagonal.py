@@ -73,8 +73,8 @@ PAD_FRICTION = 1.4
 HOLD_DIST = 0.10
 HOLD_REL_VEL = 0.6
 SETTLE_S = 2.5
-KIPOS = 3.0            # gentler integral: less overshoot of the COM offset (§21)
-KD_SCALE = 1.6         # extra position damping
+KIPOS = 8.0            # position-integral gain (gains barely matter once the
+KD_SCALE = 1.0         # startup launch is removed; steady COM sag dominates, §21)
 
 
 def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
@@ -116,6 +116,13 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
     ee0 = (intercept - CUP_DEPTH * fdir0) - catcher_home   # EE target, body frame
     sol0 = ak.ik(ee0[0] - ak.SHOULDER_X, ee0[2] - ak.SHOULDER_Z)
     catcher.hold_arm(*(sol0 if sol0 else (READY_TH1, READY_TH2)))
+    # Start the arm AT the pre-pose (the Drone inits it folded at -π/2). Else
+    # hold_arm snaps it ~85° in one tick, and arm_translational_ff_z reads that
+    # violent transient as a huge disturbance and slams in upward thrust — the
+    # drone launches ~1 m into the ceiling at t=0. (§21)
+    if sol0:
+        p.resetJointState(catcher.body_id, catcher.shoulder_joint, sol0[0])
+        p.resetJointState(catcher.body_id, catcher.elbow_joint, sol0[1])
     catcher.open_gripper()
     catcher.set_finger_dynamics(lateral_friction=PAD_FRICTION,
                                 restitution=BALL_RESTITUTION)
