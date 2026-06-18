@@ -622,3 +622,35 @@ end-effector (mouth-up funnel the ball simply falls into — no scoop needed),
 or (b) velocity-matched tracking where the cup is already descending WITH the
 ball so contact has ~zero relative velocity and no graze. The current 3-finger
 caging hand is an active scooper; that's the trade for its form-closure grip.
+
+## 18. Velocity-matched tracking: infrastructure built, but it doesn't beat the scoop yet (M8d)
+
+Chose option 2 (velocity-matched tracking) over a passive basket, to keep the
+arm multi-purpose. Built the foundation:
+- `arm_kinematics.jacobian(θ1,θ2,le)` — 2×2 Jacobian of the arm tip (le =
+  L2+cup_depth to control the cup). Verified exact (2e-7) vs finite-diff.
+- `arm_kinematics.ik_velocity(...)` — damped-least-squares J⁻¹·v → joint
+  velocities for a desired cup velocity.
+- `Drone.hold_arm(..., shoulder_vel, elbow_vel)` — joint-velocity feedforward
+  through PyBullet POSITION_CONTROL's targetVelocity (defaults 0; no effect on
+  existing callers — verified arm_catch_solo unaffected).
+
+But naive use did NOT improve the catch, for two compounding reasons traced
+in sim:
+1. **Position-loop slew swamps the velocity FF.** Engaging the velocity-matched
+   track from the intercept pre-pose leaves a ~47 cm position error (cup at
+   z=1.5, ball at z=1.79); the position PD slews the joints to ±89 rad/s to
+   close it, so the actual cup velocity is nothing like the commanded ball
+   velocity (rel-vel at contact 8.8 m/s, WORSE than the scoop's 2.3).
+2. **The fix for #1 — pre-position at the meeting altitude so there's no
+   position error — puts the arm at a near-SINGULAR pose.** The ball enters
+   the reachable disk at its boundary (full extension), where the Jacobian is
+   rank-deficient; pre-positioning the cup there sent it to z=2.2 (IK blew up).
+
+So clean velocity matching needs the cup to *co-move with the ball through the
+reachable disk from a good (non-singular) pose* — a proper task-space
+trajectory controller (feedforward the whole descending arc, blend position +
+velocity with consistent targets), not a per-tick position-IK + velocity-FF
+bolt-on. That's the real next step. The committed catch remains the SCOOP
+version (§17b): nominal caught + held, with the snap, noise-fragile. The
+Jacobian/velocity infrastructure is in place for the trajectory controller.

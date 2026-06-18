@@ -239,11 +239,18 @@ class Drone:
     def set_yaw_target(self, psi: float):
         self.yaw_target = float(psi)
 
-    def hold_arm(self, shoulder_pos: float, elbow_pos: float):
-        """Position-mode servo: arm tracks the given joint angles."""
+    def hold_arm(self, shoulder_pos: float, elbow_pos: float,
+                 shoulder_vel: float = 0.0, elbow_vel: float = 0.0):
+        """Position-mode servo: arm tracks the given joint angles, with an
+        optional joint-VELOCITY feedforward. The velocity feedforward lets the
+        arm tip move at a commanded velocity (e.g. matching a ball's velocity
+        via the Jacobian, `arm_kinematics.ik_velocity`) instead of only
+        chasing a position — the basis of velocity-matched catch tracking."""
         self._arm_mode = "hold"
         self._arm_targets["shoulder_pos"] = float(shoulder_pos)
         self._arm_targets["elbow_pos"] = float(elbow_pos)
+        self._arm_targets["shoulder_vel_ff"] = float(shoulder_vel)
+        self._arm_targets["elbow_vel_ff"] = float(elbow_vel)
 
     def fold_arm(self):
         self.hold_arm(self.arm_cfg.folded_shoulder, self.arm_cfg.folded_elbow)
@@ -516,14 +523,18 @@ class Drone:
         """Drive shoulder + elbow joints based on current _arm_mode."""
         cfg = self.arm_cfg
         if self._arm_mode == "hold":
+            sv = self._arm_targets.get("shoulder_vel_ff", 0.0)
+            ev = self._arm_targets.get("elbow_vel_ff", 0.0)
             p.setJointMotorControl2(self.body_id, self.shoulder_joint,
                 p.POSITION_CONTROL,
                 targetPosition=self._arm_targets["shoulder_pos"],
+                targetVelocity=sv,
                 positionGain=cfg.arm_kp, velocityGain=cfg.arm_kd,
                 force=cfg.arm_max_torque)
             p.setJointMotorControl2(self.body_id, self.elbow_joint,
                 p.POSITION_CONTROL,
                 targetPosition=self._arm_targets["elbow_pos"],
+                targetVelocity=ev,
                 positionGain=cfg.arm_kp, velocityGain=cfg.arm_kd,
                 force=cfg.arm_max_torque)
         elif self._arm_mode == "spin":

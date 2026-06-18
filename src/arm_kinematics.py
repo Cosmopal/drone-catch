@@ -67,3 +67,41 @@ def ik(x: float, z: float, elbow_max: float = 1.7) -> Optional[tuple[float, floa
 def ik_body(x: float, z: float, **kw) -> Optional[tuple[float, float]]:
     """IK for an EE target given relative to the BODY origin."""
     return ik(x - SHOULDER_X, z - SHOULDER_Z, **kw)
+
+
+def jacobian(theta1: float, theta2: float, le: float = L2):
+    """2×2 Jacobian J of the arm TIP position (x, z) w.r.t. (θ1, θ2), body
+    sagittal plane. `le` is the effective second-link length to the controlled
+    point: L2 for the EE, or L2+cup_depth to control the cup center.
+
+    tip = (L1·sinθ1 + le·sin(θ1−θ2),  −L1·cosθ1 − le·cos(θ1−θ2))
+    Returns [[∂x/∂θ1, ∂x/∂θ2], [∂z/∂θ1, ∂z/∂θ2]].
+    """
+    a2 = theta1 - theta2
+    c1, s1 = math.cos(theta1), math.sin(theta1)
+    c2, s2 = math.cos(a2), math.sin(a2)
+    return [[L1 * c1 + le * c2, -le * c2],
+            [L1 * s1 + le * s2, -le * s2]]
+
+
+def ik_velocity(theta1, theta2, vx, vz, le=L2, damp=1e-3):
+    """Joint velocities (θ̇1, θ̇2) that move the arm tip at velocity (vx, vz)
+    in the body sagittal plane, at pose (θ1, θ2). Damped-least-squares inverse
+    of the Jacobian so it stays finite near singularities (full extension).
+    """
+    J = jacobian(theta1, theta2, le)
+    a, b, c, d = J[0][0], J[0][1], J[1][0], J[1][1]
+    # (Jᵀ J + λI)⁻¹ Jᵀ v  — damped least squares
+    m11 = a * a + c * c + damp
+    m12 = a * b + c * d
+    m22 = b * b + d * d + damp
+    det = m11 * m22 - m12 * m12
+    if abs(det) < 1e-12:
+        return 0.0, 0.0
+    # Jᵀ v
+    jtv1 = a * vx + c * vz
+    jtv2 = b * vx + d * vz
+    # inv(M) @ Jᵀv
+    th1d = (m22 * jtv1 - m12 * jtv2) / det
+    th2d = (-m12 * jtv1 + m11 * jtv2) / det
+    return th1d, th2d
