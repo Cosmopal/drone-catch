@@ -240,17 +240,23 @@ class Drone:
         self.yaw_target = float(psi)
 
     def hold_arm(self, shoulder_pos: float, elbow_pos: float,
-                 shoulder_vel: float = 0.0, elbow_vel: float = 0.0):
+                 shoulder_vel: float = 0.0, elbow_vel: float = 0.0,
+                 torque_cap: float | None = None):
         """Position-mode servo: arm tracks the given joint angles, with an
-        optional joint-VELOCITY feedforward. The velocity feedforward lets the
-        arm tip move at a commanded velocity (e.g. matching a ball's velocity
-        via the Jacobian, `arm_kinematics.ik_velocity`) instead of only
-        chasing a position — the basis of velocity-matched catch tracking."""
+        optional joint-VELOCITY feedforward and an optional torque CAP.
+
+        The velocity feedforward lets the arm tip move at a commanded velocity
+        (via the Jacobian, `arm_kinematics.ik_velocity`). The torque cap makes
+        the joints BACK-DRIVABLE — they yield to an external load above the cap
+        instead of holding rigidly — so a partly-folded arm absorbs a caught
+        ball's momentum (the elbow gives, like a human catch) rather than
+        bouncing it back out. Default None = full motor torque (rigid)."""
         self._arm_mode = "hold"
         self._arm_targets["shoulder_pos"] = float(shoulder_pos)
         self._arm_targets["elbow_pos"] = float(elbow_pos)
         self._arm_targets["shoulder_vel_ff"] = float(shoulder_vel)
         self._arm_targets["elbow_vel_ff"] = float(elbow_vel)
+        self._arm_targets["hold_torque_cap"] = torque_cap
 
     def fold_arm(self):
         self.hold_arm(self.arm_cfg.folded_shoulder, self.arm_cfg.folded_elbow)
@@ -525,18 +531,20 @@ class Drone:
         if self._arm_mode == "hold":
             sv = self._arm_targets.get("shoulder_vel_ff", 0.0)
             ev = self._arm_targets.get("elbow_vel_ff", 0.0)
+            cap = self._arm_targets.get("hold_torque_cap")
+            tq = cfg.arm_max_torque if cap is None else cap
             p.setJointMotorControl2(self.body_id, self.shoulder_joint,
                 p.POSITION_CONTROL,
                 targetPosition=self._arm_targets["shoulder_pos"],
                 targetVelocity=sv,
                 positionGain=cfg.arm_kp, velocityGain=cfg.arm_kd,
-                force=cfg.arm_max_torque)
+                force=tq)
             p.setJointMotorControl2(self.body_id, self.elbow_joint,
                 p.POSITION_CONTROL,
                 targetPosition=self._arm_targets["elbow_pos"],
                 targetVelocity=ev,
                 positionGain=cfg.arm_kp, velocityGain=cfg.arm_kd,
-                force=cfg.arm_max_torque)
+                force=tq)
         elif self._arm_mode == "spin":
             cap = self._arm_targets.get("torque_cap")
             torque = cfg.arm_max_torque if cap is None else cap

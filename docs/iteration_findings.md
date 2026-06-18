@@ -654,3 +654,43 @@ velocity with consistent targets), not a per-tick position-IK + velocity-FF
 bolt-on. That's the real next step. The committed catch remains the SCOOP
 version (§17b): nominal caught + held, with the snap, noise-fragile. The
 Jacobian/velocity infrastructure is in place for the trajectory controller.
+
+## 19. The catch runs near full extension — the solver under-models the movement (M8e)
+
+Human-catch review: position the arm partly FOLDED, let the joints ABSORB the
+ball's momentum, and sweep so the arm trajectory OVERLAPS the ball's (redirect
+it out of the parabola), instead of meeting at a point. Asked: are we
+under-modeling the movement in the solver? **Yes.** Traced the working catch:
+the arm runs at **84–93% extension** (elbow 44–66°) through the whole approach
+— nearly straight, right where the Jacobian is singular. The IK optimizes ONE
+term (cup position) with nothing for: staying folded (it clamps to 98% reach
+when chasing), compliance (stiff position control, no give), or trajectory
+overlap (tracks a point, not the path).
+
+Tried the fixes; each hit the same wall:
+- **Compliance** (back-drivable arm at contact, `hold_arm(torque_cap=...)`):
+  broke the nominal catch. The current catch is a SCOOP (§17b) — it needs the
+  arm FIRM to drive up and meet the ball; compliance fights that. Absorption
+  needs a non-scoop catch.
+- **Stay folded** (lower the station, raise the elbow-fold limit): also broke
+  it. The arm reach (0.40 m) vs the catch distance (~0.32 m to the intercept)
+  means the catch is *inherently* ~90% extended; lowering the station needs
+  more fold than the arm allows, and raising the fold limit makes the IK fold
+  the arm UP at close range and miss.
+
+**Root cause (the user's intuition, made precise): the arm operates too close
+to full extension because it is barely long enough for this catch geometry.**
+That single fact causes all three symptoms — the Jacobian singularity that
+swamps velocity matching (§18), the lack of fold that blocks compliance, and
+the scoop (the only way to reach the fast ball at the boundary). The clean
+fixes are *geometric*, not control tweaks:
+1. **Longer arm links** (e.g. 0.25+0.25 = 0.50 m reach) so the same catch is
+   ~64% extension — folded, well-conditioned Jacobian, room for the joints to
+   give. (Costs: re-tune throw/mass/inertia for the longer arm.)
+2. **Reach diagonally toward the incoming ball** (body offset so the arm
+   reaches a shorter distance into the ball's path) rather than straight down
+   to a far intercept.
+Either makes the folded + compliant + velocity-matched (trajectory-overlap)
+catch geometrically feasible. The Jacobian/velocity-FF (§18) and the
+back-drivable `hold_arm(torque_cap=)` are the control pieces, waiting on the
+geometry. The committed catch stays the scoop (nominal caught+held).
