@@ -96,8 +96,13 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                                 restitution=BALL_RESTITUTION)
 
     markers = MarkerSet()
-    markers.intent.set(intercept.tolist())
+    markers.intent.set(intercept.tolist())   # cyan: TRUE intercept
     m_cup = Marker([1.0, 0.5, 0.1, 0.9], radius=0.03)
+    # YELLOW: the catcher's ESTIMATED landing point (predict_landing on the
+    # filtered estimate). Under noise it jitters early and converges as the
+    # alpha-beta filter sharpens — the gap to the cyan truth marker IS the
+    # estimation error the catch has to absorb.
+    m_est = Marker([1.0, 0.95, 0.1, 0.95], radius=0.045)
     logger = Logger(log_path, decimate=2)
     video = VideoRecorder(video_path, every=8, eye=(0.5, -3.0, 1.8),
                           target=(0.5, 0.0, 1.4), fov=70)
@@ -199,6 +204,8 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
             # snap the arm UP to the high ball; a per-tick joint SLEW LIMIT
             # spreads that into a smooth fast move. See §16–17.
             pred_xy, _ = predict_landing(est_p, est_v, EE_INTERCEPT_Z)
+            if pred_xy is not None:
+                m_est.set([pred_xy[0], pred_xy[1], EE_INTERCEPT_Z])  # estimated landing
             near = est_v[2] < 0 and ball_dist < TRACK_RANGE
             if near:
                 phase = "track"
