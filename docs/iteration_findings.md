@@ -755,3 +755,49 @@ the cage RIM, off-center, and the closing fingers on the near side *paddle it
 out* rather than wrapping it (the cup must seat the ball past the fingertips —
 §09 sweet spot). So there are two independent gaps to a retained catch: body
 station-keeping (COM FF) AND cup-centering at contact.
+
+## 22. Design study: a thrust-vectoring drone to kill the underactuation (decision, not yet built)
+
+The user asked whether an **over-actuated** drone (rotors with tilt DoF) would
+fix the root cause behind most of our pain: a fixed quad is underactuated
+(4 inputs, 6 DoF), so it *must* pitch the whole body to translate — which is
+exactly what fights the arm (§20 station-keeping), forces the cascade, and
+gives the Lee 180° singularity. Conclusion: yes, and it's worth doing. Full
+reasoning + the transferable concepts are in `concepts/12`. The decisions we
+landed on (so future-us doesn't re-derive them):
+
+- **Mechanism**: one tilt servo per rotor → 8 control inputs vs 6 DoF →
+  over-actuated, 2-dim null space. (NOT 2 servos/rotor — that's an 8-servo
+  omnidirectional gimbal we don't need.) Replaces the cascade with a single
+  wrench → control-allocation map: command position AND attitude independently,
+  no thrust→attitude inversion, no 180° singularity. The allocation
+  (pseudo-inverse + null-space objective) is the one new subproblem; the rest
+  of the architecture *simplifies*.
+- **Layout: quadrant (X), not plus (+).** Rotors at `(±0.10, ±0.10)`. The
+  axis-aligned catch plane (`y=0`) threads the gap between the two near rotors
+  (nearest disk edge 0.06 m off-axis), so the downwash columns straddle the
+  ball path. A `+`-config puts a rotor on the catch axis — worst case. The
+  current URDF already *is* quadrant, so no change needed there.
+- **Tilt: radial (hinge along the arm), not tangential.** Two clean reasons,
+  both worked out by hand: (1) radial thrust points through the hub, so its
+  wash plane passes through the *center* (the `x=±y` diagonals, 45° off the
+  catch axes) — tangential's wash plane is offset out and slices the catch
+  region (crosses `y=0` at `x=−0.20`, right at the folded EE). (2) Radial force
+  has zero moment arm → **zero yaw torque**, so tilts give clean decoupled
+  `Fx, Fy` and yaw stays on drag-torque differential (like today). Tangential's
+  only edge is tilt-based yaw, which we don't need for axis-aligned catches.
+
+How this got decided: it started as "longitudinal (fore/aft) tilt" but the user
+flagged that **y (sideways) motion is coming**, which forced the general
+tangential-or-radial single-servo design that spans the whole horizontal plane
+with 4 servos. The wash question — does a tilted rotor blow the incoming ball
+off course — drove both the layout and the tilt-axis choice; the user's instinct
+that radial "fixes the planes in which I experience wash" was correct and is now
+backed by the `y=0`-crossing geometry above.
+
+**Important caveat:** PyBullet has no propwash model, so *none* of the wash
+analysis is testable in the current sim (a tilted rotor has zero effect on the
+ball). The wash reasoning is a hardware/sim2real design argument. A minimal
+propwash-cone disturbance (§concepts/12) would make it testable and let us
+validate null-space wash-steering. Nothing is implemented yet — this section is
+the decision record so the URDF + allocation work starts from the right place.
