@@ -9,13 +9,16 @@ intercept, perpendicular to the ball's arrival velocity; track the predicted
 landing (tangent point) and let the Jacobian velocity feedforward
 (arm_kinematics.ik_velocity) sweep the cup along the ball.
 
-STATUS: conceptually right (arm IS folded at the tangent), but NOT catching
-(~12 cm miss). Blocker: the body can't hold the forward-diagonal station — it
-settles ~0.35 m low and oscillates (the forward offset + folded-back arm make
-a larger pitching disturbance than the overhead station), so the cup never
-sits steadily at the tangent. Needs body stabilization at the diagonal station
-(retune position loop / FF for the offset COM) + tangent-window tuning. The
-working catch is the SCOOP version in elbow_catch_solo.py. See §20.
+STATUS: the arm is folded at the tangent (geometry right) and the violent
+arm<->body coupling oscillation is FIXED by "eventual positioning" (§21): the
+arm IK targets the NOMINAL on-station, level body pose, not the actual
+wobbling one, so the arm holds steady and stops driving the body's pitch.
+Pitch swing dropped ~±20deg -> ~±3deg; cup-to-ball 9.3 -> 4.3 cm, 3 fingers
+grab. Still does NOT retain: the body has a SLOW underdamped settle at the
+diagonal station (z-sag ~0.35 m from the offset COM), so the catch depends on
+the settle phase (fragile). Remaining: damp the body's diagonal-station hold
+(COM-offset feedforward / position-loop retune). Working catch is the SCOOP
+(elbow_catch_solo.py). See §20-21.
 
 Base: the M7 2-DOF IK tracking catch — the arm servos the cup onto the ball's
 predicted position via arm_kinematics; fingers cage. This variant changes the
@@ -230,8 +233,7 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                 # and is the scoop). Position stays folded; velocity co-moves.
                 tgt_cup = np.array([pred_xy[0], pred_xy[1], EE_INTERCEPT_Z])
                 body_y = pred_xy[1]
-                v_body = R.T @ est_v
-                cup_v_arm = (v_body[0], v_body[2])
+                cup_v_arm = (est_v[0], est_v[2])   # nominal (level) body frame
             elif pred_xy is not None:
                 phase = "prepos"
                 tgt_cup = np.array([pred_xy[0], pred_xy[1], EE_INTERCEPT_Z])
@@ -241,7 +243,13 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                 tgt_cup = intercept
                 body_y = 0.0
             ee_tgt = tgt_cup - CUP_DEPTH * fdir
-            tgt_body = R.T @ (ee_tgt - catcher.position())   # EE target, body frame
+            # "Eventual positioning" (user idea): compute the arm IK against the
+            # NOMINAL on-station, level body pose — NOT the actual wobbling one.
+            # The arm then holds a steady pose and does NOT chase the body's
+            # pitch; the cup is temporarily off while the body settles, but the
+            # destabilizing arm↔body coupling loop is broken (the arm rotating
+            # to compensate pitch was reacting back onto the body — §21).
+            tgt_body = ee_tgt - catcher_home          # body assumed level @ station
             rx, rz = tgt_body[0] - ak.SHOULDER_X, tgt_body[2] - ak.SHOULDER_Z
             r = math.hypot(rx, rz)
             if r > ak.REACH * 0.98:
