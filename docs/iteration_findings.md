@@ -694,3 +694,35 @@ Either makes the folded + compliant + velocity-matched (trajectory-overlap)
 catch geometrically feasible. The Jacobian/velocity-FF (§18) and the
 back-drivable `hold_arm(torque_cap=)` are the control pieces, waiting on the
 geometry. The committed catch stays the scoop (nominal caught+held).
+
+## 20. Diagonal velocity-matched catch: built the human-inspired geometry; body won't hold the station (M9, WIP)
+
+The user corrected my "arm too short" framing (§19): the drone CAN position
+better, and the right placement is the one the throw-side `arm_catch_solo`
+already used — **station the body up-and-forward of the intercept so the arm
+reaches FOLDED, back-and-down, and its swing is TANGENT to the ball's path**
+(sweep ALONG the ball, not scoop up into it). Why this is the right idea:
+- The 90% extension is from the SCOOP reaching up to the high/fast ball, not
+  the catch distance (straight-down is only 72%). Confirmed: body-tracking the
+  ball's x did NOT reduce extension — the drone is too slow to follow 3.3 m/s
+  horizontally, and the ball is near/above the shoulder during the approach.
+- Diagonal placement: shoulder R_FOLD (0.355 m) from the intercept,
+  perpendicular to the arrival velocity. The arm is then FOLDED (~74%, elbow
+  ~1.3 rad) at the tangent — well-conditioned Jacobian, so velocity matching
+  (§18) isn't swamped, and room for the joints to give (§19 compliance).
+
+Built it (`tests/elbow_catch_diagonal.py`): diagonal station, fold pre-pose,
+track the tangent point with Jacobian velocity feedforward sweeping the cup
+along the ball. The arm IS folded at the tangent (the geometry works). **But
+it does not catch (~12 cm miss): the body can't hold the forward-diagonal
+station** — it settles ~0.35 m low and oscillates ±13 cm during flight, so the
+cup never sits steadily at the tangent. The forward COM offset + the
+folded-back arm make a bigger pitching disturbance than the overhead station;
+the position loop (tuned for overhead) doesn't hold it.
+
+So the geometry is right and the control pieces (Jacobian FF, back-drivable
+joints) are in place — the remaining blocker is **station-keeping at the
+diagonal pose**: retune the position loop / add a COM-offset feedforward for
+the forward-and-tilted hold, then the tangent catch + absorb should follow.
+The committed working catch stays the SCOOP (`elbow_catch_solo.py`, nominal
+caught+held); the diagonal version is the WIP toward the smooth folded catch.
