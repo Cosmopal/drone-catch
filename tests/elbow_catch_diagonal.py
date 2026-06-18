@@ -17,25 +17,11 @@ sits steadily at the tangent. Needs body stabilization at the diagonal station
 (retune position loop / FF for the offset COM) + tangent-window tuning. The
 working catch is the SCOOP version in elbow_catch_solo.py. See §20.
 
-Original M7 docstring follows:
-"""
-"""2-DOF (shoulder + elbow) tracking catch — M7.
+Base: the M7 2-DOF IK tracking catch — the arm servos the cup onto the ball's
+predicted position via arm_kinematics; fingers cage. This variant changes the
+body station + arm to the folded/diagonal/velocity-matched strategy above.
 
-The 1-DOF sweep (arm_catch_solo / finger_catch_solo) had to land a swept arc
-ON the ball at one instant — a knife-edge that left the finger catch ~7-10 cm
-short. With the elbow unlocked, the end-effector has 2 planar DOF: instead of
-sweeping through the ball, the arm SERVOS the cup onto the ball's predicted
-position and TRACKS it for a window. Body stations above the intercept so the
-arm hangs into the ball's path; IK (src/arm_kinematics.py) maps the desired
-cup position to (shoulder, elbow) every tick.
-
-Catch: fingers close when the ball is in the cup; capture = ≥2 fingers
-touching (caging + friction, no constraint — same as finger_catch_solo).
-
-Usage:
-    python tests/elbow_catch_solo.py --headless --runs-dir runs/elbow
-    python tests/elbow_catch_solo.py --headless --grid
-    python tests/elbow_catch_solo.py --headless --vx 4.5 --vz -3.2
+    python tests/elbow_catch_diagonal.py --headless --runs-dir runs/elbow
 """
 from __future__ import annotations
 import argparse
