@@ -73,6 +73,8 @@ PAD_FRICTION = 1.4
 HOLD_DIST = 0.10
 HOLD_REL_VEL = 0.6
 SETTLE_S = 2.5
+KIPOS = 3.0            # gentler integral: less overshoot of the COM offset (§21)
+KD_SCALE = 1.6         # extra position damping
 
 
 def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
@@ -103,8 +105,8 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
     catcher.arm_translational_ff_z = True
     catcher.controller.max_tilt_deg = 60.0
     catcher.controller.kp = CATCH_KP.copy()
-    catcher.controller.kd = CATCH_KD.copy()
-    catcher.controller.kI_pos = np.array([20.0, 20.0, 20.0])
+    catcher.controller.kd = CATCH_KD.copy() * KD_SCALE
+    catcher.controller.kI_pos = np.array([KIPOS, KIPOS, KIPOS])
     catcher.controller.kI = catcher.controller.kI.copy()
     catcher.controller.kI[2] = 0.3
     # Pre-position the arm folded so the cup sits at the intercept, forearm
@@ -243,13 +245,12 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                 tgt_cup = intercept
                 body_y = 0.0
             ee_tgt = tgt_cup - CUP_DEPTH * fdir
-            # "Eventual positioning" (user idea): compute the arm IK against the
-            # NOMINAL on-station, level body pose — NOT the actual wobbling one.
-            # The arm then holds a steady pose and does NOT chase the body's
-            # pitch; the cup is temporarily off while the body settles, but the
-            # destabilizing arm↔body coupling loop is broken (the arm rotating
-            # to compensate pitch was reacting back onto the body — §21).
-            tgt_body = ee_tgt - catcher_home          # body assumed level @ station
+            # Split the labor (user idea, §21): the fast precise arm covers the
+            # body's SLOW POSITION error (so the cup stays on the ball even when
+            # the body sags off-station), but IGNORES the body's fast PITCH
+            # wobble — chasing the pitch was the destabilizing arm↔body coupling.
+            # So: actual body POSITION, but NOMINAL (level) ORIENTATION.
+            tgt_body = ee_tgt - catcher.position()
             rx, rz = tgt_body[0] - ak.SHOULDER_X, tgt_body[2] - ak.SHOULDER_Z
             r = math.hypot(rx, rz)
             if r > ak.REACH * 0.98:
