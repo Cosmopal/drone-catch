@@ -350,6 +350,22 @@ class Drone:
             p.changeDynamics(self.body_id, link, **kw)
 
     def step(self):
+        force_world, torque = self._compute_body_wrench()
+        self._apply_body_wrench(force_world, torque)
+        # Arm motor commands (after body controller — they're independent)
+        self._apply_arm()
+        self._apply_gripper()
+
+    def _compute_body_wrench(self):
+        """Platform-specific control: returns (force_world, torque_body).
+
+        This is the overridable seam for the body wrench. An underactuated
+        quadrotor can only push along body-z, so the cascade's desired thrust
+        is collapsed to a scalar magnitude and re-expanded along body-z here.
+        A fully-actuated platform would override this to apply the full desired
+        world-frame force directly. The gain-schedule, arm-reaction torque FF,
+        and arm-translational-z FF all stay platform-side.
+        """
         pos = self.position()
         vel = self.velocity()
         R = np.array(p.getMatrixFromQuaternion(self.orientation())).reshape(3, 3)
@@ -368,25 +384,29 @@ class Drone:
             feedforward_torque_body=ff_torque,
         )
 
-        # Body force: thrust along body-z, applied at the SYSTEM CoM (not the
-        # base link origin). With the arm articulated and able to swing far
-        # from base, system CoM shifts as joints move — applying force at
-        # base origin in that case generates a spurious torque proportional
-        # to the CoM offset. Computing system CoM each step and using
-        # WORLD_FRAME with the explicit world-frame application point
-        # eliminates this. (See `_system_com_world` docstring.)
+        # Body force: thrust along body-z. With the arm articulated and able
+        # to swing far from base, system CoM shifts as joints move; the force
+        # is applied at the SYSTEM CoM in _apply_body_wrench (see that method
+        # and `_system_com_world`).
         force_world = R @ np.array([0.0, 0.0, thrust_mag])
         if self.arm_translational_ff_z:
             force_world = force_world + self._arm_translational_ff_world_force()
+        return force_world, torque
+
+    def _apply_body_wrench(self, force_world, torque_body):
+        """Apply the body wrench to PyBullet: the world-frame force at the
+        system CoM (WORLD_FRAME) and the body-frame torque (LINK_FRAME).
+
+        Applying force at the base origin instead of the system CoM would
+        generate a spurious torque proportional to the CoM offset when the arm
+        swings out; computing the system CoM each step eliminates this.
+        (See `_system_com_world` docstring.)
+        """
         com_world = self._system_com_world()
         p.applyExternalForce(self.body_id, -1,
                              force_world.tolist(), com_world.tolist(),
                              p.WORLD_FRAME)
-        p.applyExternalTorque(self.body_id, -1, torque.tolist(), p.LINK_FRAME)
-
-        # Arm motor commands (after body controller — they're independent)
-        self._apply_arm()
-        self._apply_gripper()
+        p.applyExternalTorque(self.body_id, -1, torque_body.tolist(), p.LINK_FRAME)
 
     def _effective_pitch_inertia(self) -> float:
         """Effective body-pitch inertia (about body +y) including the arm and

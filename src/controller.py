@@ -58,19 +58,19 @@ class CascadeController:
         self._e_R_integral = np.zeros(3)
         self._e_pos_integral = np.zeros(3)
 
-    def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,
-                held_mass, MASS, G, feedforward_torque_body=None):
-        """Return (thrust_mag_along_body_z, torque_body_3vec).
+    def desired_force_world(self, *, pos, vel, target, vel_target,
+                            MASS, G, held_mass):
+        """Raw desired thrust vector in world frame (gravity FF + position PD
+        + position integral), BEFORE the underactuated tilt-cap/projection.
 
-        `feedforward_torque_body` (optional): a 3-vector body-frame torque
-        added to the cascade output before the max_torque clip. Use for
-        disturbances we can predict (e.g., arm-reaction torque from
-        commanded shoulder ω changes) so the cascade doesn't have to react
-        to them after the fact.
+        This is the overridable seam: an underactuated quadrotor can only push
+        along body-z (so `compute` projects this vector onto body-z), but a
+        fully-actuated platform could apply this force directly. Updates the
+        position-integral state exactly once per call — `compute` invokes this
+        once, so the integral advances identically to the pre-refactor code.
         """
         pos = np.asarray(pos, dtype=float)
         vel = np.asarray(vel, dtype=float)
-        omega = np.asarray(omega, dtype=float)
         target = np.asarray(target, dtype=float)
         vel_target = np.asarray(vel_target, dtype=float)
 
@@ -90,6 +90,26 @@ class CascadeController:
         thrust_vec = (MASS * (self.kp * err + self.kd * derr
                               + self.kI_pos * self._e_pos_integral)
                       + total_mass * np.array([0.0, 0.0, G]))
+        return thrust_vec
+
+    def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,
+                held_mass, MASS, G, feedforward_torque_body=None):
+        """Return (thrust_mag_along_body_z, torque_body_3vec).
+
+        `feedforward_torque_body` (optional): a 3-vector body-frame torque
+        added to the cascade output before the max_torque clip. Use for
+        disturbances we can predict (e.g., arm-reaction torque from
+        commanded shoulder ω changes) so the cascade doesn't have to react
+        to them after the fact.
+        """
+        omega = np.asarray(omega, dtype=float)
+
+        # --- Outer loop: desired thrust vector in world frame (overridable
+        # seam; also advances the position integral exactly once per call) ---
+        thrust_vec = self.desired_force_world(
+            pos=pos, vel=vel, target=target, vel_target=vel_target,
+            MASS=MASS, G=G, held_mass=held_mass)
+        total_mass = MASS + held_mass
 
         # Cap desired body tilt: when a big horizontal target makes the desired
         # thrust vector mostly horizontal, the attitude cascade would tilt the
