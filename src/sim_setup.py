@@ -118,7 +118,8 @@ def make_world(cfg: GameConfig = DEFAULT_GAME, gui: bool = True):
 
 
 def make_solo_drone(home_pos=(0.0, 0.0, 1.5),
-                    play_extent=(5.0, 5.0, 1.2), urdf_path=None):
+                    play_extent=(5.0, 5.0, 1.2), urdf_path=None,
+                    thrust_vectoring=False):
     """Single drone, centered, with a wide play area (default ±5 m horiz,
     ±1.2 m vert). Tests that traverse meaningful distance should pass an
     explicit play_extent or set home_pos near the middle of their workspace
@@ -126,11 +127,22 @@ def make_solo_drone(home_pos=(0.0, 0.0, 1.5),
 
     `urdf_path` selects the body model (default: plain quadrotor; pass the
     gripper URDF for the caging-finger catcher).
+
+    `thrust_vectoring=True` builds the over-actuated `ThrustVectoringDrone`
+    variant instead (radial tilt servos + control allocation; see
+    src/thrust_vectoring_drone.py). Additive flag — the default-False path is
+    the unchanged underactuated `Drone`. Pass the matching TV gripper URDF as
+    `urdf_path`. The underactuation-compensation flags (arm_reaction_ff,
+    arm_translational_ff_z, attitude_gain_schedule) default OFF for it.
     """
     px, py, pz = play_extent
-    return Drone(start_pos=home_pos, home_pos=home_pos, urdf_path=urdf_path,
-                 play_area_min_offset=(-px, -py, -pz),
-                 play_area_max_offset=(+px, +py, +pz))
+    kw = dict(start_pos=home_pos, home_pos=home_pos, urdf_path=urdf_path,
+              play_area_min_offset=(-px, -py, -pz),
+              play_area_max_offset=(+px, +py, +pz))
+    if thrust_vectoring:
+        from thrust_vectoring_drone import ThrustVectoringDrone
+        return ThrustVectoringDrone(**kw)
+    return Drone(**kw)
 
 
 def spawn_ball_at_ee(drone: Drone, max_grasp_distance: float = 0.10) -> int:
