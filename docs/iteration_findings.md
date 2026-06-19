@@ -801,3 +801,34 @@ ball). The wash reasoning is a hardware/sim2real design argument. A minimal
 propwash-cone disturbance (§concepts/12) would make it testable and let us
 validate null-space wash-steering. Nothing is implemented yet — this section is
 the decision record so the URDF + allocation work starts from the right place.
+
+## 23. Methodology: scalar metrics hide failure MODES in a physics sim — you have to LOOK
+
+The most consequential M9 bugs were diagnosed by the USER visually examining
+video frames, not from the metrics the work was being steered on. Two rounds:
+
+- The ~11 cm "miss" read (from the numbers) as a position/timing error was
+  actually a cup-**orientation** failure: the cup mouth pointed down-and-back
+  (forearm ~−65°), so a ball descending from above hit the *upper finger* and
+  deflected. Invisible in `min_cup_d`; obvious in one frame.
+- `held=True` hid that the grasp was a fragile **fingertip pinch**. Under the
+  position uncertainty that always exists, an off-center ball makes a
+  *fixed-pose* finger close press *onto* the ball instead of enclosing it, and
+  the one-sided contact forces squeeze it back out. The scalar said "success";
+  the frames showed it was one perturbation from failure (and motivated the
+  move to an adaptive/compliant close — underactuated grasping is robust to
+  pose uncertainty *because* it conforms instead of servoing to a shape).
+
+The transferable lesson is about method, not the catch: **in a physics sim the
+outcome of a contact/geometry interaction lives in the geometry and contact
+dynamics, which scalar logs (`held`, `min_dist`, contact-count) compress away.**
+A binary "success" is a lie of omission when the margin is razor-thin or the
+mechanism is wrong — verify *how* it succeeded, not just *whether*.
+
+For a text-first agent specifically: rendering a video as an *output for the
+human* is not the same as examining it as an *input for analysis*. The agent
+*can* read frames (image input) and should extract and study them when
+debugging geometric/contact behavior — but note that even with frame access the
+human's at-a-glance motion perception still caught modes the agent missed. So
+for physical-sim work, keep a human (or a deliberate frame-by-frame pass) in the
+verification loop, and don't let the numbers be the only eyes.
