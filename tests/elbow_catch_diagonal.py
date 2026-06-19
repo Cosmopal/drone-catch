@@ -49,6 +49,7 @@ from arm_catch_solo import (G, EE_INTERCEPT_X, EE_INTERCEPT_Z,
                             launch_state_for_intercept, CATCH_KP, CATCH_KD)
 
 GRIPPER_URDF = os.path.join(ASSETS, "quadrotor_gripper.urdf")
+TV_URDF = os.path.join(ASSETS, "quadrotor_tv_gripper.urdf")
 
 BALL_VX_DEFAULT = 3.3
 BALL_VZ_DEFAULT = -3.2
@@ -78,7 +79,7 @@ KD_SCALE = 1.0         # startup launch is removed; steady COM sag dominates, §
 
 
 def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
-        noise=False, seed=0, verbose=True):
+        noise=False, seed=0, verbose=True, tv=False):
     log_path, video_path = auto_run_paths(runs_dir)
     make_world(DEFAULT_GAME, gui=gui)
     # The caging gripper adds 12 finger joints; the default solver iteration
@@ -98,17 +99,27 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
     catcher_home = shoulder_target - np.array([ak.SHOULDER_X, 0.0, ak.SHOULDER_Z])
 
     catcher = make_solo_drone(tuple(catcher_home), play_extent=(4.0, 4.0, 1.2),
-                              urdf_path=GRIPPER_URDF)
+                              urdf_path=(TV_URDF if tv else GRIPPER_URDF),
+                              thrust_vectoring=tv)
     catcher.set_target(catcher_home)
-    catcher.arm_reaction_ff = True
-    catcher.attitude_gain_schedule = True
-    catcher.arm_translational_ff_z = True
-    catcher.controller.max_tilt_deg = 60.0
     catcher.controller.kp = CATCH_KP.copy()
     catcher.controller.kd = CATCH_KD.copy() * KD_SCALE
-    catcher.controller.kI_pos = np.array([KIPOS, KIPOS, KIPOS])
-    catcher.controller.kI = catcher.controller.kI.copy()
-    catcher.controller.kI[2] = 0.3
+    if tv:
+        # Over-actuated body: holds level + on-station, so the underactuation
+        # workarounds (gain-scheduling, translational FF, big position
+        # integrator, tilt cap) aren't needed. The arm-recoil FF still helps.
+        catcher.attitude_mode = "level"
+        catcher.beta_max = math.radians(60.0)
+        catcher.arm_reaction_ff = True
+        catcher.arm_translational_ff_full = True
+    else:
+        catcher.arm_reaction_ff = True
+        catcher.attitude_gain_schedule = True
+        catcher.arm_translational_ff_z = True
+        catcher.controller.max_tilt_deg = 60.0
+        catcher.controller.kI_pos = np.array([KIPOS, KIPOS, KIPOS])
+        catcher.controller.kI = catcher.controller.kI.copy()
+        catcher.controller.kI[2] = 0.3
     # Pre-position the arm folded so the cup sits at the intercept, forearm
     # pointing back-and-down toward the incoming ball.
     fdir0 = intercept - shoulder_target
@@ -357,6 +368,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--vx", type=float, default=BALL_VX_DEFAULT)
     ap.add_argument("--vz", type=float, default=BALL_VZ_DEFAULT)
+    ap.add_argument("--tv", action="store_true", help="use the thrust-vectoring catcher")
     args = ap.parse_args()
     if args.grid:
         n = args.seeds if args.seeds is not None else (3 if args.noise else 1)
@@ -365,7 +377,7 @@ def main():
     p.connect(p.GUI if gui else p.DIRECT)
     try:
         r = run(gui=gui, runs_dir=args.runs_dir, ball_vx=args.vx, ball_vz=args.vz,
-                noise=args.noise, seed=args.seed)
+                noise=args.noise, seed=args.seed, tv=args.tv)
         return 0 if r["held"] else 1
     finally:
         p.disconnect()
