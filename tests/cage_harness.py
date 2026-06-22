@@ -418,12 +418,99 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
         p.disconnect()
 
 
+def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir):
+    """Record an MP4 of the close + the disturbance battery so the cage can be
+    SEEN holding (caged) or failing (ball flung out). The clip shows the close,
+    then cycles a representative set of disturbance directions (down/up/lateral/
+    diagonal at the same 2.5 g the scored battery uses), re-applied from the
+    post-close state — a per-direction PASS/FAIL is printed and the on-screen
+    ball turns the test visible (it stays in the basket, or shoots away)."""
+    import imageio.v2 as imageio
+    os.makedirs(out_dir, exist_ok=True)
+    # representative, legible subset of the 26-direction battery
+    show_dirs = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
+                 ("+x", (1, 0, 0)), ("-x", (-1, 0, 0)),
+                 ("+y", (0, 1, 0)), ("-y", (0, -1, 0)),
+                 ("diag-down", (1, 1, -1)), ("diag-up", (-1, -1, 1))]
+    p.connect(p.DIRECT)
+    try:
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=DT)
+        p.setGravity(0, 0, 0)
+        urdf = variants.ensure_variant(n_fingers)
+        g = FixedGripper(urdf)
+        g.set_ready(READY_CURLED if ready == "curled" else READY_SPLAYED)
+        g.set_finger_dynamics()
+        g.prep_strategy(strategy)
+        az = (math.pi / 2 if direction == "finger"
+              else math.pi / 2 + math.pi / n_fingers)
+        off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
+        cup = g.cup_world()
+        ball = spawn_ball(cup + off)
+        p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.25, 0.25, 1])
+        p.changeDynamics(ball, -1, mass=0.065, restitution=BALL_RESTITUTION,
+                         lateralFriction=BALL_FRICTION)
+        ee = g.ee_world()
+        view = p.computeViewMatrix((0.34, -0.34, ee[2] + 0.10),
+                                   (0, 0, ee[2] - 0.04), [0, 0, 1])
+        proj = p.computeProjectionMatrixFOV(46, 1.0, 0.02, 4.0)
+
+        def grab():
+            _, _, rgba, _, _ = p.getCameraImage(
+                560, 560, viewMatrix=view, projectionMatrix=proj,
+                renderer=p.ER_TINY_RENDERER)
+            return np.array(rgba, np.uint8).reshape(560, 560, 4)[:, :, :3]
+
+        path = os.path.join(
+            out_dir,
+            f"cagevid_{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm.mp4")
+        writer = imageio.get_writer(path, fps=30, codec="libx264", quality=7,
+                                    macro_block_size=1)
+        # phase 1: the close (gravity off)
+        for s in range(CLOSE_STEPS + SETTLE_STEPS):
+            g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
+            if s % 4 == 0:
+                writer.append_data(grab())
+        seated = np.array(p.getBasePositionAndOrientation(ball)[0])
+        state = p.saveState()
+        results = []
+        # phase 2: cycle disturbance directions
+        for label, vec in show_dirs:
+            p.restoreState(state)
+            d = np.array(vec, float); d /= np.linalg.norm(d)
+            p.setGravity(*(d * GACC))
+            max_disp = 0.0
+            for s in range(WINDOW_STEPS):
+                g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
+                pos = np.array(p.getBasePositionAndOrientation(ball)[0])
+                max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
+                if s % 4 == 0:
+                    writer.append_data(grab())
+            held = max_disp < ESCAPE_DELTA
+            results.append((label, held, max_disp))
+        writer.close()
+        p.removeState(state)
+        survived = sum(h for _, h, _ in results)
+        nf = _fingers_touching(g, ball)
+        print(f"video: {os.path.abspath(path)}")
+        print(f"  {strategy} n={n_fingers} off={offset_m*100:.1f}cm dir={direction} "
+              f"ready={ready}  seated_fingers={nf}  battery(shown)={survived}/"
+              f"{len(show_dirs)}")
+        for label, held, md in results:
+            print(f"    {label:10s} -> {'HELD ' if held else 'ESCAPED'} "
+                  f"(max ball move {md*100:.1f}cm)")
+        return path
+    finally:
+        p.disconnect()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--grid", action="store_true")
     ap.add_argument("--cell", action="store_true")
     ap.add_argument("--render", action="store_true")
+    ap.add_argument("--video", action="store_true")
     ap.add_argument("--strategy", default="fixed",
                     choices=["fixed", "compliant", "soft", "tendon"])
     ap.add_argument("--n", type=int, default=4)
@@ -438,6 +525,9 @@ def main():
         return grid()
     if args.render:
         render(args.strategy, args.n, args.offset, args.dir, args.ready, args.out)
+        return 0
+    if args.video:
+        render_video(args.strategy, args.n, args.offset, args.dir, args.ready, args.out)
         return 0
     # default: single cell
     run_cell(args.strategy, args.n, args.offset, args.dir, args.ready, verbose=True)
