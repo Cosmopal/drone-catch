@@ -418,20 +418,35 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
         p.disconnect()
 
 
-def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir):
+# --- video timing presets ---------------------------------------------------
+# FAST: the ~6 s overview (close, then the full 8-direction battery).
+# SLOW: the grasp is the point of analysis, so the close MOTION is stretched to
+#   ~1.5 s of sim (a ramped, gradual curl) and played so those 1.5 s span ~9 s
+#   of video (the first-1.5s-takes-9s the user asked for: every step recorded at
+#   playback_fps = 1.5*sim_hz/9 = 40 fps). A short 3-direction battery follows.
+SLOW_CLOSE_S = 1.5                 # sim seconds the analyzable close spans
+SLOW_CLOSE_STEPS = int(SLOW_CLOSE_S / DT)        # 360 @ 240 Hz
+SLOW_FPS = int(SLOW_CLOSE_STEPS / 9.0)           # 40 -> 1.5 s sim == 9 s video
+FAST_DIRS = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
+             ("+x", (1, 0, 0)), ("-x", (-1, 0, 0)),
+             ("+y", (0, 1, 0)), ("-y", (0, -1, 0)),
+             ("diag-down", (1, 1, -1)), ("diag-up", (-1, -1, 1))]
+
+
+def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
+                 slow=False):
     """Record an MP4 of the close + the disturbance battery so the cage can be
-    SEEN holding (caged) or failing (ball flung out). The clip shows the close,
-    then cycles a representative set of disturbance directions (down/up/lateral/
-    diagonal at the same 2.5 g the scored battery uses), re-applied from the
-    post-close state — a per-direction PASS/FAIL is printed and the on-screen
-    ball turns the test visible (it stays in the basket, or shoots away)."""
+    SEEN holding (caged) or failing (ball flung out). `slow=True` stretches the
+    grasp close to ~1.5 s of sim and plays it back over ~9 s (6x slow-mo) so the
+    finger motion is analyzable; the fast version is the ~6 s overview. A
+    per-direction HELD/ESCAPED is printed (the on-screen ball stays in the
+    basket, or shoots away)."""
     import imageio.v2 as imageio
     os.makedirs(out_dir, exist_ok=True)
-    # representative, legible subset of the 26-direction battery
-    show_dirs = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
-                 ("+x", (1, 0, 0)), ("-x", (-1, 0, 0)),
-                 ("+y", (0, 1, 0)), ("-y", (0, -1, 0)),
-                 ("diag-down", (1, 1, -1)), ("diag-up", (-1, -1, 1))]
+    show_dirs = FAST_DIRS
+    fps = SLOW_FPS if slow else 30
+    close_every = 1 if slow else 4        # slow: every step -> 1.5 s == 9 s
+    batt_every = 6 if slow else 5         # keep both clips tight (no bloat)
     p.connect(p.DIRECT)
     try:
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -439,7 +454,8 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir):
         p.setGravity(0, 0, 0)
         urdf = variants.ensure_variant(n_fingers)
         g = FixedGripper(urdf)
-        g.set_ready(READY_CURLED if ready == "curled" else READY_SPLAYED)
+        ready_pose = READY_CURLED if ready == "curled" else READY_SPLAYED
+        g.set_ready(ready_pose)
         g.set_finger_dynamics()
         g.prep_strategy(strategy)
         az = (math.pi / 2 if direction == "finger"
@@ -461,41 +477,66 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir):
                 renderer=p.ER_TINY_RENDERER)
             return np.array(rgba, np.uint8).reshape(560, 560, 4)[:, :, :3]
 
+        def slow_servo(progress):
+            """Position-servo the fingers toward the cage pose along a ramp
+            (analyzable gradual close). Reach the pose by 80% of the window, then
+            settle. Only for the position strategies (tendon keeps its torque)."""
+            force = (FIX_TORQUE if strategy == "fixed"
+                     else COMPLIANT_FORCE if strategy == "compliant" else SOFT_FORCE)
+            kp = SOFT_KP if strategy == "soft" else FIX_KP
+            f = min(1.0, progress / 0.8)
+            for segs in g.finger_joints:
+                for k, j in enumerate(segs):
+                    tgt = ready_pose[k] + (CLOSE_POSE[k] - ready_pose[k]) * f
+                    p.setJointMotorControl2(g.body, j, p.POSITION_CONTROL,
+                                            targetPosition=tgt, force=force,
+                                            positionGain=kp, velocityGain=FIX_KD)
+
+        suffix = "_slowmo" if slow else ""
         path = os.path.join(
             out_dir,
-            f"cagevid_{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm.mp4")
-        writer = imageio.get_writer(path, fps=30, codec="libx264", quality=7,
+            f"cagevid_{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm{suffix}.mp4")
+        writer = imageio.get_writer(path, fps=fps, codec="libx264", quality=7,
                                     macro_block_size=1)
         # phase 1: the close (gravity off)
-        for s in range(CLOSE_STEPS + SETTLE_STEPS):
-            g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
-            if s % 4 == 0:
+        n_close = SLOW_CLOSE_STEPS if slow else (CLOSE_STEPS + SETTLE_STEPS)
+        for s in range(n_close):
+            g.hold_arm_rigid()
+            if slow and strategy != "tendon":
+                slow_servo(s / n_close)
+            else:
+                g.apply_close(strategy)
+            p.stepSimulation()
+            if s % close_every == 0:
                 writer.append_data(grab())
         seated = np.array(p.getBasePositionAndOrientation(ball)[0])
-        state = p.saveState()
         results = []
-        # phase 2: cycle disturbance directions
-        for label, vec in show_dirs:
-            p.restoreState(state)
-            d = np.array(vec, float); d /= np.linalg.norm(d)
-            p.setGravity(*(d * GACC))
-            max_disp = 0.0
-            for s in range(WINDOW_STEPS):
-                g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
-                pos = np.array(p.getBasePositionAndOrientation(ball)[0])
-                max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
-                if s % 4 == 0:
-                    writer.append_data(grab())
-            held = max_disp < ESCAPE_DELTA
-            results.append((label, held, max_disp))
+        # phase 2: the disturbance battery (FAST overview only). The SLOW clip
+        # renders just the grasp (the first 1.5 s) for analysis — no battery.
+        if not slow:
+            state = p.saveState()
+            for label, vec in show_dirs:
+                p.restoreState(state)
+                d = np.array(vec, float); d /= np.linalg.norm(d)
+                p.setGravity(*(d * GACC))
+                max_disp = 0.0
+                for s in range(WINDOW_STEPS):
+                    g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
+                    pos = np.array(p.getBasePositionAndOrientation(ball)[0])
+                    max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
+                    if s % batt_every == 0:
+                        writer.append_data(grab())
+                results.append((label, max_disp < ESCAPE_DELTA, max_disp))
+            p.removeState(state)
         writer.close()
-        p.removeState(state)
-        survived = sum(h for _, h, _ in results)
         nf = _fingers_touching(g, ball)
-        print(f"video: {os.path.abspath(path)}")
+        n_batt_frames = 0 if slow else len(show_dirs) * (WINDOW_STEPS // batt_every)
+        dur = (n_close // close_every + n_batt_frames) / fps
+        print(f"video ({'SLOW 6x grasp-only' if slow else 'fast'}, ~{dur:.1f}s): "
+              f"{os.path.abspath(path)}")
         print(f"  {strategy} n={n_fingers} off={offset_m*100:.1f}cm dir={direction} "
-              f"ready={ready}  seated_fingers={nf}  battery(shown)={survived}/"
-              f"{len(show_dirs)}")
+              f"ready={ready}  seated_fingers={nf}"
+              + ("" if slow else f"  battery(shown)={sum(h for _,h,_ in results)}/{len(show_dirs)}"))
         for label, held, md in results:
             print(f"    {label:10s} -> {'HELD ' if held else 'ESCAPED'} "
                   f"(max ball move {md*100:.1f}cm)")
@@ -518,6 +559,8 @@ def main():
     ap.add_argument("--dir", default="finger", choices=["finger", "gap", "outside"])
     ap.add_argument("--ready", default="splayed", choices=["splayed", "curled"])
     ap.add_argument("--out", default="runs/cage")
+    ap.add_argument("--slowmo", action="store_true",
+                    help="with --video: 6x slow grasp (first 1.5s sim -> 9s video)")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
@@ -527,7 +570,8 @@ def main():
         render(args.strategy, args.n, args.offset, args.dir, args.ready, args.out)
         return 0
     if args.video:
-        render_video(args.strategy, args.n, args.offset, args.dir, args.ready, args.out)
+        render_video(args.strategy, args.n, args.offset, args.dir, args.ready,
+                     args.out, slow=args.slowmo)
         return 0
     # default: single cell
     run_cell(args.strategy, args.n, args.offset, args.dir, args.ready, verbose=True)
