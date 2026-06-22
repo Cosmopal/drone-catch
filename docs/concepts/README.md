@@ -24,6 +24,7 @@ Reading order roughly follows the control stack, bottom-up:
 10. [Forward/inverse kinematics & tracking vs sweeping](10-forward-inverse-kinematics-tracking.md)
 11. [Integral control & windup](11-integral-control-and-windup.md)
 12. [Over-actuation, thrust vectoring & control allocation](12-overactuation-thrust-vectoring-allocation.md) *(design study)*
+13. [Adaptive & underactuated grasping](13-adaptive-underactuated-grasping.md)
 
 Conventions: equations are for unit mass unless stated; our sim runs at
 240 Hz (`DT = 1/240 s`); the drone weighs 0.625 kg, the ball 0.065 kg,

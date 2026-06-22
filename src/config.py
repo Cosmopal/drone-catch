@@ -91,6 +91,11 @@ class ArmConfig:
     # holds the pose without flapping. See docs/iteration_findings.md §13.
     finger_pos_gain: float = 0.6
     finger_vel_gain: float = 0.8
+    # Compliant (underactuated/tendon-style) close: constant inward torque per
+    # joint + light damping, no target pose -> fingers conform on contact
+    # instead of servoing to a fixed shape. close_gripper(compliant=True). §13.
+    finger_tau_close: float = 0.12     # N·m constant closing torque ("tendon")
+    finger_damp: float = 0.010         # N·m·s joint damping (stability)
 
 
 @dataclass(frozen=True)

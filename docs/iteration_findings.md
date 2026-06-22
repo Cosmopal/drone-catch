@@ -832,3 +832,30 @@ debugging geometric/contact behavior — but note that even with frame access th
 human's at-a-glance motion perception still caught modes the agent missed. So
 for physical-sim work, keep a human (or a deliberate frame-by-frame pass) in the
 verification loop, and don't let the numbers be the only eyes.
+
+## 24. Compliant/underactuated close flips the drone — passive compliance wins on a flying base
+
+Per the grasping literature (Yale OpenHand / SDM hand, concepts/13): adaptation
+to object position belongs in the MECHANISM, not the controller. Implemented it
+— `close_gripper(compliant=True)`: constant inward torque per joint + damping,
+no target pose, so fingers conform on contact instead of servoing to a fixed
+shape that shoves an off-center ball out.
+
+**Result: it pitched the body to ~90° (flipped).** The sustained finger torques
+react on the airframe (§09/§15 actuator-disturbance) — a position-PD close
+reaches its target and stops applying torque; a *constant*-torque tendon never
+does. A real Yale hand sits on a fixed arm that absorbs the reaction; a drone
+has nothing to absorb it. Fixed-base isolation (the §09 discipline) was
+inconclusive — the throwaway harness couldn't reliably seat the ball, of a piece
+with ~10 grasp experiments this session that gave noisy/contradictory results.
+
+**Transferable conclusion:** on a flying catcher, **passive structural
+compliance (Fin Ray, TPU) beats active underactuation (tendon)** — it conforms
+with zero actuation torque, hence zero body reaction, while a tendon hand's
+closing torque fights the flight controller. The compliant-close code stays as
+an opt-in (default off; the scoop catch is unaffected) but is NOT validated.
+
+Honest state of the grasp: the robust-enclosure-under-uncertainty sub-problem
+needs a *reliable* test harness (deterministic ball seating, a real caged metric
+via contact normals) + a systematic study — not more quick experiments. The
+validated fallback remains the soft-constraint compliant capture (96/96).

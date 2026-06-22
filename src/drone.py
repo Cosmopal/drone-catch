@@ -282,12 +282,28 @@ class Drone:
         if self.finger_joints:
             self._gripper_cmd = {"mode": "open"}
 
-    def close_gripper(self):
-        """Curl fingers inward to cage. Position control to the closed pose
-        with a torque cap, so the fingers stall (and squeeze) against the ball
-        instead of crushing through it — caging + friction, no constraint."""
-        if self.finger_joints:
-            self._gripper_cmd = {"mode": "close"}
+    def close_gripper(self, compliant: bool = False):
+        """Curl fingers inward to cage.
+
+        Default: position control to the closed pose with a torque cap.
+
+        `compliant=True`: UNDERACTUATED / tendon-style close — apply a constant
+        closing TORQUE to every finger joint (no target pose) + light damping,
+        so each joint closes until IT contacts the ball and then stalls, the
+        fingers CONFORMING to wherever the ball is instead of servoing to a
+        fixed shape (which shoves an off-center ball out). Models a Yale-OpenHand
+        /Fin-Ray hand where adaptation lives in the mechanism, not the
+        controller. See docs/concepts/13. Requires disabling PyBullet's default
+        per-joint velocity motor (which would otherwise fight the applied
+        torque)."""
+        if not self.finger_joints:
+            return
+        self._gripper_cmd = {"mode": "close", "compliant": compliant}
+        if compliant:
+            for segs in self.finger_joints:
+                for jidx in segs:
+                    p.setJointMotorControl2(self.body_id, jidx,
+                                            p.VELOCITY_CONTROL, force=0.0)
 
     def gripper_is_closing(self) -> bool:
         return bool(self._gripper_cmd and self._gripper_cmd["mode"] == "close")
@@ -309,6 +325,19 @@ class Drone:
                     p.resetJointState(self.body_id, jidx,
                                       targetValue=cfg.finger_open[k],
                                       targetVelocity=0.0)
+            return
+        if self._gripper_cmd.get("compliant"):
+            # COMPLIANT (underactuated/tendon) close: a constant inward torque
+            # per joint + light damping, NO target pose. Each joint closes until
+            # it contacts the ball, then the contact reaction balances the
+            # torque and it stalls — the fingers conform to where the ball
+            # actually is. (§13 / docs/concepts/13)
+            for segs in self.finger_joints:
+                for jidx in segs:
+                    thd = p.getJointState(self.body_id, jidx)[1]
+                    tau = cfg.finger_tau_close - cfg.finger_damp * thd
+                    p.setJointMotorControl2(self.body_id, jidx,
+                                            p.TORQUE_CONTROL, force=tau)
             return
         # CLOSING: gentle position control per segment. The force cap
         # (finger_close_torque) both limits squeeze on the ball AND, far from
