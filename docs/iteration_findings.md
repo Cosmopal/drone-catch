@@ -238,3 +238,708 @@ relevant to this iteration:
   for an actual play-catch, not just a one-shot throw + catch + pickup.
   The throw planner is now general enough to support this — the work is
   symmetrizing the demo phase machine.
+
+## 11. Compliant capture: stop velocity-matching, start impulse-spreading
+
+The rigid constraint snap forced a rel-vel gate (≤1.5 m/s) on the catch
+trigger, and the velocity-matched arm sweep alone couldn't hit it: at the
+matched instant the arm tip's centripetal acceleration (ω²L ≈ 53 m/s² toward
+the shoulder) opposes the ball's gravity vector, so the tangency window is
+~27 ms for the rel-vel gate, ~74 ms for the 15 cm distance gate. No amount of
+sweep tuning widens that — it's curvature mismatch between a circle and a
+parabola.
+
+The fix was to delete the rel-vel gate and absorb the residual through
+compliance (`tests/arm_catch_solo.py`, M5):
+
+- **`soft_grasp`**: point-to-point constraint capped at 8 N. The ball
+  decelerates over ~m·Δv/F_max (≈60–80 ms, ~10 cm stroke) instead of one
+  solver step. Stands in for foam pad + compliant fingers on hardware.
+- **Back-drivable shoulder**: during absorption the sweep keeps its velocity
+  target but with `torque_cap=0.3` N·m (vs 2.0 max), so the joint yields
+  under ball load — most of the absorption stroke happens here.
+- **Two-stage lock**: when rel_vel < 0.3 m/s, `firm_grasp` ratchets the
+  constraint stiff and the shoulder brakes to ω=0 in velocity mode (the
+  documented-safe transition).
+
+Validated across an adversarial incoming-velocity grid (vx 2.5–5.5,
+vz −2.0 to −4.5; speeds 3.2–7.1 m/s, descent angles 20–61°): **12/12
+caught and retained**, contact rel-vel up to 4.6 m/s, peak constraint force
+8–11.3 N, impulse matching m·Δv within the gravity contribution.
+
+Lessons earned along the way:
+
+- **Ramp integral must equal the rotation.** The absorption sweep ramps
+  ω from 0 to Ω over the window T, so it covers ∫ω dt = Ω·T/2 — not Ω·T.
+  Size T = 2·Δθ/Ω so the shoulder lands on the velocity-matched angle
+  exactly at intercept. Both "arrive late" (fixed 100 ms window) and
+  "arrive early" (margin factor > 1) turn catches into misses; the failure
+  pattern across the grid flips between fast-shallow and steep arrivals,
+  which is the diagnostic signature for a timing (not force) problem.
+- **Recompute the ramp from t_intercept every tick.** A one-shot engagement
+  that latches full ω overshoots the catch angle long before the ball
+  arrives.
+- **Tests run in the DEFAULT room (8 m → walls at ±4); the demo overrides
+  to 10 m.** A launch point computed at x = −4.3 spawns the ball inside the
+  west wall and it never arrives. If a test's "closest approach" is ~5 m,
+  check the spawn geometry before the controller.
+
+## 12. Noise + positioning: the catch is information-and-stiffness limited, not arm-limited
+
+Extended `arm_catch_solo` (M5b) with the question "does compliant capture
+survive realism?": stereo-class sensing noise + 50 ms latency (the demo's
+`BallPerception`, now shared via `src/perception.py`), wind gusts (OU
+process, ~5% of weight), catcher pre-position error, and — separately —
+intercepts the ball is NOT aimed at (lateral offsets up to 1 m, crossing
+balls with vy up to ±0.8 m/s, ±0.3 m depth offsets).
+
+Results after fixes: **96/96** across four grids (velocity envelope ×
+{clean, noise}, positioning envelope × {clean, noise}, 3 seeds per noisy
+cell). What it took, and what we learned:
+
+- **Latency compensation is mandatory, and trivial.** Acting on the raw
+  50 ms-delayed measurement costs rel_speed·latency ≈ 23 cm at nominal —
+  more than the whole 15 cm catch radius. An alpha-beta filter on the
+  delayed state, extrapolated forward by the latency under gravity
+  (`BallEstimator`), brought estimate error at contact to 0.2–0.7 cm.
+  Estimation was never the bottleneck after this.
+- **Miss anatomy beats hypothesizing.** Logging the miss *vector* at
+  closest approach showed noisy-positioning failures were 10–21 cm in
+  **y** with sub-cm estimate error: pure body-positioning lag, not
+  sensing. This killed two attractive wrong fixes (see below) and answered
+  the "do we need the elbow?" question: **no** — both arm joints rotate
+  about y, so lateral error is body-only; no arm DOF can recover it.
+- **Velocity-target carrots are gain changes in disguise.** The cascade's
+  outer loop is accel = kp·err + kd·(vtgt − v). Commanding vtgt = K·err is
+  algebraically a kp increase of kd·K with no matching kd: ζ fell 0.82 →
+  0.58 and the body oscillated through the catch window (clean grid 12/12
+  → 0/12). Commanding vtgt = dist/t_remaining is worse: the kd term
+  *punishes* exceeding the just-in-time average, capping the body at a
+  crawl, and any fade-out brakes it while still off-station. If the loop
+  is too slow, retune the loop.
+- **The actual fix was two numbers.** Catcher-local kp [6,6,12]→[12,12,14],
+  kd [4,4,6]→[7,7,7]: ωn 2.45→3.5 rad/s at ζ≈1.0. Bonus: static gust
+  offset (F/(m·kp)) halved to ~4 cm. Attitude inner loop at ~11 rad/s keeps
+  ≥3× separation, and gain scheduling holds that across arm poses.
+- **PyBullet constraint maxForce caps each axis independently** — observed
+  peak force saturates at 8·√3 ≈ 13.9 N with an 8 N "cap". Budget for the
+  √3 factor when reasoning about airframe loads.
+
+The elbow stays in the parking lot: it becomes relevant for in-plane
+terminal correction when tolerances tighten (3-finger gripper contact
+geometry), not for making the current catch robust.
+
+## 13. Finger (caging-gripper) catch: feasibility probe — mechanism works, dynamic rendezvous doesn't (yet)
+
+The force-limited constraint ("foam stick", §11–12) is a *behavioral* stand-in
+for a real gripper: it can snap to a ball 15 cm away at any relative velocity.
+To test whether a physically honest catch — fingers caging the ball, held by
+friction, no constraint — is feasible, we built a 3-finger gripper
+(`assets/make_gripper_urdf.py` → `quadrotor_gripper.urdf`, two-segment
+fingers) and `tests/finger_catch_solo.py`.
+
+**Verdict: the gripper cages reliably when the ball is placed in the cup, but
+the in-flight rendezvous can't yet put the cup on the ball.** Getting even
+this far required fixing a cascade of platform problems the foam stick hid —
+which is itself the answer to "is the foam stick a good proxy?": no.
+
+What broke, in order, and why:
+
+1. **Finger motors excite the attitude yaw singularity.** With the arm
+   extended horizontally (catch pose) and the gripper open, a stiff or
+   velocity-driven finger servo injects a dynamic disturbance that drives the
+   body's yaw toward ±90–180°, straight into the Lee SO(3) singularity (§1) —
+   the drone flips and flies away (180 cm error). Diagnosis was decisive:
+   freezing the fingers kinematically → 2 cm error, 0° yaw; motorizing them →
+   180 cm, 179° yaw. Fix: **gentle pure position control** on the fingers
+   (positionGain 0.6; higher gains are *also* unstable — PyBullet's explicit
+   joint-motor PD goes numerically unstable at high gain on near-massless
+   links). The static asymmetric gripper is fine (its gravity torque is pure
+   pitch, which the cascade rejects); only the *motor dynamics* hurt.
+
+2. **Two steady offsets the demo never needed.** The gripper's COM offset
+   gives a ~12 cm hover position sag (no position integrator existed), and the
+   residual finger yaw torque leaves an ~18° steady yaw (attitude `kI` had a
+   zero yaw term) — and since the arm points body-−x, 18° of yaw throws the
+   EE 12 cm sideways. Both became direct EE-to-ball miss. Fixes: a
+   position-error integrator (`controller.kI_pos`, default off) and a nonzero
+   yaw integral. Both null their offset to ~1–2 cm but need ~2.5 s to wind up,
+   so the catcher now settles longer before the throw.
+
+3. **Mass was hardcoded.** `MASS=0.625` vs the gripper's real ~0.646 kg →
+   gravity-FF undershoot. Replaced with `self.mass` summed from the model at
+   load (negligible change for the plain drone; correct for the gripper).
+
+4. **The fingers ~double the arm's rotational inertia** (≈0.004 kg·m² added at
+   the tip), so the velocity-matched absorption sweep lags — and the timing is
+   *sensitive*: ±0.2 in the sweep-start margin swings the closest approach by
+   ~7 cm, and at the closest instant the shoulder is at −54° or −23° rather
+   than the intended −44°. Torque doesn't help (the sweep is ω-limited, not
+   torque-limited).
+
+5. **Cup depth, not palm rim.** The fingers converge ~4 cm beyond the
+   end_effector link, not at it. Targeting the EE-link onto the ball left the
+   ball at the rim; a stationary-ball cage test found the sweet spot
+   (`cup_depth=0.04` → 3 fingers, caged; 0.06 → ball falls through behind the
+   closing fingers). Targeting now uses an effective arm length `L+cup_depth`.
+
+After all five, the static cage works (ball placed at the cup → held), the
+contact relative velocity at close drops to ~0.5 m/s (good velocity match),
+but the **dynamic closest approach plateaus at ~7–10 cm of cup-to-ball miss,
+roughly independent of ball speed (1.8–4.6 m/s)** — so it's not a
+contact-window problem, it's a *rendezvous-precision* problem. The single
+shoulder DOF sweeps the cup through an arc, and landing that arc on the ball
+at exactly the intercept instant — with the heavier arm's lagging dynamics —
+is too tight. The miss is dominated by vertical and the swept-angle error.
+
+**The clean implication: this is what the elbow is for.** A 2-DOF arm can
+servo the EE to a *point* (and track it for a window) instead of sweeping a
+1-DOF arc through it — turning a knife-edge timing problem into a tracking
+problem. That moves parking-lot item "unlock the elbow" from nice-to-have to
+the critical path for a contact catch. The constraint-based compliant capture
+(§11–12) remains the working catch for the demo; the finger gripper is a
+validated *mechanism* waiting on 2-DOF terminal guidance.
+
+Reusable infrastructure landed regardless: the URDF gripper generator, the
+`Drone` finger API (`open_gripper`/`close_gripper`/`fingers_touching`/
+`set_finger_dynamics`), model-derived mass, and the position + yaw integrators
+(all default-off, so existing tests are unaffected — re-verified).
+
+## 14. Unlocking the elbow: 2-DOF tracking turns the catch from tangency into rendezvous (M7)
+
+§13 ended with the 1-DOF finger catch stuck at a ~7–10 cm rendezvous miss:
+one shoulder joint sweeps the cup through an *arc*, and landing that arc on
+the ball at the exact intercept instant is a knife-edge. Unlocking the elbow
+gives the end-effector 2 planar DOF — so instead of sweeping through the ball,
+the arm **servos the cup onto the ball and tracks it**.
+
+Foundation: `src/arm_kinematics.py` — forward + inverse kinematics for the
+2-link arm in the body sagittal (xz) plane. Both joints rotate about ±y, so
+the arm is a planar 2R manipulator; with equal 0.2 m links the IK is closed
+form (`r = 2L·cos(θ₂/2)`, take the θ₂≥0 elbow-forward branch, cap below the
+inverted-pendulum fold). **Verified exact (0.0 mm) against PyBullet's
+`getLinkState`** across poses, which also confirmed the elbow sign (forearm
+absolute angle = θ₁ − θ₂).
+
+Catch strategy (`tests/elbow_catch_solo.py`): station the body so the
+shoulder sits ~0.32 m *above* the intercept (arm hangs into the ball's path);
+each tick, IK the desired cup position (ball + small ballistic lead) to
+(shoulder, elbow) and command both via `hold_arm`; body holds the x-station
+and tracks the ball's y (the arm is planar — can't move laterally); fingers
+cage as in §13.
+
+**Result: it works.** Nominal (4.6 m/s arrival): the cup tracks to **0.9–1.3
+cm** of the ball (vs 7–10 cm for the 1-DOF sweep), 3 fingers cage, held
+through a 30 cm lift. That is the headline — 2-DOF tracking converts the
+rendezvous-precision wall into a solved tracking problem at the design point.
+
+**Robustness across the full velocity envelope is not there yet: 4/12 held**
+(`--grid`). The mechanism is sound everywhere — several misses get the cup to
+1–3 cm — but two control-quality gaps remain:
+- *Tracking accuracy* degrades for the fastest/steepest balls (cup miss
+  7–11 cm): the arm slews at its joint-rate limit and the ball is in the disk
+  only briefly. A continuous pre-aim (extend the arm toward the ball, clamped
+  to the reach boundary, before it enters the disk) *hurt* — the arm chases a
+  moving clamped point — so the fix is proper feedforward tracking, not a
+  geometric hack.
+- *Capture timing*: some cells reach ~2 cm cup-miss but still don't cage —
+  the ball crosses the cup with too much relative velocity for the fingers to
+  wrap in time. Needs the cup to **velocity-match** (track the ball's velocity,
+  not just position) at contact, plus possibly a faster finger close.
+
+So M7 validates the elbow as the right unlock and clears the §13 blocker at
+the design point; making it hold across the adversarial envelope is a
+tracking-control problem (velocity-matched IK tracking + capture timing),
+not a kinematics or mechanism one. Open items: extend the arm-reaction FF and
+gain schedule to the elbow angle (currently shoulder-only, so the FF is
+approximate with the elbow bent — the body integrators have been absorbing
+the residual), and add lateral (y) approaches once a singularity-free
+attitude controller exists.
+
+## 15. Caging gripper that actually cages: 3-joint long-proximal fingers (M8)
+
+§13 left the finger gripper *containing* a ball in an upright cup but not
+*caging* it — a screenshot review exposed that the 2-segment fingers, with a
+mount ring (2.5 cm) smaller than the ball radius (3.0 cm), folded back over
+the wrist instead of enclosing. The honest gate is the **inversion test**:
+close on the ball, rotate 180°, does it stay? The 2-segment hand failed it in
+every one of ~58 configs (mount radius, lengths, angles, force, friction,
+soft contact) — 3 thin rigid fingers achieve *force closure* (friction at a
+few points, orientation-fragile), not *form closure*.
+
+The fix (user's idea) was **3-joint fingers with a long proximal phalanx**,
+human-like: a long proximal (≈55 mm) reaches down past the ball's equator,
+then shorter middle (≈32 mm) + distal (≈25 mm) curl UNDER it to meet
+beneath — geometric trapping. Mount ring raised to 3.4 cm (> ball radius so
+fingers start outside the ball). With this, **8/… configs pass the inversion
+test**; 4 fingers is the most robust (more enclosure, more contacts). The key
+was the long proximal — equal/short segments curl into a loop near the mount
+and never reach down to the ball.
+
+Productionized into the real catcher (M8):
+- `make_gripper_urdf.py` generalized to N-segment fingers (`finger{i}_seg{k}`);
+  default 4 fingers × 3 segments, `SEG_LENS=(0.055,0.032,0.025)`.
+- `Drone` finger API generalized: `finger_joints` is now a list of per-finger
+  segment lists; open/close drive per-segment angle tuples (`config.finger_open`
+  / `finger_close`). `fingers_touching` unchanged.
+- **12 PD finger joints on a floating base diverge the body (~80 cm)** — the
+  default contact solver can't hold them (the *static* hand is fine; it's the
+  motor loops). Two fixes: `numSolverIterations=150` (→ 4.9 cm) and, better,
+  **pin the fingers kinematically while OPEN** (`resetJointState` each step →
+  1.2 cm hover) and only motorize to close. Pin-open is now the default in
+  `_apply_gripper`; the catch test also bumps solver iterations. The old yaw
+  singularity (§13) does not recur with this.
+- Validated on the drone: hover stable, 4 fingers close on a ball at the cup,
+  **held through a 30 cm lift** (static-ball).
+
+**Dynamic catch status (`tests/elbow_catch_solo.py` with the new hand):** the
+2-DOF IK tracking puts the cup on the ball to **2.0 cm** and all **4 fingers
+contact** — but it does NOT yet retain: the ball arrives at ~2.3 m/s relative
+and punches through the cup before the fingers firm. Position tracking is
+solved; **velocity matching is not.** To cage a *moving* ball the cup must
+move WITH it at contact (match velocity, not just position), which needs
+Jacobian-based joint-velocity control on the 2R arm — the M7 frontier, now
+the single critical-path item for a retained physical catch. The pin-open
+(tight station-keeping) and firm-grip-after-cage + gentle-lift pieces are in
+place; they're necessary but not sufficient without velocity matching.
+
+## 16. Pre-positioning lands the first retained physical catch (M8b)
+
+The M8 catch tracked the cup to ~2.7 cm and caged the ball with 4 fingers but
+did NOT retain it. Diagnosis (per a video review):
+- **The arm engaged ~90 ms before contact** — it sat in a READY pose until the
+  ball entered TRACK_RANGE, then *snapped* to the tracking IK solution
+  (shoulder 0°→−25°, elbow 51°→96° in ~0.1 s). Violent, and late.
+- **The ball seated at the cup RIM (~3 cm off-center), not the center.** The
+  static cage (ball placed at center) held through inversion + lift; a
+  rim-seated ball gets only partial form closure → it works loose in ~1 s and
+  any acceleration ejects it.
+- **The post-catch logic ejected it.** Firming the grip to 2.0 N·m produced
+  100–166 N contact forces on a 0.64 N ball (rigid sphere in rigid cage) and a
+  lift jolted the rim-seated ball out. Removing the firm-grip → held ~1 s in
+  place, but the gentle lift still lost it.
+
+**Fix: pre-position the cup at the PREDICTED intercept from the start and hold
+it there, refining to the actual ball only when close.** Result on the
+nominal throw: cup-to-ball **0.7 → 0.5 cm**, the ball seats at cup-center, 4
+fingers cage it, and it is **HELD through the lift — caught=True, held=True.**
+First retained physical catch. No snap (the arm is already in place; the
+prepos→track transition is smooth because the ball arrives where it was
+predicted).
+
+**Why this works where the M7 "pre-aim" failed.** The two are NOT the same.
+M7 pre-*aim* extended the arm toward the *moving ball*, clamped to the reach
+circle — which (a) targets the ball's radial projection, a different point
+than where its parabola actually enters the disk; (b) chases a point that
+races around the circle as the ball nears, at the joint rate limit; (c) parks
+the arm at near-full extension, a Jacobian-singular pose, right when it must
+retract. Pre-*positioning* at the *fixed predicted landing* has none of that:
+the arm sits still at a good pose and waits for the ball to fall into the cup.
+The lesson: aim at where the ball *will be* (the intercept), not at where it
+*is* (the moving target).
+
+**Still open: full-envelope robustness (2/12 grid).** Off-nominal velocities
+arrive at the intercept on different approach lines/timing than the fixed
+pre-position + station height anticipate, so the cup misses by 4–12 cm there.
+Closing that needs velocity-matched tracking + per-velocity station/pre-
+position adaptation. But the mechanism + nominal catch are now real:
+4-finger form-closure cage, ball seated at center, gentle grip (no 100 N
+squeeze), retained through a lift.
+
+Side notes answering review questions: **4 fingers is not too sparse** — with
+the ball seated at center the form-closure cage holds; the earlier slip was
+*seating* (rim), not finger count. **Gentle is better than firm** — the
+removed firm-grip was the main ejector. **"Arm fully down" is the wrong
+default** — the principled start pose is the IK pre-position that puts the cup
+at the intercept (arm angled), not straight down (cup straight below body).
+
+## 17. Why the snap is intrinsic, and the cage catch is noise-fragile (M8c)
+
+Two review questions: the arm still *snaps* into place, and does it survive
+sensing noise?
+
+**The snap is intrinsic to how this gripper receives the ball.** Traced it:
+during "prepos" the arm holds the cup at the intercept (z=1.5); when tracking
+engages (ball within TRACK_RANGE, t≈0.82), the cup target jumps to the ball's
+actual 3-D position (z≈1.79) and the elbow rockets 45°→96° (~1600°/s). Tried
+three ways to remove it, all of which BROKE the catch:
+- *Track the predicted landing point* (cup waits at z=1.5, ball falls in):
+  the ball grazes the upward-splayed OPEN finger tips ~8 cm above the cup,
+  deflects, and the prediction jumps → cup chases away. Clean miss.
+- *Track the ball's xy at intercept height* (cup slides under the ball, no z
+  rise): same graze — the ball lands on the finger tips, not in the cup.
+- *Slew-limit the joints*: the arm lags the fast descending ball → miss.
+
+Root cause: the cup must RISE to **meet** the ball and descend WITH it, so the
+cup *mouth* faces the incoming ball and the ball enters cleanly. A stationary
+or below-the-ball cup presents the finger tips, which deflect it. The "snap"
+is that rise. TRACK_RANGE=0.45 is a sweet spot (later → ball deflects before
+the cup arrives; earlier → cup chases the ball from out of reach). A genuinely
+smooth version needs **velocity-matched tracking from apex** — the cup follows
+the ball's predicted trajectory down continuously, matching its velocity, so
+there's no engagement step. That remains the open problem (the M7/M16
+frontier); the snap and the noise-fragility below are two faces of it.
+
+**The cage catch is precision-tight and noise-fragile.** Added perception
+(`--noise`: stereo-class noise + 50 ms latency + `BallEstimator`). The nominal
+catch that holds cleanly on ground truth **fails 0/3 under noise** — min
+cup-to-ball blows out to ~22 cm because the chase tracks the jittery
+*estimate* of the ball's instantaneous 3-D position, and the descent flag
+(est_v_z<0) flickers, oscillating track/prepos. Contrast the constraint-based
+**compliant capture (§12): 96/96 under the same noise.** The difference is the
+catch *radius*: the soft constraint snaps anything within 15 cm, forgiving the
+estimate error; the finger cage needs the ball seated at the cup CENTER
+(~1–3 cm), which sensing noise destroys. **The hardware-honest gripper is far
+less noise-tolerant than the behavioral soft-constraint stand-in** — caging
+demands precision the constraint didn't. Closing this needs (a) velocity-
+matched tracking on the *smoothed* estimate (track the predicted landing/
+trajectory, not the instantaneous noisy position) and (b) possibly a more
+forgiving cage (bigger mouth / more fingers / compliant pads) so center-
+seating isn't required to sub-cm. Both are the same lesson as the snap: track
+where the ball *will be*, smoothly, not where the noisy estimate says it *is*.
+
+### 17b. Tried "glide the arm in early" — the snap is an active SCOOP, not wasted motion
+
+Review idea: the arm sits idle for ~0.8 s then does everything in 0.1 s — so
+glide it into the pre-aim pose over the available flight time instead of
+snapping. Implemented it properly: pre-position the cup at the MEETING point
+(where the ball crosses MEET_Z=1.62 on its descent, above the intercept) and
+let the arm glide there over the whole flight, so the final move is a small
+correction. **It missed (7–8 cm), same graze.** With a tracking latch it
+chased the deflected ball out to x=1.48.
+
+The reason is mechanically important: the working "snap" gives the cup
+**upward velocity** at the instant it meets the ball — the cup mouth *scoops*
+the descending ball inward. A stationary or gently-gliding cup, even correctly
+positioned at the meeting altitude, presents the upward-splayed open finger
+TIPS to the falling ball, which deflects off them. So the snap is not wasted
+motion to smooth away — it's the active scoop that makes this gripper catch.
+Every "slow it down" variant (slew-limit, track-landing-point, track-xy-at-
+height, meeting-point glide) removed the scoop and grazed.
+
+Implication: a gentle/smooth catch needs either (a) a passive basket-style
+end-effector (mouth-up funnel the ball simply falls into — no scoop needed),
+or (b) velocity-matched tracking where the cup is already descending WITH the
+ball so contact has ~zero relative velocity and no graze. The current 3-finger
+caging hand is an active scooper; that's the trade for its form-closure grip.
+
+## 18. Velocity-matched tracking: infrastructure built, but it doesn't beat the scoop yet (M8d)
+
+Chose option 2 (velocity-matched tracking) over a passive basket, to keep the
+arm multi-purpose. Built the foundation:
+- `arm_kinematics.jacobian(θ1,θ2,le)` — 2×2 Jacobian of the arm tip (le =
+  L2+cup_depth to control the cup). Verified exact (2e-7) vs finite-diff.
+- `arm_kinematics.ik_velocity(...)` — damped-least-squares J⁻¹·v → joint
+  velocities for a desired cup velocity.
+- `Drone.hold_arm(..., shoulder_vel, elbow_vel)` — joint-velocity feedforward
+  through PyBullet POSITION_CONTROL's targetVelocity (defaults 0; no effect on
+  existing callers — verified arm_catch_solo unaffected).
+
+But naive use did NOT improve the catch, for two compounding reasons traced
+in sim:
+1. **Position-loop slew swamps the velocity FF.** Engaging the velocity-matched
+   track from the intercept pre-pose leaves a ~47 cm position error (cup at
+   z=1.5, ball at z=1.79); the position PD slews the joints to ±89 rad/s to
+   close it, so the actual cup velocity is nothing like the commanded ball
+   velocity (rel-vel at contact 8.8 m/s, WORSE than the scoop's 2.3).
+2. **The fix for #1 — pre-position at the meeting altitude so there's no
+   position error — puts the arm at a near-SINGULAR pose.** The ball enters
+   the reachable disk at its boundary (full extension), where the Jacobian is
+   rank-deficient; pre-positioning the cup there sent it to z=2.2 (IK blew up).
+
+So clean velocity matching needs the cup to *co-move with the ball through the
+reachable disk from a good (non-singular) pose* — a proper task-space
+trajectory controller (feedforward the whole descending arc, blend position +
+velocity with consistent targets), not a per-tick position-IK + velocity-FF
+bolt-on. That's the real next step. The committed catch remains the SCOOP
+version (§17b): nominal caught + held, with the snap, noise-fragile. The
+Jacobian/velocity infrastructure is in place for the trajectory controller.
+
+## 19. The catch runs near full extension — the solver under-models the movement (M8e)
+
+Human-catch review: position the arm partly FOLDED, let the joints ABSORB the
+ball's momentum, and sweep so the arm trajectory OVERLAPS the ball's (redirect
+it out of the parabola), instead of meeting at a point. Asked: are we
+under-modeling the movement in the solver? **Yes.** Traced the working catch:
+the arm runs at **84–93% extension** (elbow 44–66°) through the whole approach
+— nearly straight, right where the Jacobian is singular. The IK optimizes ONE
+term (cup position) with nothing for: staying folded (it clamps to 98% reach
+when chasing), compliance (stiff position control, no give), or trajectory
+overlap (tracks a point, not the path).
+
+Tried the fixes; each hit the same wall:
+- **Compliance** (back-drivable arm at contact, `hold_arm(torque_cap=...)`):
+  broke the nominal catch. The current catch is a SCOOP (§17b) — it needs the
+  arm FIRM to drive up and meet the ball; compliance fights that. Absorption
+  needs a non-scoop catch.
+- **Stay folded** (lower the station, raise the elbow-fold limit): also broke
+  it. The arm reach (0.40 m) vs the catch distance (~0.32 m to the intercept)
+  means the catch is *inherently* ~90% extended; lowering the station needs
+  more fold than the arm allows, and raising the fold limit makes the IK fold
+  the arm UP at close range and miss.
+
+**Root cause (the user's intuition, made precise): the arm operates too close
+to full extension because it is barely long enough for this catch geometry.**
+That single fact causes all three symptoms — the Jacobian singularity that
+swamps velocity matching (§18), the lack of fold that blocks compliance, and
+the scoop (the only way to reach the fast ball at the boundary). The clean
+fixes are *geometric*, not control tweaks:
+1. **Longer arm links** (e.g. 0.25+0.25 = 0.50 m reach) so the same catch is
+   ~64% extension — folded, well-conditioned Jacobian, room for the joints to
+   give. (Costs: re-tune throw/mass/inertia for the longer arm.)
+2. **Reach diagonally toward the incoming ball** (body offset so the arm
+   reaches a shorter distance into the ball's path) rather than straight down
+   to a far intercept.
+Either makes the folded + compliant + velocity-matched (trajectory-overlap)
+catch geometrically feasible. The Jacobian/velocity-FF (§18) and the
+back-drivable `hold_arm(torque_cap=)` are the control pieces, waiting on the
+geometry. The committed catch stays the scoop (nominal caught+held).
+
+## 20. Diagonal velocity-matched catch: built the human-inspired geometry; body won't hold the station (M9, WIP)
+
+The user corrected my "arm too short" framing (§19): the drone CAN position
+better, and the right placement is the one the throw-side `arm_catch_solo`
+already used — **station the body up-and-forward of the intercept so the arm
+reaches FOLDED, back-and-down, and its swing is TANGENT to the ball's path**
+(sweep ALONG the ball, not scoop up into it). Why this is the right idea:
+- The 90% extension is from the SCOOP reaching up to the high/fast ball, not
+  the catch distance (straight-down is only 72%). Confirmed: body-tracking the
+  ball's x did NOT reduce extension — the drone is too slow to follow 3.3 m/s
+  horizontally, and the ball is near/above the shoulder during the approach.
+- Diagonal placement: shoulder R_FOLD (0.355 m) from the intercept,
+  perpendicular to the arrival velocity. The arm is then FOLDED (~74%, elbow
+  ~1.3 rad) at the tangent — well-conditioned Jacobian, so velocity matching
+  (§18) isn't swamped, and room for the joints to give (§19 compliance).
+
+Built it (`tests/elbow_catch_diagonal.py`): diagonal station, fold pre-pose,
+track the tangent point with Jacobian velocity feedforward sweeping the cup
+along the ball. The arm IS folded at the tangent (the geometry works). **But
+it does not catch (~12 cm miss): the body can't hold the forward-diagonal
+station** — it settles ~0.35 m low and oscillates ±13 cm during flight, so the
+cup never sits steadily at the tangent. The forward COM offset + the
+folded-back arm make a bigger pitching disturbance than the overhead station;
+the position loop (tuned for overhead) doesn't hold it.
+
+So the geometry is right and the control pieces (Jacobian FF, back-drivable
+joints) are in place — the remaining blocker is **station-keeping at the
+diagonal pose**: retune the position loop / add a COM-offset feedforward for
+the forward-and-tilted hold, then the tangent catch + absorb should follow.
+The committed working catch stays the SCOOP (`elbow_catch_solo.py`, nominal
+caught+held); the diagonal version is the WIP toward the smooth folded catch.
+
+## 21b. Startup ceiling-launch: a feedforward firing on the arm's init snap
+
+User asked why the catcher rockets ~1 m up at t=0. A/B isolated it cleanly:
+`arm_translational_ff_z` ON → peak z-error **+1.01 m**; OFF → **+0.01 m**.
+
+Mechanism: the `Drone` inits the arm at its folded rest pose (shoulder −π/2).
+`hold_arm(pre_pose)` then drives it ~85° to the catch pre-pose. The arm inertia
+is tiny (~0.004 kg·m²), so even the 2 N·m motor cap gives α ≈ 500 rad/s² — it
+slews the 85° in ~0.1 s (and overshoots). `arm_translational_ff_z` predicts the
+body-z disturbance from arm motion and pre-cancels it; it's meant for the
+*throw's* controlled sweep, so it reads this violent init slew as a giant
+disturbance and slams in upward thrust → launch. (Answers a second user
+question — *yes*, the motors really can snap it that fast; the arm is light, the
+cap isn't the limit.) Fix: `resetJointState` the arm to the pre-pose at init so
+there's no slew. Removes the launch (peak +0.01 m).
+
+Side effect worth noting: removing the launch made the diagonal catch's miss
+*consistent* (~11.5 cm across all kI_pos/kd) instead of a lucky 3 cm — the
+3 cm had depended on the launch transient putting the body at a fortunate
+settle phase. The honest state: the body settles to a steady COM-sag offset and
+the cup lands ~11 cm low/back. That steady, known offset is precisely what a COM
+feedforward cancels (§21) — feedback tuning can't, it only moves the phase.
+
+Finger-cam (user request) confirmed the capture-side failure: the ball sits at
+the cage RIM, off-center, and the closing fingers on the near side *paddle it
+out* rather than wrapping it (the cup must seat the ball past the fingertips —
+§09 sweet spot). So there are two independent gaps to a retained catch: body
+station-keeping (COM FF) AND cup-centering at contact.
+
+## 22. Design study: a thrust-vectoring drone to kill the underactuation (decision, not yet built)
+
+The user asked whether an **over-actuated** drone (rotors with tilt DoF) would
+fix the root cause behind most of our pain: a fixed quad is underactuated
+(4 inputs, 6 DoF), so it *must* pitch the whole body to translate — which is
+exactly what fights the arm (§20 station-keeping), forces the cascade, and
+gives the Lee 180° singularity. Conclusion: yes, and it's worth doing. Full
+reasoning + the transferable concepts are in `concepts/12`. The decisions we
+landed on (so future-us doesn't re-derive them):
+
+- **Mechanism**: one tilt servo per rotor → 8 control inputs vs 6 DoF →
+  over-actuated, 2-dim null space. (NOT 2 servos/rotor — that's an 8-servo
+  omnidirectional gimbal we don't need.) Replaces the cascade with a single
+  wrench → control-allocation map: command position AND attitude independently,
+  no thrust→attitude inversion, no 180° singularity. The allocation
+  (pseudo-inverse + null-space objective) is the one new subproblem; the rest
+  of the architecture *simplifies*.
+- **Layout: quadrant (X), not plus (+).** Rotors at `(±0.10, ±0.10)`. The
+  axis-aligned catch plane (`y=0`) threads the gap between the two near rotors
+  (nearest disk edge 0.06 m off-axis), so the downwash columns straddle the
+  ball path. A `+`-config puts a rotor on the catch axis — worst case. The
+  current URDF already *is* quadrant, so no change needed there.
+- **Tilt: radial (hinge along the arm), not tangential.** Two clean reasons,
+  both worked out by hand: (1) radial thrust points through the hub, so its
+  wash plane passes through the *center* (the `x=±y` diagonals, 45° off the
+  catch axes) — tangential's wash plane is offset out and slices the catch
+  region (crosses `y=0` at `x=−0.20`, right at the folded EE). (2) Radial force
+  has zero moment arm → **zero yaw torque**, so tilts give clean decoupled
+  `Fx, Fy` and yaw stays on drag-torque differential (like today). Tangential's
+  only edge is tilt-based yaw, which we don't need for axis-aligned catches.
+
+How this got decided: it started as "longitudinal (fore/aft) tilt" but the user
+flagged that **y (sideways) motion is coming**, which forced the general
+tangential-or-radial single-servo design that spans the whole horizontal plane
+with 4 servos. The wash question — does a tilted rotor blow the incoming ball
+off course — drove both the layout and the tilt-axis choice; the user's instinct
+that radial "fixes the planes in which I experience wash" was correct and is now
+backed by the `y=0`-crossing geometry above.
+
+**Important caveat:** PyBullet has no propwash model, so *none* of the wash
+analysis is testable in the current sim (a tilted rotor has zero effect on the
+ball). The wash reasoning is a hardware/sim2real design argument. A minimal
+propwash-cone disturbance (§concepts/12) would make it testable and let us
+validate null-space wash-steering. Nothing is implemented yet — this section is
+the decision record so the URDF + allocation work starts from the right place.
+
+## 23. Methodology: scalar metrics hide failure MODES in a physics sim — you have to LOOK
+
+The most consequential M9 bugs were diagnosed by the USER visually examining
+video frames, not from the metrics the work was being steered on. Two rounds:
+
+- The ~11 cm "miss" read (from the numbers) as a position/timing error was
+  actually a cup-**orientation** failure: the cup mouth pointed down-and-back
+  (forearm ~−65°), so a ball descending from above hit the *upper finger* and
+  deflected. Invisible in `min_cup_d`; obvious in one frame.
+- `held=True` hid that the grasp was a fragile **fingertip pinch**. Under the
+  position uncertainty that always exists, an off-center ball makes a
+  *fixed-pose* finger close press *onto* the ball instead of enclosing it, and
+  the one-sided contact forces squeeze it back out. The scalar said "success";
+  the frames showed it was one perturbation from failure (and motivated the
+  move to an adaptive/compliant close — underactuated grasping is robust to
+  pose uncertainty *because* it conforms instead of servoing to a shape).
+
+The transferable lesson is about method, not the catch: **in a physics sim the
+outcome of a contact/geometry interaction lives in the geometry and contact
+dynamics, which scalar logs (`held`, `min_dist`, contact-count) compress away.**
+A binary "success" is a lie of omission when the margin is razor-thin or the
+mechanism is wrong — verify *how* it succeeded, not just *whether*.
+
+For a text-first agent specifically: rendering a video as an *output for the
+human* is not the same as examining it as an *input for analysis*. The agent
+*can* read frames (image input) and should extract and study them when
+debugging geometric/contact behavior — but note that even with frame access the
+human's at-a-glance motion perception still caught modes the agent missed. So
+for physical-sim work, keep a human (or a deliberate frame-by-frame pass) in the
+verification loop, and don't let the numbers be the only eyes.
+
+## 24. Compliant/underactuated close flips the drone — passive compliance wins on a flying base
+
+Per the grasping literature (Yale OpenHand / SDM hand, concepts/13): adaptation
+to object position belongs in the MECHANISM, not the controller. Implemented it
+— `close_gripper(compliant=True)`: constant inward torque per joint + damping,
+no target pose, so fingers conform on contact instead of servoing to a fixed
+shape that shoves an off-center ball out.
+
+**Result: it pitched the body to ~90° (flipped).** The sustained finger torques
+react on the airframe (§09/§15 actuator-disturbance) — a position-PD close
+reaches its target and stops applying torque; a *constant*-torque tendon never
+does. A real Yale hand sits on a fixed arm that absorbs the reaction; a drone
+has nothing to absorb it. Fixed-base isolation (the §09 discipline) was
+inconclusive — the throwaway harness couldn't reliably seat the ball, of a piece
+with ~10 grasp experiments this session that gave noisy/contradictory results.
+
+**Transferable conclusion:** on a flying catcher, **passive structural
+compliance (Fin Ray, TPU) beats active underactuation (tendon)** — it conforms
+with zero actuation torque, hence zero body reaction, while a tendon hand's
+closing torque fights the flight controller. The compliant-close code stays as
+an opt-in (default off; the scoop catch is unaffected) but is NOT validated.
+
+Honest state of the grasp: the robust-enclosure-under-uncertainty sub-problem
+needs a *reliable* test harness (deterministic ball seating, a real caged metric
+via contact normals) + a systematic study — not more quick experiments. The
+validated fallback remains the soft-constraint compliant capture (96/96).
+
+## 25. Caging robustness under position uncertainty: a trustworthy harness says the current close already wins (and compliance/FF do not help)
+
+§24 ended by demanding a *reliable* harness for the robust-enclosure-under-
+uncertainty sub-problem, because ~10 quick grasp experiments gave noisy /
+contradictory results (the "caged" signal was distance + fingers-touching, and
+the ball seating was non-deterministic). Built one (`tests/cage_harness.py`) and
+ran the study. Several results overturn the intuitions the noisy experiments had
+suggested.
+
+**The harness (Phase 0, the gate).** Fixed-base gripper, arm held rigid in the
+catch pose, gravity OFF during the close, ball placed at a controlled
+(offset, direction) — fully deterministic. The "caged" metric is NOT distance +
+touching; it is a real **form-closure** test: after the close, `saveState`, then
+fire a battery of 26 disturbance accelerations (the {-1,0,1}^3 sphere) at ~2.5 g
+each, re-applied from the saved state, and count how many the ball survives
+trapped within the finger envelope. robustness score = survived / 26.
+Self-validation (mandatory, all PASS): determinism (same config 3x -> identical
+score), positive control (centered + current close -> 26/26), negative control
+(ball 8 cm outside -> 0/26, clean separation: caged ball moves 0.1 cm under
+2.5 g, escaped ball >150 cm).
+
+**Phase 1 result — nothing beats the current 4-finger splayed fixed-pose close.**
+Sweeping offset {0,1.5,2.5,3.5 cm} x direction {toward-finger, toward-gap} x
+strategy {fixed, compliant, soft} x fingers {4,6,8} x ready {splayed, curled}:
+- The current close survives a ball offset **3.5 cm toward a finger** (score ~1.0)
+  but fails **toward a finger GAP at even 1.5 cm** — the ball slips *between*
+  fingers into the gap and is shoved out. This gap-direction weakness is the real
+  failure mode, and it is **geometric coverage**, not close compliance.
+- **Compliance does not help and `soft` actively hurts.** Modeling an
+  underactuated/Fin-Ray hand as force-limited position control toward the cage
+  pose ("compliant", yield-on-contact) scored *worse* off-center than the rigid
+  close (0.25 vs 0.48 mean at offset>=2.5 cm); a soft-PD spring ("soft") scored
+  **0.00 everywhere — it cannot resist 2.5 g**, the inherent conform-vs-hold
+  tradeoff (soft enough to conform = too soft to hold).
+- **More fingers (6,8) trade gap-coverage for finger-direction robustness** with
+  no net gain *at the un-retuned close pose* (the cage pose (0.5,1.0,1.3) is
+  tuned for 4). Closing the gaps properly needs a close-pose re-optimisation per
+  finger count — which the harness now makes tractable.
+- **Splayed ready beats partly-curled** uniformly (a curled start doesn't open
+  the mouth wide enough to receive, so it often fails to cage even centered).
+- A renders-not-metrics check confirmed the mechanism: the fixed close wraps the
+  proximal to the equator and tucks middle+distal under (validated cage);
+  off-center toward a gap, the same fixed shape paddles the ball out the gap.
+
+So the honest answer to "find a config that clearly beats the current close
+off-center" is: **none of the obvious levers do.** The current close is already
+near the geometric ceiling for a 4-finger ring; the residual is the gap-direction
+slip, which only a denser ring with a re-tuned close pose can address. (A
+trustworthy negative — exactly what §24 asked for, refuting the noisy "compliance
+helps" positives.)
+
+**A numerical caveat worth recording:** a *constant joint torque* close ("tendon",
+`close_gripper(compliant=True)`) is **numerically ill-conditioned** on this near-
+massless 3-link finger chain in PyBullet — a Coulomb-friction-like joint
+threshold (small torques produce zero motion until ~1 N.m), sign-flips, and
+frozen distal joints. It neither reproduces the cage shape nor gives repeatable
+results, and on a floating base it flips the body (the §24 flip). Force-limited
+*position* control toward the cage pose is the robust, behaviourally-faithful
+stand-in for yield-on-contact compliance.
+
+**Phase 2 — finger-reaction feedforward (the user's hypothesis): a clean
+negative.** Implemented `Drone.finger_reaction_ff` (additive, default OFF): pre-
+cancel the net body torque from the finger-joint motor torques, the same idea as
+`arm_reaction_ff` for the arm sweep (`_finger_reaction_ff_body_torque`). Tested on
+a hovering drone (`tests/cage_drone_close.py`). The FF **does not work as hoped**,
+and the measurement says why: in the arm-straight-down catch pose the symmetric
+finger ring's motor torques **sum to ~0** (the FF predicts ~0), while the *actual*
+body disturbance during a close (~0.35 rad/s of pitch in one step) comes from the
+**asymmetric finger-link inertial + contact reactions**, which a motor-torque-sum
+model can't see. This matches §09's geometry note (near-zero net by symmetry in
+the down pose). The constant-torque close still flips the body (numerics, above)
+and the FF can't rescue a numerical instability. The Phase-1 *winning* close
+(rigid position) needs no FF: on the level-holding thrust-vectoring drone it holds
+body pitch to **2.0 deg < 5 deg** during the close (the underactuated drone takes
+~7 deg and recovers). The FF stays in as opt-in/default-off (harmless; existing
+tests re-verified unchanged).
+
+**Honest gap remaining:** a full end-to-end *retained* catch on the TV drone was
+NOT achieved — but the blocker is the pre-existing TV arm-tracking station-keeping
+instability (rapid per-tick IK arm slews drive the TV body up into the ceiling;
+the repo's TV catch is WIP, §20), not the close strategy. The winning close +
+sub-5-deg body pitch on the TV drone are confirmed; the underactuated scoop
+(`elbow_catch_solo`) remains the validated retained catch.

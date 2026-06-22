@@ -68,6 +68,35 @@ class ArmConfig:
     # naturally pitches drone past that)
     throw_max_tilt_deg: float = 60.0
 
+    # Effective rotational inertia of the arm about the shoulder, EXTENDED, no
+    # ball. Used for feedforward arm-reaction torque compensation.
+    # upper_arm rod-end (m·L²/3) + forearm parallel-axis + EE point-mass.
+    # See M1 paper calc in plan.
+    I_arm_extended: float = 0.004    # kg·m², no ball
+    I_arm_with_ball: float = 0.014   # kg·m² (for reference; held-mass aware FF could use this)
+
+    # ---- Caging gripper (quadrotor_gripper.urdf only) ----
+    # Per-segment finger joint targets (proximal→distal). Angle 0 = segment
+    # straight down; positive curls inward (fingertips converge); negative
+    # splays outward (open mouth). 3 segments: long proximal reaches the ball
+    # equator, middle+distal curl UNDER it for form closure (§15, validated
+    # by the inversion test).
+    finger_open: tuple = (-0.4, -0.2, 0.0)   # splayed funnel to receive the ball
+    finger_close: tuple = (0.5, 1.0, 1.3)    # wrap: prox to equator, mid+dist under
+    finger_close_torque: float = 0.5   # N·m motor force while closing/holding
+    # Finger servo PD gains. Kept GENTLE on purpose: stiff finger motors
+    # (high gain, or a velocity-drive branch) inject a dynamic disturbance
+    # that — with the arm extended horizontally — excites the attitude
+    # controller's yaw singularity and flips the drone. Soft position control
+    # holds the pose without flapping. See docs/iteration_findings.md §13.
+    finger_pos_gain: float = 0.6
+    finger_vel_gain: float = 0.8
+    # Compliant (underactuated/tendon-style) close: constant inward torque per
+    # joint + light damping, no target pose -> fingers conform on contact
+    # instead of servoing to a fixed shape. close_gripper(compliant=True). §13.
+    finger_tau_close: float = 0.12     # N·m constant closing torque ("tendon")
+    finger_damp: float = 0.010         # N·m·s joint damping (stability)
+
 
 @dataclass(frozen=True)
 class GameConfig:

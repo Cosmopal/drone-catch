@@ -23,6 +23,13 @@ class CascadeController:
     # inner (attitude) loop — sized for I ≈ 2-4 mN·m·s²
     kR: np.ndarray = field(default_factory=lambda: np.array([0.30, 0.30, 0.15]))
     kw: np.ndarray = field(default_factory=lambda: np.array([0.05, 0.05, 0.03]))
+    # Integral on attitude error — handles slow steady-state biases (gravity-
+    # on-held-arm at rest, wind, model error). Default low so it doesn't mess
+    # up tuning for known good cases; bumped via the dataclass default if a
+    # particular drone is in a config that needs it. Anti-windup: integral
+    # state clamped to ±integral_clamp per axis.
+    kI: np.ndarray = field(default_factory=lambda: np.array([0.05, 0.05, 0.0]))
+    integral_clamp: float = 1.0   # rad·s, clamp on integrated attitude error
     max_thrust: float = 20.0   # T/W ≈ 3.3 — racing-class. Heavier drone+arm
                                # (0.625 kg) + bowling throw needs bigger budget
                                # for the brake+spin maneuver with reduced floor
@@ -31,25 +38,78 @@ class CascadeController:
                                # is up to 2 N·m, cascade needs headroom to
                                # absorb that AND maintain attitude tracking.
     max_tilt_deg: float = 35.0  # cap on desired body tilt from vertical
+    DT: float = 1.0 / 240.0     # sim timestep (for integral accumulation)
+    # internal state — controller is otherwise stateless so we just keep
+    # the integral here, init in __post_init__
+    _e_R_integral: np.ndarray = field(init=False, default=None)
+    # Integral on POSITION error — nulls steady-state offsets the position PD
+    # leaves under a persistent disturbance (e.g. a COM-offset gripper, or an
+    # unmodeled held-ball weight). Default 0 so existing tuning is unchanged;
+    # the finger-gripper catcher turns it on.
+    kI_pos: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 0.0]))
+    pos_integral_clamp: float = 0.5   # m·s, anti-windup clamp per axis
+    _e_pos_integral: np.ndarray = field(init=False, default=None)
 
-    def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,
-                held_mass, MASS, G):
-        """Return (thrust_mag_along_body_z, torque_body_3vec)."""
+    def __post_init__(self):
+        self._e_R_integral = np.zeros(3)
+        self._e_pos_integral = np.zeros(3)
+
+    def reset_integral(self):
+        self._e_R_integral = np.zeros(3)
+        self._e_pos_integral = np.zeros(3)
+
+    def desired_force_world(self, *, pos, vel, target, vel_target,
+                            MASS, G, held_mass):
+        """Raw desired thrust vector in world frame (gravity FF + position PD
+        + position integral), BEFORE the underactuated tilt-cap/projection.
+
+        This is the overridable seam: an underactuated quadrotor can only push
+        along body-z (so `compute` projects this vector onto body-z), but a
+        fully-actuated platform could apply this force directly. Updates the
+        position-integral state exactly once per call — `compute` invokes this
+        once, so the integral advances identically to the pre-refactor code.
+        """
         pos = np.asarray(pos, dtype=float)
         vel = np.asarray(vel, dtype=float)
-        omega = np.asarray(omega, dtype=float)
         target = np.asarray(target, dtype=float)
         vel_target = np.asarray(vel_target, dtype=float)
 
         # --- Outer loop: desired thrust vector in world frame ---
         err = target - pos
         derr = vel_target - vel
+        # Position integral with anti-windup (only accumulates when kI_pos is
+        # active, so the default-off path costs nothing and never winds up).
+        if np.any(self.kI_pos):
+            self._e_pos_integral = np.clip(
+                self._e_pos_integral + err * self.DT,
+                -self.pos_integral_clamp, self.pos_integral_clamp)
         # Gravity feed-forward includes any held body's mass so we don't droop
         # while carrying. (Constraint couples the two bodies rigidly, so the
         # drone has to support both.)
         total_mass = MASS + held_mass
-        thrust_vec = (MASS * (self.kp * err + self.kd * derr)
+        thrust_vec = (MASS * (self.kp * err + self.kd * derr
+                              + self.kI_pos * self._e_pos_integral)
                       + total_mass * np.array([0.0, 0.0, G]))
+        return thrust_vec
+
+    def compute(self, *, pos, vel, R, omega, target, vel_target, yaw_target,
+                held_mass, MASS, G, feedforward_torque_body=None):
+        """Return (thrust_mag_along_body_z, torque_body_3vec).
+
+        `feedforward_torque_body` (optional): a 3-vector body-frame torque
+        added to the cascade output before the max_torque clip. Use for
+        disturbances we can predict (e.g., arm-reaction torque from
+        commanded shoulder ω changes) so the cascade doesn't have to react
+        to them after the fact.
+        """
+        omega = np.asarray(omega, dtype=float)
+
+        # --- Outer loop: desired thrust vector in world frame (overridable
+        # seam; also advances the position integral exactly once per call) ---
+        thrust_vec = self.desired_force_world(
+            pos=pos, vel=vel, target=target, vel_target=vel_target,
+            MASS=MASS, G=G, held_mass=held_mass)
+        total_mass = MASS + held_mass
 
         # Cap desired body tilt: when a big horizontal target makes the desired
         # thrust vector mostly horizontal, the attitude cascade would tilt the
@@ -91,7 +151,17 @@ class CascadeController:
         skew = 0.5 * (R_des.T @ R - R.T @ R_des)
         e_R = np.array([skew[2, 1], skew[0, 2], skew[1, 0]])
         omega_body = R.T @ omega
-        torque = -self.kR * e_R - self.kw * omega_body
+        # Integrate attitude error with anti-windup clamp
+        self._e_R_integral = np.clip(self._e_R_integral + e_R * self.DT,
+                                     -self.integral_clamp, +self.integral_clamp)
+        torque = -self.kR * e_R - self.kw * omega_body - self.kI * self._e_R_integral
+
+        # Add feedforward (arm-reaction etc.) before clipping, so the cascade
+        # output is "what the controller wants" + "what we already know is
+        # coming". Clip to max_torque after — the motor mix can't deliver
+        # more than that anyway.
+        if feedforward_torque_body is not None:
+            torque = torque + np.asarray(feedforward_torque_body, dtype=float)
 
         tn = np.linalg.norm(torque)
         if tn > self.max_torque:
