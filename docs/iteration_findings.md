@@ -888,12 +888,22 @@ strategy {fixed, compliant, soft} x fingers {4,6,8} x ready {splayed, curled}:
   but fails **toward a finger GAP at even 1.5 cm** — the ball slips *between*
   fingers into the gap and is shoved out. This gap-direction weakness is the real
   failure mode, and it is **geometric coverage**, not close compliance.
-- **Compliance does not help and `soft` actively hurts.** Modeling an
-  underactuated/Fin-Ray hand as force-limited position control toward the cage
-  pose ("compliant", yield-on-contact) scored *worse* off-center than the rigid
-  close (0.25 vs 0.48 mean at offset>=2.5 cm); a soft-PD spring ("soft") scored
-  **0.00 everywhere — it cannot resist 2.5 g**, the inherent conform-vs-hold
-  tradeoff (soft enough to conform = too soft to hold).
+- **Compliance does not WIN, but it is not a flat negative either (re-examined).**
+  First pass: `compliant` (force-limited position to the cage pose) scored *worse*
+  off-center than rigid (0.25 vs 0.48 mean at offset>=2.5 cm) and `soft` (soft-PD
+  spring) scored **0.00 everywhere** (too soft to resist 2.5 g). But both servo to
+  the FIXED pose, so they can't adapt the finger SHAPE — they under-test
+  underactuation. A proper **underactuated/differential** model (`under`: low
+  force toward a DEEP curl, each joint stalling on contact while the rest curl
+  further) **does help the failure mode** — gap-2.5 cm scores **0.50 vs fixed's
+  0.00** — but no setting beats fixed overall (aggressive enough to help the gap
+  *ejects* centered/finger balls in the gravity-off isolation; gentle settings
+  hold centered but lose finger robustness). Caveat: the gravity-off isolation
+  (mandatory — the down-opening cup drops a ball under gravity before the close)
+  is biased against an aggressive under-tuck; a *dynamic* catch (ball entering the
+  cup with downward momentum) would seat it. So the compliance question is *not
+  won* on the static metric but is plausibly under-credited by it — the fair test
+  is the moving catch. See §25 detail below.
 - **More fingers (6,8) trade gap-coverage for finger-direction robustness** with
   no net gain *at the un-retuned close pose* (the cage pose (0.5,1.0,1.3) is
   tuned for 4). Closing the gaps properly needs a close-pose re-optimisation per
@@ -905,11 +915,13 @@ strategy {fixed, compliant, soft} x fingers {4,6,8} x ready {splayed, curled}:
   off-center toward a gap, the same fixed shape paddles the ball out the gap.
 
 So the honest answer to "find a config that clearly beats the current close
-off-center" is: **none of the obvious levers do.** The current close is already
-near the geometric ceiling for a 4-finger ring; the residual is the gap-direction
-slip, which only a denser ring with a re-tuned close pose can address. (A
-trustworthy negative — exactly what §24 asked for, refuting the noisy "compliance
-helps" positives.)
+off-center" is: **none of the obvious levers WIN on this static metric** — but
+underactuation is the most promising and is plausibly under-credited by the
+gravity-off isolation (it measurably helps the gap; it loses only because the
+under-tuck ejects upward with nothing to seat the ball). The current close is at
+the geometric ceiling for a 4-finger ring; the residual gap-direction slip needs
+either a denser ring with a re-tuned close pose, or the underactuated close tested
+on the *dynamic* catch where gravity/incoming-momentum seats the ball.
 
 **A numerical caveat worth recording:** a *constant joint torque* close ("tendon",
 `close_gripper(compliant=True)`) is **numerically ill-conditioned** on this near-

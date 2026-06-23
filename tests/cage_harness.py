@@ -88,6 +88,12 @@ FIX_KP, FIX_KD = CFG.finger_pos_gain, CFG.finger_vel_gain   # 0.6, 0.8
 COMPLIANT_FORCE = 0.06     # N.m yield-on-contact cap (conforming close)
 SOFT_FORCE = 0.06          # N.m
 SOFT_KP = 0.10             # soft position gain (Fin-Ray flexure spring)
+# Underactuated/differential close: low force toward a DEEP curl (past the cage
+# pose), so each joint stalls on contact and uncontacted joints curl further —
+# the shape ADAPTS to where the ball is (whiffletree analogue). UNDER_DEEP > the
+# cage pose so the distal keeps tucking under after the proximal seats.
+UNDER_DEEP = (1.3, 1.9, 1.9)
+UNDER_FORCE = 0.05         # N.m yield-on-contact cap
 TENDON_TAU = CFG.finger_tau_close          # 0.12 N.m constant (record only)
 JOINT_DAMP = CFG.finger_damp               # 0.010 N.m.s
 
@@ -167,14 +173,24 @@ class FixedGripper:
                                         force=0.0)
 
     def apply_close(self, strategy):
-        """Apply the close command for one step. All caging strategies servo the
-        joints toward the validated CLOSE_POSE; they differ in compliance."""
+        """Apply the close command for one step.
+
+        `fixed`/`compliant`/`soft` servo toward the validated CLOSE_POSE and
+        differ only in compliance (force cap / gain). `under` is the proper
+        UNDERACTUATED model: a low force toward a DEEP curl (past the cage pose),
+        so every joint keeps trying to close and STALLS where IT contacts the
+        ball — the joints that haven't contacted curl further (distal tucks
+        under), distributing travel to the object's actual position (the
+        whiffletree/Fin-Ray behavior). This is what `compliant`/`soft` lacked:
+        they targeted the FIXED pose, so they could not adapt the SHAPE."""
         if strategy == "fixed":
-            force, kp = FIX_TORQUE, FIX_KP
+            target, force, kp = CLOSE_POSE, FIX_TORQUE, FIX_KP
         elif strategy == "compliant":
-            force, kp = COMPLIANT_FORCE, FIX_KP
+            target, force, kp = CLOSE_POSE, COMPLIANT_FORCE, FIX_KP
         elif strategy == "soft":
-            force, kp = SOFT_FORCE, SOFT_KP
+            target, force, kp = CLOSE_POSE, SOFT_FORCE, SOFT_KP
+        elif strategy == "under":
+            target, force, kp = UNDER_DEEP, UNDER_FORCE, FIX_KP
         elif strategy == "tendon":   # constant-torque (record only, ill-conditioned)
             for segs in self.finger_joints:
                 for j in segs:
@@ -188,7 +204,7 @@ class FixedGripper:
             for k, j in enumerate(segs):
                 p.setJointMotorControl2(
                     self.body, j, p.POSITION_CONTROL,
-                    targetPosition=CLOSE_POSE[k], force=force,
+                    targetPosition=target[k], force=force,
                     positionGain=kp, velocityGain=FIX_KD)
 
     def ee_world(self):
@@ -419,14 +435,19 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
 
 
 # --- video timing presets ---------------------------------------------------
-# FAST: the ~6 s overview (close, then the full 8-direction battery).
-# SLOW: the grasp is the point of analysis, so the close MOTION is stretched to
-#   ~1.5 s of sim (a ramped, gradual curl) and played so those 1.5 s span ~9 s
-#   of video (the first-1.5s-takes-9s the user asked for: every step recorded at
-#   playback_fps = 1.5*sim_hz/9 = 40 fps). A short 3-direction battery follows.
-SLOW_CLOSE_S = 1.5                 # sim seconds the analyzable close spans
-SLOW_CLOSE_STEPS = int(SLOW_CLOSE_S / DT)        # 360 @ 240 Hz
-SLOW_FPS = int(SLOW_CLOSE_STEPS / 9.0)           # 40 -> 1.5 s sim == 9 s video
+# Both clips render the SAME close physics (the validated force-driven close, so
+# fast and slow agree). They differ only in PLAYBACK:
+#   FAST: ~6 s overview — close (sampled) then the full 8-direction battery.
+#   SLOW: TRUE slow-motion of the grasp — every step of the close window recorded
+#     and played at a low fps so the ~9 s clip is ~14x slow. Grasp only (no
+#     battery). NOTE: this is NOT a re-simulated "slower close" (that changed the
+#     dynamics, disagreed with the fast clip, and jittered the fingers); it is the
+#     identical close, slow-played.
+# The close+settle window is only ~0.64 s of sim (154 steps). We cannot lengthen
+# it — the marginally-seated off-center ball DRIFTS off in the extra zero-g settle
+# (verified: finger-3.5cm nf 4->2->0 over 154->270->360 steps). So we hit ~9 s by
+# lowering the playback fps instead: 154 steps / 17 fps ~= 9 s.
+SLOW_FPS = 17
 FAST_DIRS = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
              ("+x", (1, 0, 0)), ("-x", (-1, 0, 0)),
              ("+y", (0, 1, 0)), ("-y", (0, -1, 0)),
@@ -435,18 +456,18 @@ FAST_DIRS = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
 
 def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                  slow=False):
-    """Record an MP4 of the close + the disturbance battery so the cage can be
-    SEEN holding (caged) or failing (ball flung out). `slow=True` stretches the
-    grasp close to ~1.5 s of sim and plays it back over ~9 s (6x slow-mo) so the
-    finger motion is analyzable; the fast version is the ~6 s overview. A
-    per-direction HELD/ESCAPED is printed (the on-screen ball stays in the
-    basket, or shoots away)."""
+    """Record an MP4 of the close (and, for the fast clip, the disturbance
+    battery) from TWO camera angles side-by-side — a 3/4 diagonal view (left) and
+    an under/below view (right) that reveals whether the distal segments tuck
+    UNDER the ball (the form-closure test). `slow=True` is true slow-motion of
+    the grasp (the same close window as the fast clip, every step at 40 fps ->
+    ~6x, ~3.9 s), grasp only. The fast clip adds the 8-direction battery and
+    prints a per-direction HELD/ESCAPED."""
     import imageio.v2 as imageio
     os.makedirs(out_dir, exist_ok=True)
-    show_dirs = FAST_DIRS
     fps = SLOW_FPS if slow else 30
     close_every = 1 if slow else 4        # slow: every step -> 1.5 s == 9 s
-    batt_every = 6 if slow else 5         # keep both clips tight (no bloat)
+    batt_every = 5
     p.connect(p.DIRECT)
     try:
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -467,30 +488,21 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
         p.changeDynamics(ball, -1, mass=0.065, restitution=BALL_RESTITUTION,
                          lateralFriction=BALL_FRICTION)
         ee = g.ee_world()
-        view = p.computeViewMatrix((0.34, -0.34, ee[2] + 0.10),
-                                   (0, 0, ee[2] - 0.04), [0, 0, 1])
+        # two cameras: 3/4 diagonal (left), and from BELOW looking up (right)
         proj = p.computeProjectionMatrixFOV(46, 1.0, 0.02, 4.0)
+        view_diag = p.computeViewMatrix((0.34, -0.34, ee[2] + 0.10),
+                                        (0, 0, ee[2] - 0.04), [0, 0, 1])
+        view_under = p.computeViewMatrix((0.13, -0.13, ee[2] - 0.40),
+                                         (0, 0, ee[2] - 0.05), [0, 0, 1])
+
+        def shot(view):
+            _, _, rgba, _, _ = p.getCameraImage(
+                480, 480, viewMatrix=view, projectionMatrix=proj,
+                renderer=p.ER_TINY_RENDERER)
+            return np.array(rgba, np.uint8).reshape(480, 480, 4)[:, :, :3]
 
         def grab():
-            _, _, rgba, _, _ = p.getCameraImage(
-                560, 560, viewMatrix=view, projectionMatrix=proj,
-                renderer=p.ER_TINY_RENDERER)
-            return np.array(rgba, np.uint8).reshape(560, 560, 4)[:, :, :3]
-
-        def slow_servo(progress):
-            """Position-servo the fingers toward the cage pose along a ramp
-            (analyzable gradual close). Reach the pose by 80% of the window, then
-            settle. Only for the position strategies (tendon keeps its torque)."""
-            force = (FIX_TORQUE if strategy == "fixed"
-                     else COMPLIANT_FORCE if strategy == "compliant" else SOFT_FORCE)
-            kp = SOFT_KP if strategy == "soft" else FIX_KP
-            f = min(1.0, progress / 0.8)
-            for segs in g.finger_joints:
-                for k, j in enumerate(segs):
-                    tgt = ready_pose[k] + (CLOSE_POSE[k] - ready_pose[k]) * f
-                    p.setJointMotorControl2(g.body, j, p.POSITION_CONTROL,
-                                            targetPosition=tgt, force=force,
-                                            positionGain=kp, velocityGain=FIX_KD)
+            return np.hstack([shot(view_diag), shot(view_under)])  # 960x480
 
         suffix = "_slowmo" if slow else ""
         path = os.path.join(
@@ -498,24 +510,21 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
             f"cagevid_{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm{suffix}.mp4")
         writer = imageio.get_writer(path, fps=fps, codec="libx264", quality=7,
                                     macro_block_size=1)
-        # phase 1: the close (gravity off)
-        n_close = SLOW_CLOSE_STEPS if slow else (CLOSE_STEPS + SETTLE_STEPS)
+        # phase 1: the close (gravity off). IDENTICAL window + physics for fast
+        # and slow (so they agree; slow just samples every step + plays at 40 fps).
+        n_close = CLOSE_STEPS + SETTLE_STEPS
         for s in range(n_close):
-            g.hold_arm_rigid()
-            if slow and strategy != "tendon":
-                slow_servo(s / n_close)
-            else:
-                g.apply_close(strategy)
-            p.stepSimulation()
+            g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
             if s % close_every == 0:
                 writer.append_data(grab())
         seated = np.array(p.getBasePositionAndOrientation(ball)[0])
-        results = []
-        # phase 2: the disturbance battery (FAST overview only). The SLOW clip
-        # renders just the grasp (the first 1.5 s) for analysis — no battery.
+        seated_nf = _fingers_touching(g, ball)   # measured at the SAME instant
+        results = []                             # (right after the close) for both
+        # phase 2: the disturbance battery (FAST overview only). The SLOW clip is
+        # the grasp only (the first 1.5 s) for analysis — no battery.
         if not slow:
             state = p.saveState()
-            for label, vec in show_dirs:
+            for label, vec in FAST_DIRS:
                 p.restoreState(state)
                 d = np.array(vec, float); d /= np.linalg.norm(d)
                 p.setGravity(*(d * GACC))
@@ -529,14 +538,13 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                 results.append((label, max_disp < ESCAPE_DELTA, max_disp))
             p.removeState(state)
         writer.close()
-        nf = _fingers_touching(g, ball)
-        n_batt_frames = 0 if slow else len(show_dirs) * (WINDOW_STEPS // batt_every)
-        dur = (n_close // close_every + n_batt_frames) / fps
-        print(f"video ({'SLOW 6x grasp-only' if slow else 'fast'}, ~{dur:.1f}s): "
-              f"{os.path.abspath(path)}")
+        n_batt = 0 if slow else len(FAST_DIRS) * (WINDOW_STEPS // batt_every)
+        dur = (n_close // close_every + n_batt) / fps
+        print(f"video ({'SLOW grasp-only' if slow else 'fast'}, ~{dur:.1f}s, "
+              f"diag+under): {os.path.abspath(path)}")
         print(f"  {strategy} n={n_fingers} off={offset_m*100:.1f}cm dir={direction} "
-              f"ready={ready}  seated_fingers={nf}"
-              + ("" if slow else f"  battery(shown)={sum(h for _,h,_ in results)}/{len(show_dirs)}"))
+              f"ready={ready}  seated_fingers={seated_nf}"
+              + ("" if slow else f"  battery(shown)={sum(h for _,h,_ in results)}/{len(FAST_DIRS)}"))
         for label, held, md in results:
             print(f"    {label:10s} -> {'HELD ' if held else 'ESCAPED'} "
                   f"(max ball move {md*100:.1f}cm)")
@@ -553,7 +561,7 @@ def main():
     ap.add_argument("--render", action="store_true")
     ap.add_argument("--video", action="store_true")
     ap.add_argument("--strategy", default="fixed",
-                    choices=["fixed", "compliant", "soft", "tendon"])
+                    choices=["fixed", "compliant", "soft", "under", "tendon"])
     ap.add_argument("--n", type=int, default=4)
     ap.add_argument("--offset", type=float, default=0.0)
     ap.add_argument("--dir", default="finger", choices=["finger", "gap", "outside"])

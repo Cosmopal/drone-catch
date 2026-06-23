@@ -80,18 +80,28 @@ close under uncertainty") came from noisy quick experiments. A deterministic
 fixed-base harness with a real form-closure metric (26-direction, 2.5 g
 disturbance battery; `tests/cage_harness.py`, iteration_findings §25) tested them:
 
-- **Compliance did NOT beat the rigid fixed-pose close** under cm-scale offset.
-  A force-limited "conform on contact" close scored *worse* off-center, and a
-  soft-spring (Fin-Ray analogue) scored **zero — too soft to resist 2.5 g**.
-  The conform-vs-hold tradeoff is real: soft enough to adapt = too soft to hold.
+- **Compliance did NOT beat the rigid close on this static metric — but it is
+  under-credited, not refuted.** A force-limited "conform on contact" close and a
+  soft-spring (Fin-Ray analogue, scored **zero — too soft to resist 2.5 g**) both
+  servo to the FIXED cage pose, so they can't adapt the SHAPE. A proper
+  **underactuated/differential** close (low force toward a DEEP curl, each joint
+  stalling on contact while the rest curl further) **does help the failure mode**
+  — gap-offset 2.5 cm: **0.50 vs the rigid close's 0.00** — confirming the
+  literature's claim that adaptation reaches an off-center object the rigid pose
+  paddles out. It still loses overall because, in the **gravity-off** isolation
+  (mandatory: the down-opening cup drops a ball under gravity before the close),
+  an aggressive under-tuck *ejects* a centered ball upward with nothing to seat
+  it. The fair test of underactuation is the **dynamic catch** (ball entering with
+  downward momentum), not the static fixed-base metric.
 - **Form closure here is a specific SHAPE, not just contact.** The validated cage
   (long proximal to the equator, middle+distal tucked under) is a tuned pose; a
   uniform constant-torque "tendon" close does not reproduce it (it balls up or
   paddles the object out). True underactuation needs a *differential*
   (whiffletree) to distribute travel correctly — one per-joint torque is not it.
-- **The real failure mode is finger-COUNT/coverage, not compliance**: an
-  off-center ball escapes through a finger *gap*; only a denser ring (with a
-  re-tuned close pose) helps.
+- **The failure mode is the finger GAP** (an off-center ball escapes between
+  fingers). A denser ring with a re-tuned close pose addresses it geometrically;
+  an underactuated close addresses it adaptively (partially — see above). Both are
+  open levers, not yet a clean win on the static metric.
 - **The finger-reaction feedforward** (predict body torque from finger motor
   torques, pre-cancel — the arm-reaction-FF idea applied to the hand) is a clean
   **negative** on a flying base: in the arm-down pose the symmetric ring's motor
