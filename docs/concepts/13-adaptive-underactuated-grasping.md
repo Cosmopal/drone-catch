@@ -79,9 +79,11 @@ A deterministic fixed-base harness with a real form-closure metric (26-direction
 2.5 g disturbance battery; `tests/cage_harness.py`) was built to test these
 claims. **Important correction (iteration_findings §26):** the first round used
 RIGID contact at a 1/240 timestep, which made the OFF-CENTER verdict a
-timestep-fragile artifact (near-massless rigid fingers paddling a rigid ball at
-the capture boundary). At converged numerics — **compliant contact pads** (more
-physical) + a 1/960 substep — the picture is simpler than the bullets below
+timestep-fragile artifact (light ~3-4 g RIGID fingers vs a 65 g rigid ball at the
+capture boundary — a stiff mass-ratio contact; the 3-4 g finger mass is realistic
+for a light print and is NOT the bug, making fingers heavier does not fix it). At
+converged numerics — **compliant contact pads** (more physical) + a 1/960
+substep — the picture is simpler than the bullets below
 claimed:
 
 - **The cage robustly captures off-center balls to ~3.5 cm in ALL directions,

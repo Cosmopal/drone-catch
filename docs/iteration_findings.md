@@ -972,10 +972,15 @@ finding evaporated. This is the most important entry in this file: **the metric
 that §25 trusted was numerically untrustworthy precisely in the off-center band
 it was used to study.**
 
-**What broke.** A rigid ball held by near-massless (3e-6 kg·m²) RIGID fingers,
-pressed continuously by a PD close in zero gravity, is an ill-conditioned contact
-problem. At the project's 1/240 timestep the "is the off-center ball caged or
-paddled out" verdict is **timestep-fragile**:
+**What broke.** A 65 g rigid ball held by light (~3-4 g/segment, inertia
+~3e-6 kg·m²) RIGID fingers, pressed continuously by a PD close in zero gravity, is
+an ill-conditioned contact problem — the large ball/finger mass ratio across a
+STIFF rigid contact. (The 3-4 g finger mass is realistic, NOT the bug: it matches
+a lightweight FDM print / hollow-rib TPU Fin-Ray; a solid print would be ~2-3x
+heavier. And tested — scaling finger mass up x3..x100 does NOT fix the artifact,
+it caged WORSE; the RIGID CONTACT is the culprit, fixed by compliant pads, which
+real fingers have.) At the project's 1/240 timestep the "is the off-center ball
+caged or paddled out" verdict is **timestep-fragile**:
 - `fixed` gap-3.5 cm: nf=0 at 1/240, **nf=4 at 1/480 and 1/960**, nf=0 at 1/1920
   — non-monotonic; the capture-vs-paddle-out event flips with the step.
 - even the "robust" finger-3.5 cm direction fails at very fine steps with rigid

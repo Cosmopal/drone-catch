@@ -54,8 +54,8 @@ experiments (iteration_findings §24) gave noisy/contradictory results.
   ball slips between fingers) — a **coverage** problem, not a compliance one.
 - **Compliance does not help; `soft` (Fin-Ray spring) scores 0 even centered**
   (too soft to resist 2.5 g — the conform-vs-hold tradeoff).
-- Constant-torque "tendon" close is **numerically ill-conditioned** on the
-  near-massless 3-link finger chain (Coulomb-like joint threshold, sign-flips,
+- Constant-torque "tendon" close is **numerically ill-conditioned** on the light
+  (~3-4 g/segment) 3-link finger chain (Coulomb-like joint threshold, sign-flips,
   frozen distal joints); excluded from the ranking. Force-limited position
   control is the robust yield-on-contact stand-in.
 - **Finger-reaction FF is a clean negative**: in the arm-down pose the symmetric
