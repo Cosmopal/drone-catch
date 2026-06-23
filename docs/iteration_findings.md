@@ -1027,3 +1027,58 @@ edge. Vary the **timestep** (and contact model) as a convergence check on any
 contact-rich result before believing it — determinism is not convergence. This is
 the §23 "scalar metrics hide failure modes — you have to LOOK" lesson, one level
 deeper: you also have to check the numerics converge in the regime of interest.
+
+## 27. A FAITHFUL Yale-OpenHand underactuated hand: the coupling is real, but in sim it does not beat the rigid close
+
+The `under` strategy (§25/§26) was a per-joint deep-curl stand-in — it had no
+COUPLING, the defining feature of a Yale hand. Built the real mechanism
+(`src/yale_hand.py`), a numerically-stable POSITION-based tendon:
+- **inter-finger whiffletree**: one actuator displacement = the MEAN of the
+  per-finger tendon travels; a finger that contacts early caps its travel and the
+  freed budget feeds the free fingers (they close MORE) — self-distribution;
+- **intra-finger tendon**: a finger's flexion budget is shared distal-biased
+  across its 3 joints, and a contacting joint hands its share to the joints below
+  (wrap-and-tuck);
+- **compliant joints**: a soft position servo that yields on contact; contacting
+  joints maintain tendon TENSION (keep pulling toward the cap) so the grip holds.
+
+**Self-distribution VERIFIED (the gate before any scoring).** With a pinned ball
+(isolating the coupling from the gravity-off ejection), the per-finger total
+flexions come out UNEQUAL for an off-center ball and ~equal for a centered one:
+- centered: [2.85, 2.88, 3.00, 2.41] (spread 0.6, ~equal);
+- 3.5 cm toward finger 0: **[-0.2, 3.14, 3.14, 3.18]** (spread 3.4 — the near
+  finger stalls at the ball, the far three wrap further);
+- 3.5 cm toward a gap: [2.15, 1.44, 2.92, 2.98] (the two fingers by the gap close
+  less). The whiffletree differential is real, driven by the live contact.
+
+**Static harness (corrected numerics): Yale LOSES to the rigid close.** Centered
+0.62 vs 1.00; every off-center cell 0.00. This is the §26 anti-tuck bias made
+concrete: gravity-OFF, a free off-center ball is pushed away by the first
+contacting finger before sustained contact can cap it, so the differential never
+engages and the ball ejects. The static metric is the wrong test for this hand —
+exactly as flagged.
+
+**Dynamic catch (the fair test): Yale MATCHES the rigid close at the design point,
+does NOT beat it.** Reusing the validated scoop (`elbow_catch_solo`) unchanged and
+swapping only the close (via the additive `Drone.external_gripper` hook;
+`tests/cage_dynamic_catch.py`):
+- at nominal both retain (caught+held) — a TIE;
+- the Yale hand needs a FIRMER tendon tension (soft_force 0.7) than the rigid
+  close (0.5) to hold the ball through the lift — a gentle compliant close
+  captures (sub-cm, 3-4 fingers) but the ball works loose. So it is more complex
+  AND needs more grip force for the same result;
+- across the ball-velocity grid (off-nominal => more off-center seating): rigid
+  **2/5**, Yale **1/5** — Yale is marginally worse, and the off-nominal misses are
+  dominated by the SCOOP's own tracking fragility (elbow's baseline is ~2/12),
+  not the hand.
+
+**Honest conclusion.** The coupling works and is verified; but in this PyBullet
+sim the simple rigid close is already good enough and firmer, so the faithful
+Yale hand does not beat it (it ties at nominal, costs more force + complexity, and
+the gravity-off static metric is actively biased against it). The Yale hand's real
+advantage — adaptation to the position/shape/sensing uncertainty that ALWAYS
+exists on real hardware — is precisely what this sim does not model (we inject
+only clean offsets, and rigid contact). So this is the expected "no sim benefit;
+the benefit is for hardware we don't model" outcome. The model + the
+external-gripper hook are committed (opt-in, default off) for the day there is a
+hardware testbed or a richer uncertainty model to exercise them.

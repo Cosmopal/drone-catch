@@ -8,6 +8,21 @@ Solve robust **caging** of a ball under cm-scale position uncertainty for the
 catcher's caging gripper — with a TRUSTWORTHY test harness, because prior quick
 experiments (iteration_findings §24) gave noisy/contradictory results.
 
+## Follow-up: faithful Yale-OpenHand underactuated hand (§27)
+`src/yale_hand.py` — a numerically-stable position-based tendon with the real
+COUPLING (inter-finger whiffletree + intra-finger wrap-and-tuck + compliant
+joints), on the static harness (`--strategy yale`) and the dynamic catch
+(`tests/cage_dynamic_catch.py`, via the additive `Drone.external_gripper` hook).
+- **Self-distribution VERIFIED** (off-center -> per-finger flexions differ:
+  3.5 cm toward a finger gives spread ~3.4 rad, near finger stalls).
+- **Static harness**: yale LOSES to fixed (gravity-off anti-tuck bias).
+- **Dynamic catch**: yale MATCHES fixed at nominal (both caught+held) but needs a
+  FIRMER tendon tension (0.7 vs 0.5) to retain, and is marginally worse across the
+  velocity grid (fixed 2/5, yale 1/5). It does NOT beat the rigid close in sim —
+  the Yale benefit is for real-hardware uncertainty this sim doesn't model.
+- Additive + opt-in; regression gates re-checked (self-validation PASS, elbow
+  caught+held, arm_catch_solo 12/12).
+
 ## Status: COMPLETE — but read the CORRECTION first.
 
 > **CORRECTION (iteration_findings §26).** The original off-center findings ("gap

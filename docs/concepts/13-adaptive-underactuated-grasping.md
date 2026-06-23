@@ -134,8 +134,22 @@ The original (rigid-contact) bullets are kept below for the record but are
   rigid winning close needs no FF anyway — on a level-holding (thrust-vectoring)
   body it disturbs pitch < 2.5 deg.
 
+- **A FAITHFUL Yale hand (the COUPLING) was then built** (`src/yale_hand.py`,
+  iteration_findings §27): a position-based tendon with the inter-finger
+  whiffletree (one actuator = mean of finger travels; an early-contacting finger
+  caps and feeds the rest) + intra-finger wrap-and-tuck + compliant joints. The
+  self-distribution is **verified** (off-center -> per-finger angles differ
+  sharply: near finger stalls, far fingers wrap more). But in sim it does NOT beat
+  the rigid close: it loses the gravity-off static metric (anti-tuck bias), and on
+  the dynamic catch it MATCHES at nominal (needs a FIRMER tendon tension than the
+  rigid close to hold) and is marginally worse off-nominal. The Yale benefit is
+  for real-hardware position/shape uncertainty this sim does not model.
+
 Transferable: **measure the cage with a disturbance battery, not distance** —
 and don't trust a compliance/FF win until a deterministic harness reproduces it.
+And: **the mechanism can be right (coupling verified) yet show no benefit in a
+sim that doesn't model the uncertainty it exists to absorb** — name that gap
+rather than overclaiming the mechanism.
 
 ## Buildable at home (sim2real)
 

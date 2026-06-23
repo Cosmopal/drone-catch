@@ -54,6 +54,12 @@ class Drone:
     finger_joints: list = field(default_factory=list, init=False)
     finger_links: list = field(default_factory=list, init=False)
     _gripper_cmd: Optional[dict] = field(default=None, init=False)
+    # Optional external gripper controller (additive, default None = unchanged).
+    # If set to a callable, `_apply_gripper` delegates the per-step finger control
+    # to it (`external_gripper(self)`) instead of the built-in open/close logic —
+    # lets an external model (e.g. the Yale underactuated hand, src/yale_hand.py)
+    # drive the fingers without modifying the built-in close behaviour.
+    external_gripper: Optional[object] = field(default=None, init=False)
     # current arm command — applied each step via _apply_arm()
     _arm_mode: str = field(default="hold", init=False)
     _arm_targets: dict = field(default_factory=dict, init=False)
@@ -318,6 +324,9 @@ class Drone:
         return bool(self._gripper_cmd and self._gripper_cmd["mode"] == "close")
 
     def _apply_gripper(self):
+        if self.external_gripper is not None:
+            self.external_gripper(self)
+            return
         if not self.finger_joints or self._gripper_cmd is None:
             return
         cfg = self.arm_cfg

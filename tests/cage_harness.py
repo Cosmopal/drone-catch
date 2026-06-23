@@ -46,6 +46,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from config import ArmConfig                     # noqa: E402
 from ball import spawn_ball                      # noqa: E402
+import yale_hand                                 # noqa: E402
 
 ASSETS = os.path.join(os.path.dirname(__file__), "..", "assets")
 sys.path.insert(0, ASSETS)
@@ -161,6 +162,7 @@ class FixedGripper:
         self.body = p.loadURDF(urdf_path, basePosition=list(BASE_POS),
                                useFixedBase=True)
         self.shoulder = self.elbow = self.ee_link = -1
+        self.yale_cfg = yale_hand.YaleConfig()
         fseg = {}
         for j in range(p.getNumJoints(self.body)):
             info = p.getJointInfo(self.body, j)
@@ -209,17 +211,22 @@ class FixedGripper:
                 p.setJointMotorControl2(self.body, j, p.VELOCITY_CONTROL,
                                         force=0.0)
 
-    def apply_close(self, strategy):
+    def apply_close(self, strategy, ball_id=None, progress=1.0):
         """Apply the close command for one step.
 
         `fixed`/`compliant`/`soft` servo toward the validated CLOSE_POSE and
-        differ only in compliance (force cap / gain). `under` is the proper
-        UNDERACTUATED model: a low force toward a DEEP curl (past the cage pose),
-        so every joint keeps trying to close and STALLS where IT contacts the
-        ball — the joints that haven't contacted curl further (distal tucks
-        under), distributing travel to the object's actual position (the
-        whiffletree/Fin-Ray behavior). This is what `compliant`/`soft` lacked:
-        they targeted the FIXED pose, so they could not adapt the SHAPE."""
+        differ only in compliance (force cap / gain). `under` is a per-joint
+        deep-curl stand-in (no coupling). `yale` is the FAITHFUL underactuated
+        hand (`src/yale_hand.py`): one actuator displacement (ramped by
+        `progress`), inter-finger whiffletree + intra-finger tendon couplings, so
+        the hand SELF-DISTRIBUTES around the ball (`ball_id` read for live
+        contact). `under` was per-joint independent — `yale` is the real
+        mechanism."""
+        if strategy == "yale":
+            d_act = min(1.0, progress / 0.6) * self.yale_cfg.d_max
+            yale_hand.actuate(self.body, self.finger_joints, ball_id, d_act,
+                              self.yale_cfg)
+            return
         if strategy == "fixed":
             target, force, kp = CLOSE_POSE, FIX_TORQUE, FIX_KP
         elif strategy == "compliant":
@@ -292,9 +299,10 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
         rad = ball_radius(ball)
 
         # --- close + settle (gravity off) ---
-        for _ in range((CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP):
+        n_close = (CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP
+        for s in range(n_close):
             g.hold_arm_rigid()
-            g.apply_close(strategy)
+            g.apply_close(strategy, ball_id=ball, progress=s / n_close)
             p.stepSimulation()
 
         seated = np.array(p.getBasePositionAndOrientation(ball)[0])
@@ -310,7 +318,7 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
             max_disp = 0.0
             for _ in range(WINDOW_STEPS * SUBSTEP):
                 g.hold_arm_rigid()
-                g.apply_close(strategy)
+                g.apply_close(strategy, ball_id=ball, progress=1.0)
                 p.stepSimulation()
                 pos = np.array(p.getBasePositionAndOrientation(ball)[0])
                 max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
@@ -427,8 +435,11 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
         off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
         cup = g.cup_world()
         ball = setup_ball(cup + off)
-        for _ in range((CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP):
-            g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
+        _nc = (CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP
+        for s in range(_nc):
+            g.hold_arm_rigid()
+            g.apply_close(strategy, ball_id=ball, progress=s / _nc)
+            p.stepSimulation()
         ee = g.ee_world()
         paths = []
         views = {
@@ -534,7 +545,9 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
         # phase 1: the close (gravity off). IDENTICAL window + physics for fast
         # and slow (so they agree); slow just samples finer and plays slower.
         for s in range(n_close):
-            g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
+            g.hold_arm_rigid()
+            g.apply_close(strategy, ball_id=ball, progress=s / n_close)
+            p.stepSimulation()
             if s % close_every == 0:
                 writer.append_data(grab())
         seated = np.array(p.getBasePositionAndOrientation(ball)[0])
@@ -550,7 +563,9 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                 p.setGravity(*(d * GACC))
                 max_disp = 0.0
                 for s in range(WINDOW_STEPS * SUBSTEP):
-                    g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
+                    g.hold_arm_rigid()
+                    g.apply_close(strategy, ball_id=ball, progress=1.0)
+                    p.stepSimulation()
                     pos = np.array(p.getBasePositionAndOrientation(ball)[0])
                     max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
                     if s % batt_every == 0:
@@ -581,7 +596,7 @@ def main():
     ap.add_argument("--render", action="store_true")
     ap.add_argument("--video", action="store_true")
     ap.add_argument("--strategy", default="fixed",
-                    choices=["fixed", "compliant", "soft", "under", "tendon"])
+                    choices=["fixed", "compliant", "soft", "under", "yale", "tendon"])
     ap.add_argument("--n", type=int, default=4)
     ap.add_argument("--offset", type=float, default=0.0)
     ap.add_argument("--dir", default="finger", choices=["finger", "gap", "outside"])
