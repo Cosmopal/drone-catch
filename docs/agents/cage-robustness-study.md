@@ -8,7 +8,20 @@ Solve robust **caging** of a ball under cm-scale position uncertainty for the
 catcher's caging gripper — with a TRUSTWORTHY test harness, because prior quick
 experiments (iteration_findings §24) gave noisy/contradictory results.
 
-## Status: COMPLETE (with honest negatives). Verification gates below.
+## Status: COMPLETE — but read the CORRECTION first.
+
+> **CORRECTION (iteration_findings §26).** The original off-center findings ("gap
+> is the failure mode," strategy rankings, "compliance doesn't help") were a
+> **timestep + rigid-contact numerical artifact**. The self-validation passed
+> because it only covered the stable extremes (centered cage / far-outside
+> escape), NOT the ill-conditioned off-center band. Fixed by **compliant contact
+> pads + a 1/960 substep** (now the harness default; `--substep` to inspect),
+> which CONVERGE (substep 4 == 8). Corrected, trustworthy result: the current
+> 4-finger fixed close **robustly cages off-center balls to ~3.5 cm in ALL
+> directions and with ALL strategies**; the real capture limit is ~4.5 cm (gap
+> ~1 cm weaker than finger); no strategy extends it. The trustworthy LESSON:
+> determinism is not convergence — vary the timestep/contact model as a
+> convergence check on any contact-rich result.
 
 ### What was built (all additive; existing Drone/throw/catch unchanged)
 | File | Role |

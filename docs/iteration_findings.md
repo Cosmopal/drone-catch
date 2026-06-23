@@ -862,6 +862,14 @@ validated fallback remains the soft-constraint compliant capture (96/96).
 
 ## 25. Caging robustness under position uncertainty: a trustworthy harness says the current close already wins (and compliance/FF do not help)
 
+> **⚠️ RETRACTED IN PART — read §26 first.** The off-center conclusions below
+> ("gap is the failure mode," the strategy ranking, "compliance doesn't help /
+> soft fails") were a **timestep + rigid-contact numerical artifact**. At
+> converged numerics (compliant contact pads + 1/960) the close robustly cages to
+> ~3.5 cm in ALL directions and strategy makes no difference. The harness
+> scaffolding, the self-validated extremes, the tendon-ill-conditioning, and the
+> Phase-2 FF result stand; the off-center *rankings* do not.
+
 §24 ended by demanding a *reliable* harness for the robust-enclosure-under-
 uncertainty sub-problem, because ~10 quick grasp experiments gave noisy /
 contradictory results (the "caged" signal was distance + fingers-touching, and
@@ -955,3 +963,62 @@ instability (rapid per-tick IK arm slews drive the TV body up into the ceiling;
 the repo's TV catch is WIP, §20), not the close strategy. The winning close +
 sub-5-deg body pitch on the TV drone are confirmed; the underactuated scoop
 (`elbow_catch_solo`) remains the validated retained catch.
+
+## 26. CORRECTION: the §25 off-center findings were a timestep + rigid-contact ARTIFACT (the harness wasn't trustworthy where it mattered)
+
+While investigating a video-smoothness question (sampling the close at a finer
+rate), I ran the harness at a finer simulation timestep — and the central §25
+finding evaporated. This is the most important entry in this file: **the metric
+that §25 trusted was numerically untrustworthy precisely in the off-center band
+it was used to study.**
+
+**What broke.** A rigid ball held by near-massless (3e-6 kg·m²) RIGID fingers,
+pressed continuously by a PD close in zero gravity, is an ill-conditioned contact
+problem. At the project's 1/240 timestep the "is the off-center ball caged or
+paddled out" verdict is **timestep-fragile**:
+- `fixed` gap-3.5 cm: nf=0 at 1/240, **nf=4 at 1/480 and 1/960**, nf=0 at 1/1920
+  — non-monotonic; the capture-vs-paddle-out event flips with the step.
+- even the "robust" finger-3.5 cm direction fails at very fine steps with rigid
+  contact (nf=0 at 1/3840).
+- the CENTERED control is rock-stable (nf=4, <0.3 cm across 1/240→1/7680) and the
+  8-cm-outside control always escapes — which is exactly why the §0
+  self-validation passed: **it only exercised the two stable extremes, not the
+  fragile off-center band.** A passing self-test did not certify the off-center
+  scores.
+
+**The fix (and it is more physical).** Give the fingers + ball **compliant
+contact pads** (`contactStiffness=1e4`, `contactDamping=3e2` — real caging fingers
+have foam/rubber) AND a finer substep (1/960). With both, the verdict **CONVERGES
+(substep 4 == substep 8)** and the negative control still escapes. This is now the
+harness default (`SUBSTEP`, `CONTACT_*` in `tests/cage_harness.py`; `--substep`
+to inspect the fragility).
+
+**The corrected, trustworthy result** (full 26-direction battery, converged):
+- The current 4-finger fixed close **robustly cages off-center balls to 3.5 cm in
+  ALL directions** (gap-2.5, gap-3.5, finger-3.5 all 1.00; centered 1.00; 8 cm
+  outside 0.00).
+- The real **capture limit is ~4.5 cm** — finger direction holds to ~5 cm, gap to
+  ~4 cm (a *small, real* ~1 cm directional difference, not the 1.5 cm "gap fails"
+  of the artifact). Beyond ~4.5 cm the ball is outside the basket.
+- **Strategy makes no meaningful difference**: fixed / compliant / soft / under
+  ALL cage to 3.5 cm (even `soft`, which scored 0.00 everywhere under rigid
+  contact, is now ~1.0 — its "too weak / grab-then-release limit cycle" was the
+  rigid-contact artifact too) and ALL fail past the ~4.5 cm geometric limit. No
+  strategy extends the capture radius.
+
+**So nearly every §25 off-center conclusion is RETRACTED:** "gap is the failure
+mode," the strategy ranking, "compliance doesn't help / soft fails," "splayed vs
+curled," and the §26-in-§25 underactuation nuance were all reading numerical
+noise. What SURVIVES from §25: the harness scaffolding and the *self-validated
+extremes* (centered cages; far-outside escapes); the constant-torque "tendon"
+close is genuinely ill-conditioned (separate issue); and the Phase-2 finger-
+reaction-FF result (it lives on the floating drone, a different sim, and is
+unaffected by this contact metric).
+
+**The transferable lesson (the real one):** a deterministic, self-validating
+harness can still be *untrustworthy* if the self-validation only covers the easy
+extremes while the regime you actually study sits on an ill-conditioned knife
+edge. Vary the **timestep** (and contact model) as a convergence check on any
+contact-rich result before believing it — determinism is not convergence. This is
+the §23 "scalar metrics hide failure modes — you have to LOOK" lesson, one level
+deeper: you also have to check the numerics converge in the regime of interest.

@@ -73,12 +73,34 @@ finger-reaction must be fed forward/countered like the arm-reaction FF.
   (§09) — it separates "is the grasp mechanism right" from "does the platform
   survive the grasp." (We re-learned this the hard way.)
 
-## Update — a trustworthy study tested these claims (and refuted most)
+## Update — a trustworthy harness, and the correction that mattered
 
-The intuitions above ("adaptation in the mechanism", "compliance beats a rigid
-close under uncertainty") came from noisy quick experiments. A deterministic
-fixed-base harness with a real form-closure metric (26-direction, 2.5 g
-disturbance battery; `tests/cage_harness.py`, iteration_findings §25) tested them:
+A deterministic fixed-base harness with a real form-closure metric (26-direction,
+2.5 g disturbance battery; `tests/cage_harness.py`) was built to test these
+claims. **Important correction (iteration_findings §26):** the first round used
+RIGID contact at a 1/240 timestep, which made the OFF-CENTER verdict a
+timestep-fragile artifact (near-massless rigid fingers paddling a rigid ball at
+the capture boundary). At converged numerics — **compliant contact pads** (more
+physical) + a 1/960 substep — the picture is simpler than the bullets below
+claimed:
+
+- **The cage robustly captures off-center balls to ~3.5 cm in ALL directions,
+  regardless of close strategy** (fixed, compliant, soft, and a proper
+  underactuated/differential close all score ~1.0). The real capture limit is
+  ~4.5 cm (gap direction ~1 cm weaker than toward-a-finger), beyond which NO
+  strategy helps. So **compliance neither beats nor loses to the rigid close
+  here** — at this offset scale the geometry just works.
+- The literature's case for underactuation (adaptation in the mechanism) is about
+  LARGER uncertainty and non-spherical objects; this sphere-to-3.5 cm regime
+  doesn't stress it. The honest test would be a harder object set / larger
+  offsets / the dynamic catch — not this one.
+
+The original (rigid-contact) bullets are kept below for the record but are
+**superseded** by the above:
+
+- **Compliance did NOT beat the rigid close on this static metric — but it is
+  under-credited, not refuted.** A force-limited "conform on contact" close and a
+  soft-spring (Fin-Ray analogue, scored **zero — too soft to resist 2.5 g**) both
 
 - **Compliance did NOT beat the rigid close on this static metric — but it is
   under-credited, not refuted.** A force-limited "conform on contact" close and a

@@ -97,7 +97,24 @@ UNDER_FORCE = 0.05         # N.m yield-on-contact cap
 TENDON_TAU = CFG.finger_tau_close          # 0.12 N.m constant (record only)
 JOINT_DAMP = CFG.finger_damp               # 0.010 N.m.s
 
-# ---- timing ----
+# ---- numerics (the trustworthy operating point) ----
+# CRITICAL (found the hard way, see iteration_findings §26): with RIGID contact
+# at the project's 1/240 timestep, the OFF-CENTER caging verdict is numerically
+# fragile — near-massless (3e-6) rigid fingers paddling a rigid ball at the
+# capture boundary, under continuous PD pressing in zero-g, is ill-conditioned,
+# and "caged vs paddled out" flips with the timestep (a false "gap fails"
+# artifact). The fix is BOTH (a) compliant contact PADS (also more physical —
+# real fingers have foam/rubber) and (b) a finer substep. With both, the verdict
+# CONVERGES (substep 4 == 8) and the centered/finger/gap cases all cage to 3.5 cm
+# while the negative control still escapes. The centered + far-outside controls
+# are timestep-stable at any setting (so the self-validation passed even at
+# 1/240); only the marginal off-center band needed this.
+SUBSTEP = 4                # sim sub-steps per 240 Hz tick -> fixedTimeStep 1/960
+SIM_DT = DT / SUBSTEP
+CONTACT_STIFFNESS = 1.0e4  # N/m, compliant finger-pad + ball contact
+CONTACT_DAMPING = 3.0e2    # N.s/m
+
+# ---- timing (step counts below are in 240 Hz ticks; scaled by SUBSTEP) ----
 CLOSE_STEPS = 130          # ~0.54 s to close + seat
 SETTLE_STEPS = 24          # ~0.10 s to settle the cage
 WINDOW_STEPS = 84          # ~0.35 s disturbance window per direction
@@ -110,6 +127,24 @@ ESCAPE_DELTA = 0.040       # m; ball displacement from settled pos beyond which
 PAD_FRICTION = 1.4
 BALL_RESTITUTION = 0.10
 BALL_FRICTION = 1.4
+
+
+def setup_physics():
+    """Solver + finer timestep + zero gravity — the validated numerics."""
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=SIM_DT)
+    p.setGravity(0, 0, 0)
+
+
+def setup_ball(pos):
+    """Spawn the ball with compliant contact (matches the finger pads)."""
+    ball = spawn_ball(pos)
+    p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.3, 0.3, 1])
+    p.changeDynamics(ball, -1, mass=0.065, linearDamping=0.0, angularDamping=0.0,
+                     restitution=BALL_RESTITUTION, lateralFriction=BALL_FRICTION,
+                     contactStiffness=CONTACT_STIFFNESS, contactDamping=CONTACT_DAMPING)
+    p.resetBaseVelocity(ball, [0, 0, 0], [0, 0, 0])
+    return ball
 
 # the 26 directions on the {-1,0,1}^3 sphere (excluding origin), unit-normalized
 DIRS_26 = [np.array(v, float) / np.linalg.norm(v)
@@ -162,7 +197,9 @@ class FixedGripper:
     def set_finger_dynamics(self):
         for link in self.finger_links:
             p.changeDynamics(self.body, link, lateralFriction=PAD_FRICTION,
-                             restitution=BALL_RESTITUTION)
+                             restitution=BALL_RESTITUTION,
+                             contactStiffness=CONTACT_STIFFNESS,
+                             contactDamping=CONTACT_DAMPING)
 
     def prep_strategy(self, strategy):
         """One-time motor setup for torque-driven strategies."""
@@ -231,9 +268,7 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
     PyBullet connection (caller must not be connected)."""
     p.connect(p.DIRECT)
     try:
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=DT)
-        p.setGravity(0, 0, 0)               # gravity OFF during seating + close
+        setup_physics()                     # finer substep + compliant contact
         urdf = variants.ensure_variant(n_fingers)
         g = FixedGripper(urdf)
         ready_pose = READY_CURLED if ready == "curled" else READY_SPLAYED
@@ -253,16 +288,11 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
         off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
 
         cup = g.cup_world()
-        ball = spawn_ball(cup + off)
-        p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.3, 0.3, 1])
-        p.changeDynamics(ball, -1, mass=0.065, linearDamping=0.0,
-                         angularDamping=0.0, restitution=BALL_RESTITUTION,
-                         lateralFriction=BALL_FRICTION)
-        p.resetBaseVelocity(ball, [0, 0, 0], [0, 0, 0])
+        ball = setup_ball(cup + off)
         rad = ball_radius(ball)
 
         # --- close + settle (gravity off) ---
-        for _ in range(CLOSE_STEPS + SETTLE_STEPS):
+        for _ in range((CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP):
             g.hold_arm_rigid()
             g.apply_close(strategy)
             p.stepSimulation()
@@ -278,7 +308,7 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
             p.restoreState(state)
             p.setGravity(*(d * GACC))
             max_disp = 0.0
-            for _ in range(WINDOW_STEPS):
+            for _ in range(WINDOW_STEPS * SUBSTEP):
                 g.hold_arm_rigid()
                 g.apply_close(strategy)
                 p.stepSimulation()
@@ -386,9 +416,7 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     p.connect(p.DIRECT)
     try:
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=DT)
-        p.setGravity(0, 0, 0)
+        setup_physics()
         urdf = variants.ensure_variant(n_fingers)
         g = FixedGripper(urdf)
         g.set_ready(READY_CURLED if ready == "curled" else READY_SPLAYED)
@@ -398,11 +426,8 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
               else math.pi / 2 + math.pi / n_fingers)
         off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
         cup = g.cup_world()
-        ball = spawn_ball(cup + off)
-        p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.25, 0.25, 1])
-        p.changeDynamics(ball, -1, mass=0.065, restitution=BALL_RESTITUTION,
-                         lateralFriction=BALL_FRICTION)
-        for _ in range(CLOSE_STEPS + SETTLE_STEPS):
+        ball = setup_ball(cup + off)
+        for _ in range((CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP):
             g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
         ee = g.ee_world()
         paths = []
@@ -434,20 +459,13 @@ def render(strategy, n_fingers, offset_m, direction, ready, out_dir):
         p.disconnect()
 
 
-# --- video timing presets ---------------------------------------------------
-# Both clips render the SAME close physics (the validated force-driven close, so
-# fast and slow agree). They differ only in PLAYBACK:
-#   FAST: ~6 s overview — close (sampled) then the full 8-direction battery.
-#   SLOW: TRUE slow-motion of the grasp — every step of the close window recorded
-#     and played at a low fps so the ~9 s clip is ~14x slow. Grasp only (no
-#     battery). NOTE: this is NOT a re-simulated "slower close" (that changed the
-#     dynamics, disagreed with the fast clip, and jittered the fingers); it is the
-#     identical close, slow-played.
-# The close+settle window is only ~0.64 s of sim (154 steps). We cannot lengthen
-# it — the marginally-seated off-center ball DRIFTS off in the extra zero-g settle
-# (verified: finger-3.5cm nf 4->2->0 over 154->270->360 steps). So we hit ~9 s by
-# lowering the playback fps instead: 154 steps / 17 fps ~= 9 s.
-SLOW_FPS = 17
+# --- video presets -----------------------------------------------------------
+# Both clips render the SAME close physics (so fast and slow AGREE) and differ
+# only in PLAYBACK: FAST = sampled close + the 8-direction battery (~5.5 s); SLOW
+# = TRUE slow-motion of the grasp (every 2nd sim step of the finer-dt close,
+# played slow for a ~9 s clip — finer dt gives 4x more frames, so it is smooth).
+# This is NOT a re-simulated "slower close" (that changed the dynamics, disagreed
+# with the fast clip, and jittered the fingers); it is the identical close.
 FAST_DIRS = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
              ("+x", (1, 0, 0)), ("-x", (-1, 0, 0)),
              ("+y", (0, 1, 0)), ("-y", (0, -1, 0)),
@@ -465,14 +483,20 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
     prints a per-direction HELD/ESCAPED."""
     import imageio.v2 as imageio
     os.makedirs(out_dir, exist_ok=True)
-    fps = SLOW_FPS if slow else 30
-    close_every = 1 if slow else 4        # slow: every step -> 1.5 s == 9 s
-    batt_every = 5
+    # close window is now (CLOSE+SETTLE)*SUBSTEP sim steps (finer dt -> more
+    # frames -> smoother slow-mo for free). SLOW = grasp only, every 2nd step,
+    # fps chosen so the clip is ~9 s. FAST = sampled close + battery, ~5.5 s.
+    n_close = (CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP
+    if slow:
+        close_every = 2
+        fps = max(1, round((n_close // close_every) / 9.0))
+    else:
+        close_every = 4 * SUBSTEP
+        fps = 30
+    batt_every = 5 * SUBSTEP
     p.connect(p.DIRECT)
     try:
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=DT)
-        p.setGravity(0, 0, 0)
+        setup_physics()
         urdf = variants.ensure_variant(n_fingers)
         g = FixedGripper(urdf)
         ready_pose = READY_CURLED if ready == "curled" else READY_SPLAYED
@@ -483,10 +507,7 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
               else math.pi / 2 + math.pi / n_fingers)
         off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
         cup = g.cup_world()
-        ball = spawn_ball(cup + off)
-        p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.25, 0.25, 1])
-        p.changeDynamics(ball, -1, mass=0.065, restitution=BALL_RESTITUTION,
-                         lateralFriction=BALL_FRICTION)
+        ball = setup_ball(cup + off)
         ee = g.ee_world()
         # two cameras: 3/4 diagonal (left), and from BELOW looking up (right)
         proj = p.computeProjectionMatrixFOV(46, 1.0, 0.02, 4.0)
@@ -511,8 +532,7 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
         writer = imageio.get_writer(path, fps=fps, codec="libx264", quality=7,
                                     macro_block_size=1)
         # phase 1: the close (gravity off). IDENTICAL window + physics for fast
-        # and slow (so they agree; slow just samples every step + plays at 40 fps).
-        n_close = CLOSE_STEPS + SETTLE_STEPS
+        # and slow (so they agree); slow just samples finer and plays slower.
         for s in range(n_close):
             g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
             if s % close_every == 0:
@@ -529,7 +549,7 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                 d = np.array(vec, float); d /= np.linalg.norm(d)
                 p.setGravity(*(d * GACC))
                 max_disp = 0.0
-                for s in range(WINDOW_STEPS):
+                for s in range(WINDOW_STEPS * SUBSTEP):
                     g.hold_arm_rigid(); g.apply_close(strategy); p.stepSimulation()
                     pos = np.array(p.getBasePositionAndOrientation(ball)[0])
                     max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
@@ -538,7 +558,7 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                 results.append((label, max_disp < ESCAPE_DELTA, max_disp))
             p.removeState(state)
         writer.close()
-        n_batt = 0 if slow else len(FAST_DIRS) * (WINDOW_STEPS // batt_every)
+        n_batt = 0 if slow else len(FAST_DIRS) * (WINDOW_STEPS * SUBSTEP // batt_every)
         dur = (n_close // close_every + n_batt) / fps
         print(f"video ({'SLOW grasp-only' if slow else 'fast'}, ~{dur:.1f}s, "
               f"diag+under): {os.path.abspath(path)}")
@@ -568,8 +588,15 @@ def main():
     ap.add_argument("--ready", default="splayed", choices=["splayed", "curled"])
     ap.add_argument("--out", default="runs/cage")
     ap.add_argument("--slowmo", action="store_true",
-                    help="with --video: 6x slow grasp (first 1.5s sim -> 9s video)")
+                    help="with --video: ~9 s slow-motion of the grasp")
+    ap.add_argument("--substep", type=int, default=None,
+                    help="override sim sub-steps/240Hz tick (default 4=1/960); "
+                         "use to inspect the off-center timestep-fragility (§26)")
     args = ap.parse_args()
+    if args.substep is not None:
+        global SUBSTEP, SIM_DT
+        SUBSTEP = args.substep
+        SIM_DT = DT / SUBSTEP
     if args.self_test:
         return self_test()
     if args.grid:
