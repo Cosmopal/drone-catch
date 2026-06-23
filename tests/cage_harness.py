@@ -265,6 +265,19 @@ def ball_radius(ball):
     return 0.5 * (hi[2] - lo[2])
 
 
+def _draw_hud(frame, lines, color=(255, 255, 60)):
+    """Overlay text metric lines on a frame (so the video shows the numbers)."""
+    from PIL import Image, ImageDraw
+    img = Image.fromarray(frame)
+    d = ImageDraw.Draw(img)
+    y = 6
+    for ln in lines:
+        d.text((9, y + 1), ln, fill=(0, 0, 0))      # shadow for legibility
+        d.text((8, y), ln, fill=color)
+        y += 15
+    return np.array(img)
+
+
 def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
              verbose=False):
     """Seat a ball at (offset_m, direction) in the cup, close with `strategy`,
@@ -484,14 +497,16 @@ FAST_DIRS = [("down", (0, 0, -1)), ("up/invert", (0, 0, 1)),
 
 
 def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
-                 slow=False):
+                 slow=False, pin=False):
     """Record an MP4 of the close (and, for the fast clip, the disturbance
     battery) from TWO camera angles side-by-side — a 3/4 diagonal view (left) and
     an under/below view (right) that reveals whether the distal segments tuck
-    UNDER the ball (the form-closure test). `slow=True` is true slow-motion of
-    the grasp (the same close window as the fast clip, every step at 40 fps ->
-    ~6x, ~3.9 s), grasp only. The fast clip adds the 8-direction battery and
-    prints a per-direction HELD/ESCAPED."""
+    UNDER the ball (the form-closure test). A HUD overlays the live metrics
+    (fingers touching, ball displacement, HELD/ESCAPED, and for `yale` the
+    per-finger flexions = the self-distribution). `slow=True` is true slow-motion
+    of the grasp. `pin=True` holds the ball fixed during the close (gravity-off
+    free balls eject for an aggressive adaptive close — pin to SEE the wrap /
+    self-distribution; the battery still runs on the released ball)."""
     import imageio.v2 as imageio
     os.makedirs(out_dir, exist_ok=True)
     # close window is now (CLOSE+SETTLE)*SUBSTEP sim steps (finer dt -> more
@@ -533,10 +548,22 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                 renderer=p.ER_TINY_RENDERER)
             return np.array(rgba, np.uint8).reshape(480, 480, 4)[:, :, :3]
 
-        def grab():
-            return np.hstack([shot(view_diag), shot(view_under)])  # 960x480
+        def grab(lines=()):
+            frame = np.hstack([shot(view_diag), shot(view_under)])  # 960x480
+            return _draw_hud(frame, lines) if lines else frame
 
-        suffix = "_slowmo" if slow else ""
+        def hud_close():
+            nf = _fingers_touching(g, ball)
+            lines = [f"{strategy}  off={offset_m*100:.0f}cm  dir={direction}"
+                     + ("  [pinned]" if pin else ""),
+                     f"CLOSE   fingers touching: {nf}"]
+            if strategy == "yale":
+                fl = yale_hand.finger_flexions(g.body, g.finger_joints, g.yale_cfg)
+                lines.append("finger flex: " + " ".join(f"{x:+.1f}" for x in fl))
+                lines.append(f"self-distrib spread: {max(fl)-min(fl):.2f} rad")
+            return lines
+
+        suffix = ("_pin" if pin else "") + ("_slowmo" if slow else "")
         path = os.path.join(
             out_dir,
             f"cagevid_{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm{suffix}.mp4")
@@ -544,12 +571,16 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                                     macro_block_size=1)
         # phase 1: the close (gravity off). IDENTICAL window + physics for fast
         # and slow (so they agree); slow just samples finer and plays slower.
+        ball_pos0 = np.array(p.getBasePositionAndOrientation(ball)[0])
         for s in range(n_close):
+            if pin:
+                p.resetBasePositionAndOrientation(ball, ball_pos0.tolist(), [0, 0, 0, 1])
+                p.resetBaseVelocity(ball, [0, 0, 0], [0, 0, 0])
             g.hold_arm_rigid()
             g.apply_close(strategy, ball_id=ball, progress=s / n_close)
             p.stepSimulation()
             if s % close_every == 0:
-                writer.append_data(grab())
+                writer.append_data(grab(hud_close()))
         seated = np.array(p.getBasePositionAndOrientation(ball)[0])
         seated_nf = _fingers_touching(g, ball)   # measured at the SAME instant
         results = []                             # (right after the close) for both
@@ -569,7 +600,11 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                     pos = np.array(p.getBasePositionAndOrientation(ball)[0])
                     max_disp = max(max_disp, float(np.linalg.norm(pos - seated)))
                     if s % batt_every == 0:
-                        writer.append_data(grab())
+                        status = "HELD" if max_disp < ESCAPE_DELTA else "ESCAPED"
+                        writer.append_data(grab([
+                            f"{strategy}  off={offset_m*100:.0f}cm  dir={direction}",
+                            f"BATTERY 2.5g  pull: {label}",
+                            f"ball moved: {max_disp*100:.1f}cm   {status}"]))
                 results.append((label, max_disp < ESCAPE_DELTA, max_disp))
             p.removeState(state)
         writer.close()
@@ -602,6 +637,8 @@ def main():
     ap.add_argument("--dir", default="finger", choices=["finger", "gap", "outside"])
     ap.add_argument("--ready", default="splayed", choices=["splayed", "curled"])
     ap.add_argument("--out", default="runs/cage")
+    ap.add_argument("--pin", action="store_true",
+                    help="with --video: pin the ball during close (see the wrap)")
     ap.add_argument("--slowmo", action="store_true",
                     help="with --video: ~9 s slow-motion of the grasp")
     ap.add_argument("--substep", type=int, default=None,
@@ -621,7 +658,7 @@ def main():
         return 0
     if args.video:
         render_video(args.strategy, args.n, args.offset, args.dir, args.ready,
-                     args.out, slow=args.slowmo)
+                     args.out, slow=args.slowmo, pin=args.pin)
         return 0
     # default: single cell
     run_cell(args.strategy, args.n, args.offset, args.dir, args.ready, verbose=True)

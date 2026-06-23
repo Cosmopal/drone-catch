@@ -50,3 +50,29 @@ python tests/cage_harness.py --video --slowmo --strategy fixed --offset 0.035 --
 python tests/cage_harness.py --cell --substep 1 --strategy fixed --offset 0.035 --dir gap   # the artifact: 0.00
 python tests/cage_harness.py --cell             --strategy fixed --offset 0.035 --dir gap   # converged: 1.00
 ```
+
+## Yale underactuated hand (§27) + on-screen metrics (HUD)
+
+All `--video` clips now overlay a **HUD** with the live metrics (fingers touching,
+ball displacement, HELD/ESCAPED; for `yale` the per-finger flexions = the
+self-distribution). New flag `--pin` holds the ball fixed during the close (a
+gravity-off free off-center ball ejects under an aggressive adaptive close, so
+pin to SEE the wrap).
+
+- `cagevid_yale_n4_finger_35mm_pin_slowmo.mp4` — **the self-distribution, visible**:
+  off-center ball, HUD shows `finger flex: -0.4 +3.1 +3.3 +3.2` / `spread 3.71 rad`
+  — the near finger STALLS on the ball, the far three wrap. The whiffletree
+  differential made literal.
+- `cagevid_yale_n4_finger_35mm_pin.mp4` — same wrap, then the disturbance battery
+  on the released ball: **ESCAPED 0/8** (the asymmetric soft wrap captures but is
+  not a robust cage) vs `cagevid_fixed_n4_*` HELD 8/8.
+- `dynamic_catch_fixed.mp4` vs `dynamic_catch_yale.mp4` — the validated scoop catch
+  with each close (captioned with the result). Fixed: caught+held (robust). Yale:
+  caught+held WITHOUT video but the rendering overhead flips it to a drop WITH
+  video — i.e. the Yale catch is MARGINAL where the rigid catch is robust.
+
+Reproduce:
+```
+python tests/cage_harness.py --video --slowmo --pin --strategy yale --offset 0.035 --dir finger
+python tests/cage_dynamic_catch.py --headless --close yale --runs-dir runs/yale
+```
