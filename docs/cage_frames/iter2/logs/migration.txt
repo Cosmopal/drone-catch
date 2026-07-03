@@ -1,0 +1,15 @@
+=== CAUSAL: ball migration during close (off=2.5cm finger n=4) ===
+centering-err (cm) vs close progress:
+  progress:    0%    9%   18%   27%   36%   45%   54%   63%   73%   82%   91%  100%
+   fixed CE:  2.50  2.16  2.19  2.20  2.20  2.19  2.18  2.17  2.18  2.18  2.17  2.16
+   fixed nf:     1     4     4     4     4     4     4     4     4     4     4     4
+  progress:    0%    9%   18%   27%   36%   45%   54%   63%   73%   82%   91%  100%
+    soft CE:  2.50  0.39  0.57  0.57  0.57  0.57  0.57  0.57  0.57  0.57  0.57  0.57
+    soft nf:     1     1     4     4     4     4     4     4     4     4     4     4
+  fixed: total pull-in +0.34cm, biggest single step = 100% of it -> negligible re-centering
+  soft: total pull-in +1.93cm, biggest single step = 109% of it -> one-step SNAP
+=== CAUSAL: ball migration during close (off=2.5cm finger n=4) ===
+   fixed DENSE early CE (sim steps 0..24, cm): 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.43
+    soft DENSE early CE (sim steps 0..24, cm): 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.49 2.48 2.46 2.44 2.41 2.38 2.35 2.31 2.27 2.23 2.19 2.14 2.08 2.01 1.94
+  fixed: total pull-in +0.34cm, biggest single step = 100% of it -> negligible re-centering
+  soft: total pull-in +1.93cm, biggest single step = 109% of it -> one-step SNAP

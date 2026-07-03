@@ -782,6 +782,109 @@ def boundary_scan(strategy, n_fingers, direction, ready="splayed"):
     return 0
 
 
+def migration_trace(strategies=("fixed", "soft"), n_fingers=4, offset_m=0.025,
+                    direction="finger", ready="splayed", samples=12,
+                    out_dir="docs/cage_frames/iter2", save_frames=True):
+    """CAUSAL check for the pull-in claim (reviewer D5): does the ball MIGRATE to
+    center DURING the close (a progressive squeeze), or SNAP in one step? Records
+    the ball's centering-err vs close progress for each strategy and prints the
+    trajectory; optionally saves under-view frames at 0/33/66/100% so the
+    migration is visible. If soft's centering-err decreases GRADUALLY over many
+    steps while fixed's stays flat, the 'gentle squeeze toward equilibrium' story
+    is verified; a one-step drop would falsify it and the story gets rewritten."""
+    import imageio.v2 as imageio
+    os.makedirs(out_dir, exist_ok=True)
+    print(f"=== CAUSAL: ball migration during close (off={offset_m*100:.1f}cm "
+          f"{direction} n={n_fingers}) ===")
+    print("centering-err (cm) vs close progress:")
+    traces = {}
+    dense_traces = {}
+    for strat in strategies:
+        p.connect(p.DIRECT)
+        try:
+            setup_physics()
+            urdf = variants.ensure_variant(n_fingers)
+            g = FixedGripper(urdf)
+            g.set_ready(READY_CURLED if ready == "curled" else READY_SPLAYED)
+            g.set_finger_dynamics()
+            g.prep_strategy(strat)
+            az = (math.pi / 2 if direction == "finger"
+                  else math.pi / 2 + math.pi / n_fingers)
+            off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
+            cup = g.cup_world()
+            ball = setup_ball(cup + off)
+            ee = g.ee_world()
+            view_under = p.computeViewMatrix((0.13, -0.13, ee[2] - 0.40),
+                                             (0, 0, ee[2] - 0.05), [0, 0, 1])
+            proj = p.computeProjectionMatrixFOV(46, 1.0, 0.02, 4.0)
+            n_close = (CLOSE_STEPS + SETTLE_STEPS) * SUBSTEP
+            sample_at = {int(k * (n_close - 1) / (samples - 1)) for k in range(samples)}
+            # frames DURING the roll window (migration completes in the first
+            # ~60 sim steps) + one settled — so the stills show the migration, not
+            # four identical settled poses.
+            frame_at = {0, 20, 40, 60, n_close - 1}
+            # DENSE early sampling (every sim step over the first ~0.3 s) so a
+            # physical roll is distinguishable from a single-solver-step teleport
+            # artifact — the reviewer-D5 causal test for the pull-in claim.
+            dense = set(range(0, 80))
+            dense_trace = []
+            trace = []
+            for s in range(n_close):
+                g.hold_arm_rigid()
+                g.apply_close(strat, ball_id=ball, progress=s / n_close)
+                p.stepSimulation()
+                if s in dense:
+                    pos = np.array(p.getBasePositionAndOrientation(ball)[0])
+                    dense_trace.append((s, float(np.linalg.norm(pos - cup))))
+                if s in sample_at:
+                    pos = np.array(p.getBasePositionAndOrientation(ball)[0])
+                    ce = float(np.linalg.norm(pos - cup))
+                    nf = _fingers_touching(g, ball)
+                    trace.append((s / n_close, ce, nf))
+                if save_frames and s in frame_at:
+                    _, _, rgba, _, _ = p.getCameraImage(
+                        480, 480, viewMatrix=view_under, projectionMatrix=proj,
+                        renderer=p.ER_TINY_RENDERER)
+                    fr = np.array(rgba, np.uint8).reshape(480, 480, 4)[:, :, :3]
+                    pos = np.array(p.getBasePositionAndOrientation(ball)[0])
+                    ce = float(np.linalg.norm(pos - cup))
+                    fr = _draw_hud(fr, [
+                        f"{strat}  off={offset_m*100:.0f}cm {direction}",
+                        f"close {int(100*s/n_close)}%   centering-err {ce*100:.2f}cm",
+                        f"fingers touching {_fingers_touching(g, ball)}"])
+                    pct = int(round(100 * s / (n_close - 1)))
+                    imageio.imwrite(os.path.join(
+                        out_dir, f"migrate_{strat}_{direction}_{int(offset_m*1000)}mm_{pct:03d}pct.png"), fr)
+            traces[strat] = trace
+            dense_traces[strat] = dense_trace
+            hdr = "  progress: " + " ".join(f"{t[0]*100:>4.0f}%" for t in trace)
+            print(hdr)
+            print(f"  {strat:>6} CE: " + " ".join(f"{t[1]*100:>5.2f}" for t in trace))
+            print(f"  {strat:>6} nf: " + " ".join(f"{t[2]:>5d}" for t in trace))
+            print(f"  {strat:>6} DENSE early CE (sim steps 0..24, cm): "
+                  + " ".join(f"{ce*100:.2f}" for _, ce in dense_trace))
+        finally:
+            p.disconnect()
+    # verdict on the DENSE per-sim-step trace (the coarse trace can't tell a
+    # physical roll from a teleport — it was sampled after the roll completed).
+    for strat, dtr in dense_traces.items():
+        ces = [ce for _, ce in dtr]
+        total_drop = ces[0] - min(ces)
+        steps = [ces[i] - ces[i + 1] for i in range(len(ces) - 1)]
+        biggest = max(steps) if steps else 0.0
+        frac = (biggest / total_drop) if total_drop > 1e-4 else float("nan")
+        # count sim steps over which 10%..90% of the drop happens (roll duration)
+        moved = [i for i in range(len(ces)) if ces[0] - ces[i] > 0.1 * total_drop]
+        n_roll = (max(moved) - min(moved)) if len(moved) > 1 else 0
+        verdict = ("negligible re-centering" if total_drop < 0.005
+                   else "GRADUAL roll over %d sim steps (~%.0f ms)" % (
+                       n_roll, n_roll * SIM_DT * 1000) if frac < 0.5
+                   else "one-step SNAP (<=1 sim step) — SUSPECT, investigate")
+        print(f"  {strat}: dense-trace drop {total_drop*100:+.2f}cm, biggest single "
+              f"SIM step = {frac*100:.0f}% of it -> {verdict}")
+    return 0
+
+
 def render_quality(strategy, n_fingers, offset_m, direction, ready, out_dir,
                    video=True):
     """§2.4 — legible review evidence for ONE cell, HUD-annotated with the
@@ -1128,6 +1231,9 @@ def main():
     ap.add_argument("--boundary", action="store_true",
                     help="scan the caged->escaped boundary across substeps and "
                          "flag any timestep-unstable offset (§2.3 boundary)")
+    ap.add_argument("--migration", action="store_true",
+                    help="CAUSAL check: trace ball centering-err DURING the close "
+                         "(gradual migration vs one-step snap) for fixed vs soft")
     ap.add_argument("--quality", action="store_true",
                     help="with a single cell: report the continuous quality metrics")
     ap.add_argument("--quality-frames", action="store_true",
@@ -1168,6 +1274,10 @@ def main():
                              args.ready)
     if args.boundary:
         return boundary_scan(args.strategy, args.n, args.dir, args.ready)
+    if args.migration:
+        return migration_trace(n_fingers=args.n, offset_m=args.offset,
+                               direction=args.dir, ready=args.ready,
+                               out_dir=args.out)
     if args.quality_frames:
         render_quality(args.strategy, args.n, args.offset, args.dir, args.ready,
                        args.out, video=not args.no_video)
