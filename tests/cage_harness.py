@@ -347,14 +347,22 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
             flex = _finger_flexions_generic(g)
             esc_margin, margins, weakest = _escape_margin(g, strategy, ball,
                                                           seated, state)
+            rattle = _rattle(g, strategy, ball, seated, state, RATTLE_G * G)
             survived = sum(1 for m in margins if m >= GACC)
             score = survived / len(DIRS_26)
             max_disp_all = ESCAPE_DELTA if survived < len(DIRS_26) else 0.0
+            # pull-in: how much the close DRAGGED the ball toward the cup center
+            # (injected offset - residual centering error). >0 = re-centered; ~0 =
+            # ball stayed put (rigid close just holds where it landed); <0 = pushed
+            # out. THIS is the axis an adaptive/compliant hand can win on.
+            pull_in = offset_m - seat_off
             res.update({
                 "score": score, "survived": survived,
                 "escape_margin": esc_margin,            # m/s^2 (min over dirs)
                 "escape_margin_g": esc_margin / G,
                 "margins": margins, "weakest_dir": weakest,
+                "rattle": rattle,                       # m, worst residual @ 2 g
+                "injected_offset": offset_m, "pull_in": pull_in,
                 "n_contact_fingers": ncf, "n_contact_points": npts,
                 "symmetry": sym, "resultant": resR,
                 "per_finger_pts": per_f, "flexions": flex,
@@ -364,9 +372,10 @@ def run_cell(strategy, n_fingers, offset_m, direction, ready="splayed",
                       f"dir={direction} ready={ready}\n"
                       f"  QUALITY: escape-margin={esc_margin/G:.2f} g "
                       f"({esc_margin:.1f} m/s^2, weakest bearing) | "
-                      f"centering-err={seat_off*100:.2f} cm | "
-                      f"contact-fingers={ncf} pts={npts} | "
-                      f"symmetry={sym:.2f} (|R|={resR:.2f})\n"
+                      f"rattle@2g={rattle*100:.2f} cm (worst residual)\n"
+                      f"  centering: injected={offset_m*100:.2f}cm -> err="
+                      f"{seat_off*100:.2f}cm  PULL-IN={pull_in*100:+.2f}cm | "
+                      f"contact-fingers={ncf} pts={npts} symmetry={sym:.2f}\n"
                       f"  per-finger flex(rad)={['%.2f'%x for x in flex]} "
                       f"contacts/finger={dict(per_f)}\n"
                       f"  binary score={score:.2f} ({survived}/26 held@2.5g)")
@@ -424,6 +433,9 @@ def _fingers_touching(g, ball):
 # min-over-directions (its weakest bearing). Continuous, not pass/fail at 2.5 g.
 A_MAX_ESCAPE = 10.0 * G      # m/s^2 cap on the margin search (holds above read ">=cap")
 N_BISECT = 6                 # bisection iters -> ~A_MAX/64 = 1.5 m/s^2 resolution
+RATTLE_G = 2.0               # sub-dislodging pulse (g) for the within-band metric
+                             # (below the 2.5 g battery so a caged ball never
+                             # escapes it; how far it RATTLES grades seating depth)
 
 
 def _finger_flexions_generic(g):
@@ -498,6 +510,19 @@ def _escapes_under(g, strategy, ball, seated, accel_vec, state):
         if max_disp >= ESCAPE_DELTA:
             return True, max_disp
     return False, max_disp
+
+
+def _rattle(g, strategy, ball, seated, state, accel):
+    """Within-band graded companion to the (saturated) escape-margin: apply a
+    FIXED sub-dislodging accel in every direction from the settled state and
+    return the WORST residual displacement (m). A deeply-seated symmetric hold
+    barely moves; a precarious one-sided hold rattles/shifts more — a continuous
+    signal INSIDE the caged band, where escape-margin saturates at the cap."""
+    worst = 0.0
+    for d in DIRS_26:
+        _, md = _escapes_under(g, strategy, ball, seated, d * accel, state)
+        worst = max(worst, md)
+    return worst
 
 
 def _escape_margin(g, strategy, ball, seated, state):
@@ -606,11 +631,11 @@ def quality_grid(strategies=("fixed", "compliant", "soft", "yale"),
     numerics (substep 4 + compliant pads)."""
     print("=== §2.2 QUALITY re-score (converged numerics: substep "
           f"{SUBSTEP}, compliant pads) ===")
-    print("legend: EM=escape-margin(g, min over 26 dirs) CE=centering-err(cm) "
-          "CF=#contact-fingers SY=symmetry(1=surrounded,0=one-sided) "
-          "SC=binary score")
+    print("legend: EM=escape-margin(g,min/26) PI=PULL-IN(cm,+re-centered) "
+          "RT=rattle@2g(cm,worst residual) CE=centering-err(cm) "
+          "CF=#contact-fingers SY=symmetry(1=surrounded,0=one-sided) SC=score")
     hdr = f"{'strat':>9} {'n':>2} {'dir':>6} | " + " ".join(
-        f"{o*100:>4.1f}cm" for o in offsets)
+        f"{o*100:>5.1f}cm" for o in offsets)
     rows = []
     for strat in strategies:
         for n in ns:
@@ -619,30 +644,39 @@ def quality_grid(strategies=("fixed", "compliant", "soft", "yale"),
                 rows.extend(cells)
                 print("\n" + hdr)
                 print(f"{strat:>9} {n:>2} {dr:>6} EM| " + " ".join(
-                    f"{c['escape_margin_g']:>6.2f}" for c in cells))
+                    f"{c['escape_margin_g']:>7.2f}" for c in cells))
+                print(f"{'':>9} {'':>2} {'':>6} PI| " + " ".join(
+                    f"{c['pull_in']*100:>+7.2f}" for c in cells))
+                print(f"{'':>9} {'':>2} {'':>6} RT| " + " ".join(
+                    f"{c['rattle']*100:>7.2f}" for c in cells))
                 print(f"{'':>9} {'':>2} {'':>6} CE| " + " ".join(
-                    f"{c['seat_off']*100:>6.2f}" for c in cells))
+                    f"{c['seat_off']*100:>7.2f}" for c in cells))
                 print(f"{'':>9} {'':>2} {'':>6} CF| " + " ".join(
-                    f"{c['n_contact_fingers']:>6d}" for c in cells))
+                    f"{c['n_contact_fingers']:>7d}" for c in cells))
                 print(f"{'':>9} {'':>2} {'':>6} SY| " + " ".join(
-                    f"{c['symmetry']:>6.2f}" for c in cells))
+                    f"{c['symmetry']:>7.2f}" for c in cells))
                 print(f"{'':>9} {'':>2} {'':>6} SC| " + " ".join(
-                    f"{c['score']:>6.2f}" for c in cells))
+                    f"{c['score']:>7.2f}" for c in cells))
 
     # --- the fixed-vs-Yale quality question, answered with numbers ---
+    # PULL-IN is the axis on which an adaptive hand can win — lead with it.
     print("\n=== fixed vs Yale on QUALITY (mean over n x dir, per offset) ===")
-    print(f"{'offset':>7} | {'fixed EM':>9} {'yale EM':>9} | "
-          f"{'fixed CE':>9} {'yale CE':>9} | {'fixed SY':>9} {'yale SY':>9} | "
-          f"{'fixed CF':>9} {'yale CF':>9}")
+    print(f"{'offset':>7} | {'fx PULLIN':>9} {'yl PULLIN':>9} | "
+          f"{'fx rattle':>9} {'yl rattle':>9} | {'fx SY':>6} {'yl SY':>6} | "
+          f"{'fx CF':>6} {'yl CF':>6} | {'fx SC':>6} {'yl SC':>6}")
     for o in offsets:
         def agg(strat, key):
             xs = [c[key] for c in rows if c["strategy"] == strat and c["offset"] == o]
             return np.mean(xs) if xs else float("nan")
         print(f"{o*100:>6.1f}cm | "
-              f"{agg('fixed','escape_margin_g'):>9.2f} {agg('yale','escape_margin_g'):>9.2f} | "
-              f"{agg('fixed','seat_off')*100:>9.2f} {agg('yale','seat_off')*100:>9.2f} | "
-              f"{agg('fixed','symmetry'):>9.2f} {agg('yale','symmetry'):>9.2f} | "
-              f"{agg('fixed','n_contact_fingers'):>9.2f} {agg('yale','n_contact_fingers'):>9.2f}")
+              f"{agg('fixed','pull_in')*100:>+9.2f} {agg('yale','pull_in')*100:>+9.2f} | "
+              f"{agg('fixed','rattle')*100:>9.2f} {agg('yale','rattle')*100:>9.2f} | "
+              f"{agg('fixed','symmetry'):>6.2f} {agg('yale','symmetry'):>6.2f} | "
+              f"{agg('fixed','n_contact_fingers'):>6.2f} {agg('yale','n_contact_fingers'):>6.2f} | "
+              f"{agg('fixed','score'):>6.2f} {agg('yale','score'):>6.2f}")
+    print("\n(PULL-IN>0 => the close dragged the ball toward center; ~0 => it "
+          "held where the ball landed. If Yale's PULL-IN does not exceed fixed's, "
+          "the adaptive hand does not win on re-centering in this sim.)")
     return 0
 
 
@@ -656,15 +690,19 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
     base_ss, base_k, base_c = SUBSTEP, CONTACT_STIFFNESS, CONTACT_DAMPING
     print(f"=== §2.3 convergence: {strategy} n={n_fingers} "
           f"off={offset_m*100:.1f}cm dir={direction} ===")
-    print(f"{'variation':>22} | {'EM(g)':>7} {'CE(cm)':>7} {'CF':>3} "
-          f"{'SY':>5} {'score':>6}")
+    print(f"{'variation':>22} | {'EM(g)':>7} {'PI(cm)':>7} {'RT(cm)':>7} "
+          f"{'CF':>3} {'SY':>5} {'score':>6}")
 
-    def one(tag):
-        c = run_cell(strategy, n_fingers, offset_m, direction, ready,
-                     quality=True)
+    def show(tag, c):
         print(f"{tag:>22} | {c['escape_margin_g']:>7.2f} "
-              f"{c['seat_off']*100:>7.2f} {c['n_contact_fingers']:>3d} "
-              f"{c['symmetry']:>5.2f} {c['score']:>6.2f}")
+              f"{c['pull_in']*100:>+7.2f} {c['rattle']*100:>7.2f} "
+              f"{c['n_contact_fingers']:>3d} {c['symmetry']:>5.2f} "
+              f"{c['score']:>6.2f}")
+
+    def one(tag, seed=None):
+        c = run_cell(strategy, n_fingers, offset_m, direction, ready,
+                     quality=True, seed=seed)
+        show(tag, c)
         return c
 
     results = {}
@@ -680,12 +718,7 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
     CONTACT_STIFFNESS, CONTACT_DAMPING = base_k, base_c
     # (c) seed (sub-mm ball jitter)
     for sd in (1, 2, 3):
-        c = run_cell(strategy, n_fingers, offset_m, direction, ready,
-                     quality=True, seed=sd)
-        results[f"seed {sd} (+jitter)"] = c
-        print(f"{('seed %d (+jitter)' % sd):>22} | {c['escape_margin_g']:>7.2f} "
-              f"{c['seat_off']*100:>7.2f} {c['n_contact_fingers']:>3d} "
-              f"{c['symmetry']:>5.2f} {c['score']:>6.2f}")
+        results[f"seed {sd} (+jitter)"] = one(f"seed {sd} (+jitter)", seed=sd)
 
     # convergence verdict: substep 4 vs 8 agreement + seed spread
     em = [results[k]["escape_margin_g"] for k in results]
@@ -700,6 +733,52 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
     print(f"  CONVERGED: {'YES' if conv else 'NO — knife-edge, do not trust'}")
     SUBSTEP, SIM_DT = base_ss, DT / base_ss
     CONTACT_STIFFNESS, CONTACT_DAMPING = base_k, base_c
+    return 0
+
+
+def boundary_scan(strategy, n_fingers, direction, ready="splayed"):
+    """§2.3 boundary check — the caged->escaped transition is exactly where §26's
+    artifact lived (the verdict flipped with the timestep). Sweep offsets across
+    the cliff at substeps {2,4,8}; report each substep's boundary offset (largest
+    still-caged) and FLAG any offset whose caged verdict is not timestep-stable.
+    A boundary that shifts with the timestep is untrustworthy — do not pick a
+    winner from it."""
+    global SUBSTEP, SIM_DT
+    base_ss = SUBSTEP
+    offs = [0.035, 0.040, 0.043, 0.045, 0.048, 0.050]
+    substeps = [2, 4, 8]
+
+    def caged(c):                       # majority form-closure + real contact
+        return c["score"] >= 0.5 and c["n_contact_fingers"] >= 2
+
+    print(f"=== §2.3 boundary scan: {strategy} n={n_fingers} dir={direction} ===")
+    print("verdict grid (C=caged, .=escaped); columns = offset cm")
+    print(f"{'substep':>10} | " + " ".join(f"{o*100:>4.1f}" for o in offs))
+    grid_v = {}
+    for ss in substeps:
+        SUBSTEP, SIM_DT = ss, DT / ss
+        verds = []
+        for o in offs:
+            c = run_cell(strategy, n_fingers, o, direction, ready, quality=True)
+            verds.append(caged(c))
+        grid_v[ss] = verds
+        print(f"    1/{240*ss:<5d} | " + " ".join(
+            f"{'   C' if v else '   .'}" for v in verds))
+    SUBSTEP, SIM_DT = base_ss, DT / base_ss
+
+    # boundary = largest caged offset per substep; flag per-offset disagreement
+    print("\n  boundary (largest caged offset) per substep:")
+    for ss in substeps:
+        caged_offs = [offs[i] for i, v in enumerate(grid_v[ss]) if v]
+        b = max(caged_offs) * 100 if caged_offs else 0.0
+        print(f"    1/{240*ss}: {b:.1f} cm")
+    unstable = [offs[i] * 100 for i in range(len(offs))
+                if len({grid_v[ss][i] for ss in substeps}) > 1]
+    if unstable:
+        print(f"  ⚠ NOT timestep-stable at offsets (cm): {unstable} "
+              f"— verdict flips with substep; DO NOT trust the boundary here.")
+    else:
+        print("  boundary is timestep-stable across 1/480..1/1920 (converged).")
     return 0
 
 
@@ -1046,6 +1125,9 @@ def main():
     ap.add_argument("--converge", action="store_true",
                     help="convergence table for one cell: vary substep + contact "
                          "model + seed, confirm the quality metric is stable (§2.3)")
+    ap.add_argument("--boundary", action="store_true",
+                    help="scan the caged->escaped boundary across substeps and "
+                         "flag any timestep-unstable offset (§2.3 boundary)")
     ap.add_argument("--quality", action="store_true",
                     help="with a single cell: report the continuous quality metrics")
     ap.add_argument("--quality-frames", action="store_true",
@@ -1084,6 +1166,8 @@ def main():
     if args.converge:
         return converge_cell(args.strategy, args.n, args.offset, args.dir,
                              args.ready)
+    if args.boundary:
+        return boundary_scan(args.strategy, args.n, args.dir, args.ready)
     if args.quality_frames:
         render_quality(args.strategy, args.n, args.offset, args.dir, args.ready,
                        args.out, video=not args.no_video)
