@@ -731,6 +731,16 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
           f"{min(seed_em):.2f}..{max(seed_em):.2f}g (range {max(seed_em)-min(seed_em):.2f}g)")
     conv = abs(em4 - em8) <= 1.0 and (max(seed_em) - min(seed_em)) <= 1.5
     print(f"  CONVERGED: {'YES' if conv else 'NO — knife-edge, do not trust'}")
+    # pull-in SIGN convergence — the magnitude/EM can be a knife-edge while the
+    # DIRECTION of re-centering is robust (the honest soft claim, lead steer #4).
+    pis = [results[k]["pull_in"] * 100 for k in results]
+    all_pos = all(x > 0.05 for x in pis)
+    all_neg = all(x < -0.05 for x in pis)
+    sign = ("robustly POSITIVE (re-centers)" if all_pos
+            else "robustly NEGATIVE (pushes out)" if all_neg
+            else "SIGN NOT stable")
+    print(f"  pull-in across all variations: {min(pis):+.2f}..{max(pis):+.2f} cm "
+          f"-> sign {sign}")
     SUBSTEP, SIM_DT = base_ss, DT / base_ss
     CONTACT_STIFFNESS, CONTACT_DAMPING = base_k, base_c
     return 0

@@ -1,76 +1,76 @@
+===== CONVERGENCE =====
+########## fixed 4 0.025 finger ##########
+=== §2.3 convergence: fixed n=4 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |   10.00   +1.10    0.06   4  0.96   1.00
+     substep 4 (1/960) |   10.00   +0.34    0.34   4  0.89   1.00
+    substep 8 (1/1920) |   10.00   +0.40    0.08   4  0.88   1.00
+         contact x0.33 |   10.00   +0.90    0.41   4  0.80   1.00
+            contact x3 |   10.00   -0.02    0.07   4  0.90   1.00
+      seed 1 (+jitter) |   10.00   +0.03    0.17   4  0.83   1.00
+      seed 2 (+jitter) |   10.00   +0.66    0.37   4  0.79   1.00
+      seed 3 (+jitter) |   10.00   +0.69    0.27   4  0.79   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
+  CONVERGED: YES
+########## soft 4 0.025 finger ##########
+=== §2.3 convergence: soft n=4 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    2.50   +1.62    4.05   4  0.96   1.00
+     substep 4 (1/960) |   10.00   +1.93    0.00   4  0.70   1.00
+    substep 8 (1/1920) |    7.97   +0.70    0.14   4  0.95   1.00
+         contact x0.33 |   10.00   +2.06    0.01   4  0.89   1.00
+            contact x3 |    9.84   +2.15    0.00   4  0.86   1.00
+      seed 1 (+jitter) |    6.87   +0.70    0.17   3  0.59   1.00
+      seed 2 (+jitter) |   10.00   +1.92    0.01   4  1.00   1.00
+      seed 3 (+jitter) |    6.87   +1.13    0.31   4  0.63   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 7.97g (|d|=2.03g)
+  seed spread (jitter) escape-margin: 6.87..10.00g (range 3.13g)
+  CONVERGED: NO — knife-edge, do not trust
+########## soft 4 0.035 gap ##########
+=== §2.3 convergence: soft n=4 off=3.5cm dir=gap ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    2.19   -0.88    1.98   2  0.73   0.88
+     substep 4 (1/960) |    2.34   -0.06    1.71   3  0.67   0.96
+    substep 8 (1/1920) |    2.97   -0.30    0.03   4  0.41   1.00
+         contact x0.33 |    2.34   +0.39    2.67   3  0.59   0.92
+            contact x3 |    0.62   -0.71    4.10   4  0.29   0.65
+      seed 1 (+jitter) |    1.56   +0.03    4.02   3  0.57   0.92
+      seed 2 (+jitter) |    1.41   -0.87    4.10   4  0.24   0.62
+      seed 3 (+jitter) |    1.25   -0.84    4.11   4  0.28   0.65
+
+  substep 4 vs 8 escape-margin: 2.34g vs 2.97g (|d|=0.62g)
+  seed spread (jitter) escape-margin: 1.25..1.56g (range 0.31g)
+  CONVERGED: YES
 ########## fixed 4 0.0 finger ##########
 === §2.3 convergence: fixed n=4 off=0.0cm dir=finger ===
-             variation |   EM(g)  CE(cm)  CF    SY  score
-     substep 2 (1/480) |   10.00    0.36   4  0.80   1.00
-     substep 4 (1/960) |   10.00    0.07   4  1.00   1.00
-    substep 8 (1/1920) |   10.00    0.14   4  1.00   1.00
-         contact x0.33 |   10.00    0.21   4  1.00   1.00
-            contact x3 |   10.00    0.04   4  1.00   1.00
-      seed 1 (+jitter) |   10.00    0.09   4  1.00   1.00
-      seed 2 (+jitter) |   10.00    0.09   4  1.00   1.00
-      seed 3 (+jitter) |   10.00    0.05   4  1.00   1.00
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |   10.00   -0.36    0.19   4  0.80   1.00
+     substep 4 (1/960) |   10.00   -0.07    0.11   4  1.00   1.00
+    substep 8 (1/1920) |   10.00   -0.14    0.01   4  1.00   1.00
+         contact x0.33 |   10.00   -0.21    0.12   4  1.00   1.00
+            contact x3 |   10.00   -0.04    0.11   4  1.00   1.00
+      seed 1 (+jitter) |   10.00   -0.09    0.11   4  1.00   1.00
+      seed 2 (+jitter) |   10.00   -0.09    0.11   4  1.00   1.00
+      seed 3 (+jitter) |   10.00   -0.05    0.11   4  1.00   1.00
 
   substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
   seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
   CONVERGED: YES
-########## fixed 4 0.035 gap ##########
-=== §2.3 convergence: fixed n=4 off=3.5cm dir=gap ===
-             variation |   EM(g)  CE(cm)  CF    SY  score
-     substep 2 (1/480) |    4.06    5.91   2  0.20   1.00
-     substep 4 (1/960) |   10.00    3.68   4  0.32   1.00
-    substep 8 (1/1920) |   10.00    3.67   4  0.38   1.00
-         contact x0.33 |   10.00    3.28   4  0.43   1.00
-            contact x3 |   10.00    4.01   4  0.29   1.00
-      seed 1 (+jitter) |    4.53    3.90   4  0.30   1.00
-      seed 2 (+jitter) |   10.00    3.90   4  0.29   1.00
-      seed 3 (+jitter) |   10.00    3.84   4  0.30   1.00
+########## yale 4 0.025 finger ##########
+=== §2.3 convergence: yale n=4 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.16  -67.23    4.37   0  0.00   0.00
+     substep 4 (1/960) |    0.16  -33.92    4.13   0  0.00   0.00
+    substep 8 (1/1920) |    0.16  -46.79    4.08   0  0.00   0.00
+         contact x0.33 |    0.16 -100.80    4.18   0  0.00   0.00
+            contact x3 |    0.16  -97.77    4.21   0  0.00   0.00
+      seed 1 (+jitter) |    0.16 -103.11    4.23   0  0.00   0.00
+      seed 2 (+jitter) |    0.16  -83.90    4.21   0  0.00   0.00
+      seed 3 (+jitter) |    0.16  -93.48    4.22   0  0.00   0.00
 
-  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
-  seed spread (jitter) escape-margin: 4.53..10.00g (range 5.47g)
-  CONVERGED: NO — knife-edge, do not trust
-########## fixed 4 0.035 finger ##########
-=== §2.3 convergence: fixed n=4 off=3.5cm dir=finger ===
-             variation |   EM(g)  CE(cm)  CF    SY  score
-     substep 2 (1/480) |   10.00    3.30   4  0.92   1.00
-     substep 4 (1/960) |   10.00    3.18   4  0.43   1.00
-    substep 8 (1/1920) |   10.00    2.20   4  0.87   1.00
-         contact x0.33 |   10.00    3.70   4  0.24   1.00
-            contact x3 |   10.00    2.99   4  0.51   1.00
-      seed 1 (+jitter) |   10.00    3.19   4  0.57   1.00
-      seed 2 (+jitter) |   10.00    3.15   4  0.46   1.00
-      seed 3 (+jitter) |   10.00    3.19   4  0.40   1.00
-
-  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
-  seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
+  substep 4 vs 8 escape-margin: 0.16g vs 0.16g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 0.16..0.16g (range 0.00g)
   CONVERGED: YES
-########## yale 4 0.035 gap ##########
-=== §2.3 convergence: yale n=4 off=3.5cm dir=gap ===
-             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
-     substep 2 (1/480) |    0.16 -102.48    4.36   0  0.00   0.00
-     substep 4 (1/960) |    0.16  -54.12    4.18   0  0.00   0.00
-    substep 8 (1/1920) |    4.84   +1.12    0.64   4  0.71   1.00
-         contact x0.33 |    1.88   +1.73    3.95   3  0.91   0.92
-            contact x3 |    0.16  -82.48    4.20   0  0.00   0.00
-      seed 1 (+jitter) |    6.25   +2.04    1.48   4  0.50   1.00
-      seed 2 (+jitter) |    0.16  -68.15    4.17   0  0.00   0.00
-      seed 3 (+jitter) |    0.16  -16.34    4.13   0  0.00   0.00
-
-  substep 4 vs 8 escape-margin: 0.16g vs 4.84g (|d|=4.69g)
-  seed spread (jitter) escape-margin: 0.16..6.25g (range 6.09g)
-  CONVERGED: NO — knife-edge, do not trust
-########## yale 4 0.0 finger ##########
-=== §2.3 convergence: yale n=4 off=0.0cm dir=finger ===
-             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
-     substep 2 (1/480) |    4.69   -0.43    0.03   3  0.75   1.00
-     substep 4 (1/960) |    1.72   -0.64    4.05   0  0.00   0.92
-    substep 8 (1/1920) |    9.69   -0.41    0.20   4  0.80   1.00
-         contact x0.33 |    1.56   -0.34    4.05   3  0.71   0.50
-            contact x3 |    1.09   -0.32    4.08   0  0.00   0.50
-      seed 1 (+jitter) |    4.06   -0.37    2.03   3  0.74   1.00
-      seed 2 (+jitter) |    1.56   -0.75    4.05   0  0.00   0.62
-      seed 3 (+jitter) |    1.56   -1.63    4.06   0  0.00   0.77
-
-  substep 4 vs 8 escape-margin: 1.72g vs 9.69g (|d|=7.97g)
-  seed spread (jitter) escape-margin: 1.56..4.06g (range 2.50g)
-  CONVERGED: NO — knife-edge, do not trust
-ALL_CONVERGENCE_DONE
