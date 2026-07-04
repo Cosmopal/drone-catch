@@ -1,10 +1,25 @@
-"""Faithful Yale-OpenHand-style UNDERACTUATED hand model (position-based tendon).
+"""CONTACT-READING position-budget redistributor — a KINEMATIC STAND-IN for a
+Yale hand, NOT a faithful mechanism. SUPERSEDED by `src/yale_prb.py`.
+
+⚠️ MISLABEL CORRECTION (spec §2A, reviewer detector D9): an earlier docstring
+called this "faithful." It is NOT. This module reproduces the LOOK of Yale self-
+distribution by READING the live contacts (`getContactPoints`, below) every step
+and SPLITTING a software "flexion budget" via a computed mean, then commanding
+position servos. The self-distribution here is an ALGORITHM that senses where the
+ball is — exactly what a real underactuated hand does WITHOUT sensing. So it
+cannot answer "does the MECHANISM self-distribute"; it presupposes it. The
+faithful physical model (torsional flexure return springs + a constant-tension
+tendon, ZERO contact-reading, self-distribution EMERGENT from force balance) is
+`src/yale_prb.py` (proven in `tests/yale_prb_proof.py`). This model is kept only
+as the documented contact-reading baseline; do NOT use it as "the Yale hand" in
+any scoring — use the PRB model.
 
 The point of an adaptive underactuated hand is the COUPLING — one actuator, many
 joints, the hand self-distributes around the object wherever it is. The prior
 `under` stand-in (cage_harness) drove each joint INDEPENDENTLY toward a deep
 target, which is NOT a Yale hand: with equal independent targets there is no
-differential, so for an off-center ball every finger closes the same amount.
+differential, so for an off-center ball every finger closes the same amount. This
+module fixes THAT (it does redistribute) but by SENSING contact, not by mechanism.
 
 This module models the two couplings that define the mechanism, using a
 POSITION-based tendon (numerically stable — it sidesteps the constant-torque
