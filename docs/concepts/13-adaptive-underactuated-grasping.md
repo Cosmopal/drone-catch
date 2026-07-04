@@ -151,6 +151,49 @@ And: **the mechanism can be right (coupling verified) yet show no benefit in a
 sim that doesn't model the uncertainty it exists to absorb** — name that gap
 rather than overclaiming the mechanism.
 
+## Update — hold QUALITY, not just binary "caged" (iteration 2)
+
+Binary "caged" (survives a disturbance battery) over-credits precarious holds — a
+ball pinned by one off-center finger scores like a deep symmetric wrap. Iteration 2
+adds CONTINUOUS quality metrics (iteration_findings §28): **escape-margin** (min
+dislodging accel over all directions), **pull-in** (injected offset − residual
+centering error — how much the close DRAGGED the ball to center), **rattle**
+(residual motion under a sub-dislodging pulse), centering-err, #contact-fingers,
+and azimuthal **contact symmetry**. Transferable lessons:
+
+- **Pick a metric that can SEE the benefit you're evaluating.** "Is it caged?"
+  (binary) cannot distinguish a rigid pin from an adaptive re-seat. **Pull-in**
+  (does the close move the object toward the grasp center?) is that axis — it's
+  where compliance/underactuation should win. A metric that just re-reports its
+  input (a rigid close's centering-err ≈ the offset you injected) hides the effect.
+- **Some quality metrics saturate.** Escape-margin is BIMODAL here (caged →
+  cap, missed → ~0), so it confirms caging but can't grade precariousness within
+  the cage — you need the graded signals (centering, symmetry, contacts) for that.
+- **A "MORE than" claim needs a PAIRED, convergence-checked delta.** Our exciting
+  result "the soft flexure re-centers the ball" was real — but a single cell's
+  soft pull-in band (+0.70..+2.15 cm) OVERLAPPED fixed's (+0.03..+1.10 cm), so
+  "soft beats fixed" was not earned there. Testing the **paired delta**
+  (soft−fixed at the same perturbation) showed it convergently positive ONLY at
+  low finger-count (n=4) / finger-direction / offset ≥2.5 cm, and straddling 0 at
+  n=6/8 and in the gap direction. The honest verb is finger-count-dependent, not
+  blanket. **Overlapping bands do not earn a comparative — pair-and-perturb.**
+- **Determinism ≠ convergence, again.** Soft's escape-margin is a knife-edge
+  (CONVERGED=NO: EM 2.5/10/7.97 g across timestep+seed) — the same §26 artifact,
+  caught by the gate this time. Only the pull-in SIGN (and only in the narrow
+  convergent corner) is a trustworthy number.
+- **The testbed-regime trap (a specific "does the metric see the benefit" case).**
+  The faithful Yale hand convergently EJECTS an off-center ball on the static
+  gravity-off free-ball harness — but that is the regime that structurally
+  disadvantages an underactuated hand (nothing seats the object against the
+  fingers, so the differential never engages), NOT a verdict on the mechanism.
+  Report such a result as a *regime limitation* and name the regime that would be
+  fair (gravity-on / momentum-seated / constrained), or you will "confidently
+  reject the right answer."
+- **Cross-check every number against a rendered frame, and verify the causal
+  story before asserting it.** The soft "re-centering" first looked like a
+  one-step snap (coarse sampling); a dense per-sim-step trace showed a gradual
+  ~62 ms roll. The number was right; the *mechanism story* would have been wrong.
+
 ## Buildable at home (sim2real)
 
 - **Fin Ray fingers** — print in **TPU** (flexible filament; widely available,

@@ -1,0 +1,15 @@
+===== BOUNDARY scans (rerun) =====
+########## fixed 4 gap ##########
+=== §2.3 boundary scan: fixed n=4 dir=gap ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    C    C    .    .    .    .
+    1/960   |    C    .    C    .    .    .
+    1/1920  |    C    C    C    C    .    .
+
+  boundary (largest caged offset) per substep:
+    1/480: 4.0 cm
+    1/960: 4.3 cm
+    1/1920: 4.5 cm
+  ⚠ NOT timestep-stable at offsets (cm): [4.0, 4.3, 4.5] — verdict flips with substep; DO NOT trust the boundary here.
+########## fixed 4 finger ##########
