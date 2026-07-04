@@ -746,6 +746,56 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
     return 0
 
 
+def paired_converge(strat_a, strat_b, n_fingers, offset_m, direction,
+                    ready="splayed"):
+    """§2.3 PAIRED convergence (lead steer): the claim 'A re-centers MORE than B'
+    is only earned if the PAIRED DELTA (A.pull_in - B.pull_in) at the SAME
+    offset/dir/n/perturbation converges POSITIVE. A single cell can show A's band
+    overlapping B's, so test the delta per-perturbation (same substep/contact/seed
+    for both -> the seed jitter is identical, a fair pairing) and report whether
+    the delta stays > 0 across ALL perturbations."""
+    global SUBSTEP, SIM_DT, CONTACT_STIFFNESS, CONTACT_DAMPING
+    base_ss, base_k, base_c = SUBSTEP, CONTACT_STIFFNESS, CONTACT_DAMPING
+    print(f"=== §2.3 PAIRED delta ({strat_a}-{strat_b}) n={n_fingers} "
+          f"off={offset_m*100:.1f}cm dir={direction} ===")
+    print(f"{'variation':>22} | {strat_a[:5]+' PI':>9} {strat_b[:5]+' PI':>9} "
+          f"{'DELTA':>7}")
+
+    def pair(tag, seed=None):
+        a = run_cell(strat_a, n_fingers, offset_m, direction, ready,
+                     quality=True, seed=seed)["pull_in"] * 100
+        b = run_cell(strat_b, n_fingers, offset_m, direction, ready,
+                     quality=True, seed=seed)["pull_in"] * 100
+        d = a - b
+        print(f"{tag:>22} | {a:>+9.2f} {b:>+9.2f} {d:>+7.2f}")
+        return d
+
+    deltas = []
+    for ss in (2, 4, 8):
+        SUBSTEP, SIM_DT = ss, DT / ss
+        deltas.append(pair(f"substep {ss} (1/{240*ss})"))
+    SUBSTEP, SIM_DT = base_ss, DT / base_ss
+    for scale in (0.33, 3.0):
+        CONTACT_STIFFNESS, CONTACT_DAMPING = base_k * scale, base_c * scale
+        deltas.append(pair(f"contact x{scale:.2g}"))
+    CONTACT_STIFFNESS, CONTACT_DAMPING = base_k, base_c
+    for sd in (1, 2, 3):
+        deltas.append(pair(f"seed {sd} (+jitter)", seed=sd))
+
+    dmin, dmax = min(deltas), max(deltas)
+    if dmin > 0.3:
+        verdict = f"CONVERGENT POSITIVE -> '{strat_a} re-centers MORE than {strat_b}' EARNED"
+    elif dmax < -0.3:
+        verdict = f"CONVERGENT NEGATIVE -> '{strat_b} re-centers more' "
+    else:
+        verdict = (f"OVERLAPS 0 -> NOT convergently distinguishable; "
+                   f"downgrade to 'sign positive, magnitude not separable from {strat_b}'")
+    print(f"  paired delta across all variations: {dmin:+.2f}..{dmax:+.2f} cm -> {verdict}")
+    SUBSTEP, SIM_DT = base_ss, DT / base_ss
+    CONTACT_STIFFNESS, CONTACT_DAMPING = base_k, base_c
+    return 0
+
+
 def boundary_scan(strategy, n_fingers, direction, ready="splayed"):
     """§2.3 boundary check — the caged->escaped transition is exactly where §26's
     artifact lived (the verdict flipped with the timestep). Sweep offsets across
@@ -1244,6 +1294,9 @@ def main():
     ap.add_argument("--migration", action="store_true",
                     help="CAUSAL check: trace ball centering-err DURING the close "
                          "(gradual migration vs one-step snap) for fixed vs soft")
+    ap.add_argument("--paired", action="store_true",
+                    help="PAIRED-delta convergence: is soft.pull_in - fixed.pull_in "
+                         "convergently >0 (earns 'soft re-centers MORE')? (§2.3)")
     ap.add_argument("--quality", action="store_true",
                     help="with a single cell: report the continuous quality metrics")
     ap.add_argument("--quality-frames", action="store_true",
@@ -1288,6 +1341,9 @@ def main():
         return migration_trace(n_fingers=args.n, offset_m=args.offset,
                                direction=args.dir, ready=args.ready,
                                out_dir=args.out)
+    if args.paired:
+        return paired_converge("soft", "fixed", args.n, args.offset, args.dir,
+                               args.ready)
     if args.quality_frames:
         render_quality(args.strategy, args.n, args.offset, args.dir, args.ready,
                        args.out, video=not args.no_video)
