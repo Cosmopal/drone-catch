@@ -909,7 +909,7 @@ def migration_trace(strategies=("fixed", "soft"), n_fingers=4, offset_m=0.025,
                     pos = np.array(p.getBasePositionAndOrientation(ball)[0])
                     ce = float(np.linalg.norm(pos - cup))
                     fr = _draw_hud(fr, [
-                        f"{strat}  off={offset_m*100:.0f}cm {direction}",
+                        f"{strat}  off={offset_m*100:.1f}cm {direction}",
                         f"close {int(100*s/n_close)}%   centering-err {ce*100:.2f}cm",
                         f"fingers touching {_fingers_touching(g, ball)}"])
                     pct = int(round(100 * s / (n_close - 1)))
@@ -1013,7 +1013,7 @@ def render_quality(strategy, n_fingers, offset_m, direction, ready, out_dir,
                 flex = _finger_flexions_generic(g)
                 frame = np.hstack([shot(cams["diag"]), shot(cams["under"])])
                 writer.append_data(_draw_hud(frame, [
-                    f"{strategy}  off={offset_m*100:.0f}cm  dir={direction}",
+                    f"{strategy}  off={offset_m*100:.1f}cm  dir={direction}",
                     f"CLOSE   fingers touching: {nf}",
                     "finger flex: " + " ".join(f"{x:+.1f}" for x in flex)]))
 
@@ -1050,7 +1050,7 @@ def render_quality(strategy, n_fingers, offset_m, direction, ready, out_dir,
         emg = esc_margin / G
         emtxt = f">={emg:.1f}g" if emg >= (A_MAX_ESCAPE / G - 0.01) else f"{emg:.2f}g"
         common = [
-            f"{strategy}  off={offset_m*100:.0f}cm  dir={direction}  n={n_fingers}",
+            f"{strategy}  off={offset_m*100:.1f}cm  dir={direction}  n={n_fingers}",
             f"escape-margin: {emtxt} (min/26)   centering-err: {seat_err*100:.2f}cm",
             f"contact-fingers: {ncf}   symmetry: {sym:.2f}   score: {survived}/26",
             "finger flex: " + " ".join(f"{x:+.1f}" for x in flex),
@@ -1209,7 +1209,7 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
 
         def hud_close():
             nf = _fingers_touching(g, ball)
-            lines = [f"{strategy}  off={offset_m*100:.0f}cm  dir={direction}"
+            lines = [f"{strategy}  off={offset_m*100:.1f}cm  dir={direction}"
                      + ("  [pinned]" if pin else ""),
                      f"CLOSE   fingers touching: {nf}"]
             if strategy == "yale":
@@ -1257,7 +1257,7 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                     if s % batt_every == 0:
                         status = "HELD" if max_disp < ESCAPE_DELTA else "ESCAPED"
                         writer.append_data(grab([
-                            f"{strategy}  off={offset_m*100:.0f}cm  dir={direction}",
+                            f"{strategy}  off={offset_m*100:.1f}cm  dir={direction}",
                             f"BATTERY 2.5g  pull: {label}",
                             f"ball moved: {max_disp*100:.1f}cm   {status}"]))
                 results.append((label, max_disp < ESCAPE_DELTA, max_disp))

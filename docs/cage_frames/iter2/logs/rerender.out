@@ -1,0 +1,26 @@
+===== quality-frame re-renders (one-decimal HUD) =====
+  escape-margin=>=10.0g  centering-err=0.57cm  fingers=4  symmetry=0.70  score=26/26  weakest-bearing-held=True
+  escape-margin=>=10.0g  centering-err=2.16cm  fingers=4  symmetry=0.89  score=26/26  weakest-bearing-held=True
+  escape-margin=>=10.0g  centering-err=0.07cm  fingers=4  symmetry=1.00  score=26/26  weakest-bearing-held=True
+  escape-margin=>=10.0g  centering-err=3.68cm  fingers=4  symmetry=0.32  score=26/26  weakest-bearing-held=True
+  escape-margin=0.16g  centering-err=6.02cm  fingers=0  symmetry=0.00  score=0/26  weakest-bearing-held=False
+  escape-margin=0.16g  centering-err=36.42cm  fingers=0  symmetry=0.00  score=0/26  weakest-bearing-held=False
+===== boundary substep-flip pair =====
+  escape-margin=3.91g  centering-err=5.90cm  fingers=2  symmetry=0.20  score=26/26  weakest-bearing-held=True
+  escape-margin=>=10.0g  centering-err=3.99cm  fingers=4  symmetry=0.45  score=26/26  weakest-bearing-held=True
+===== migration re-renders (committed stdout) =====
+=== CAUSAL: ball migration during close (off=2.5cm finger n=4) ===
+   fixed CE:  2.50  2.16  2.19  2.20  2.20  2.19  2.18  2.17  2.18  2.18  2.17  2.16
+   fixed DENSE early CE (sim steps 0..24, cm): 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.43 2.34 2.25 2.14 2.14 2.13 2.17 2.18 2.17 2.17 2.17 2.16 2.16 2.16 2.16 2.16 2.16 2.16 2.15 2.15 2.14 2.13 2.14 2.13 2.13 2.13 2.14 2.15 2.15 2.16 2.16 2.16 2.16 2.16 2.16 2.16 2.16 2.17 2.16 2.17 2.17 2.17 2.17 2.17 2.17 2.17 2.17 2.18 2.17 2.18 2.17 2.18 2.17 2.18 2.17 2.18
+    soft CE:  2.50  0.39  0.57  0.57  0.57  0.57  0.57  0.57  0.57  0.57  0.57  0.57
+    soft DENSE early CE (sim steps 0..24, cm): 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.49 2.48 2.46 2.44 2.41 2.38 2.35 2.31 2.27 2.23 2.19 2.14 2.08 2.01 1.94 1.87 1.81 1.74 1.68 1.60 1.53 1.46 1.38 1.31 1.24 1.17 1.10 1.03 0.95 0.88 0.81 0.73 0.66 0.58 0.50 0.42 0.34 0.27 0.19 0.12 0.07 0.09 0.15 0.23 0.30 0.39 0.47 0.56 0.61 0.62 0.62 0.62 0.62 0.59 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57 0.57
+  fixed: dense-trace drop +0.37cm, biggest single SIM step = 29% of it -> negligible re-centering
+  soft: dense-trace drop +2.43cm, biggest single SIM step = 3% of it -> GRADUAL roll over 60 sim steps (~62 ms)
+=== CAUSAL: ball migration during close (off=2.5cm gap n=4) ===
+   fixed CE:  2.50  2.72  2.71  2.70  2.67  2.64  2.60  2.58  2.55  2.53  2.49  2.42
+   fixed DENSE early CE (sim steps 0..24, cm): 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.49 2.49 2.49 2.48 2.48 2.52 2.56 2.61 2.66 2.71 2.72 2.72 2.72 2.71 2.71 2.71 2.71 2.71 2.71 2.71 2.72 2.71 2.71 2.71 2.72 2.71 2.71 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72 2.71 2.72
+    soft CE:  2.50  2.48  2.58  2.52  2.48  2.40  2.42  2.38  2.32  2.35  2.19  2.16
+    soft DENSE early CE (sim steps 0..24, cm): 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.50 2.49 2.48 2.48 2.48 2.48 2.48 2.48 2.48 2.48 2.48 2.48 2.48 2.49 2.49 2.49 2.49 2.48 2.48 2.47 2.47 2.48 2.47 2.48 2.47 2.47 2.48 2.48 2.49
+  fixed: dense-trace drop +0.02cm, biggest single SIM step = 31% of it -> negligible re-centering
+  soft: dense-trace drop +0.03cm, biggest single SIM step = 39% of it -> negligible re-centering
+RERENDER_DONE

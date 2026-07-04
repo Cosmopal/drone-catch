@@ -1141,22 +1141,35 @@ mislabeled it "snap"; the dense trace corrected it). Frames
 side) → `..._010pct.png` (centered, symmetric wrap); fixed stays put over the
 same window.
 
-**Win vs null, rendered (so the narrowness is visible, not just tabular):**
-- WIN — n4-3.5 cm-finger (the cleanest convergent cell): migration drop soft
-  **+2.64 cm** vs fixed **+0.64 cm** (both gradual ~60 ms rolls) — soft re-centers
-  ~4× more. Seated frame `cageQ_soft_n4_finger_35mm_seated_under.png` (ball near
-  center, CE 1.04 cm) vs fixed `cageQ_fixed_n4_gap_35mm_seated_side.png` (pinned
-  off-center, CE 3.68 cm, symmetry 0.32).
-- CLEAN NULL — n4-2.5 cm-**gap**: migration drop soft **+0.03 cm**, fixed
-  **+0.02 cm** — NEITHER re-centers (both hold ~2.1–2.4 cm off-center). Frames
-  `migrate_soft_gap_25mm_*` ≈ `migrate_fixed_gap_25mm_*`. This is the visible
-  proof the advantage is direction-specific.
-- SUBTLE NULL — n6-2.5 cm-finger: at the NOMINAL substep-4 numerics the migration
-  shows soft re-centering **+2.49 cm** vs fixed **+0.35 cm** — it LOOKS like a win.
-  But the paired-delta across perturbations straddles 0 (−1.45..+2.17 cm), so the
-  apparent advantage is NOT robust. This is itself the lesson: **a single-timestep
-  frame can look like a win the convergence gate rejects** — the exact §26 trap,
-  which is why the paired/perturbed delta, not one rendered run, decides the verb.
+**Win vs null, rendered (so the narrowness is visible, not just tabular). Every
+number below is from a committed log — the migration drop from `migration_dense.txt`,
+the paired-delta bands from `followup.out`:**
+- WIN — n4-2.5 cm-finger (committed causal cell): migration drop soft **+2.43 cm**
+  (GRADUAL ~62 ms roll, largest single step 3 % of it) vs fixed **+0.37 cm**
+  (negligible) — soft re-centers ~6× more (`migration_dense.txt`). *Metric note
+  (the two re-centering numbers are DIFFERENT measurements, both committed):* the
+  migration "drop" = ces[0] − MIN centering-err reached DURING the close; here the
+  ball rolls in and overshoots to ~0.07 cm, so drop = +2.43 cm. The grid "pull-in"
+  = injected − FINAL settled centering-err = 2.50 − 0.57 = +1.93 cm. They differ by
+  the overshoot-then-settle; for a non-monotonic trajectory (e.g. the gap
+  direction) they can differ the other way — so we report each with its own name
+  and do not treat them as interchangeable. Both here agree soft re-centers
+  strongly (`migration.txt` / `quality_grid.txt`).
+  SAME-direction seated frames: `cageQ_soft_n4_finger_25mm_seated_under.png` (ball
+  re-centered, CE 0.57 cm, symmetric wrap) vs
+  `cageQ_fixed_n4_finger_25mm_seated_under.png` (pinned off-center, CE 2.16 cm).
+  The convergent-positive paired delta holds at n4-2.5 cm-finger (+0.31..+2.17) AND
+  n4-3.5 cm-finger (+0.91..+2.24), so the win is not a single-offset artifact.
+- CLEAN NULL — n4-2.5 cm-**gap**: paired delta −0.31..+0.95 → OVERLAPS 0 — soft
+  does not re-center MORE than fixed in the gap direction (its grid pull-in there
+  is only +0.34 cm vs +1.93 cm in the finger direction). Seated frame
+  `migrate_soft_gap_25mm_100pct.png` shows the ball held **2.16 cm off-center**
+  (≈ `migrate_fixed_gap_25mm_100pct.png`). Visible proof the advantage is
+  direction-specific.
+- SUBTLE NULL — n6-2.5 cm-finger: paired delta −1.45..+2.17 → OVERLAPS 0. (A
+  single NOMINAL-timestep render can LOOK like a soft win at n6, but it does not
+  survive the perturbation sweep — the exact §26 trap, and why the paired/perturbed
+  delta, not one rendered run, decides the verb.)
 
 **But the advantage is convergent only in a narrow regime** (the whole point of
 the iteration-2 convergence gate). The PAIRED delta (soft.pull_in − fixed.pull_in

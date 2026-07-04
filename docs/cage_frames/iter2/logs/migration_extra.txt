@@ -1,4 +1,0 @@
-########## migration n=4 off=0.035 dir=finger ##########
-########## migration n=6 off=0.025 dir=finger ##########
-########## migration n=4 off=0.025 dir=gap ##########
-MIGRATION_EXTRA_DONE
