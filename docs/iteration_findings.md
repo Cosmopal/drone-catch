@@ -1141,6 +1141,23 @@ mislabeled it "snap"; the dense trace corrected it). Frames
 side) → `..._010pct.png` (centered, symmetric wrap); fixed stays put over the
 same window.
 
+**Win vs null, rendered (so the narrowness is visible, not just tabular):**
+- WIN — n4-3.5 cm-finger (the cleanest convergent cell): migration drop soft
+  **+2.64 cm** vs fixed **+0.64 cm** (both gradual ~60 ms rolls) — soft re-centers
+  ~4× more. Seated frame `cageQ_soft_n4_finger_35mm_seated_under.png` (ball near
+  center, CE 1.04 cm) vs fixed `cageQ_fixed_n4_gap_35mm_seated_side.png` (pinned
+  off-center, CE 3.68 cm, symmetry 0.32).
+- CLEAN NULL — n4-2.5 cm-**gap**: migration drop soft **+0.03 cm**, fixed
+  **+0.02 cm** — NEITHER re-centers (both hold ~2.1–2.4 cm off-center). Frames
+  `migrate_soft_gap_25mm_*` ≈ `migrate_fixed_gap_25mm_*`. This is the visible
+  proof the advantage is direction-specific.
+- SUBTLE NULL — n6-2.5 cm-finger: at the NOMINAL substep-4 numerics the migration
+  shows soft re-centering **+2.49 cm** vs fixed **+0.35 cm** — it LOOKS like a win.
+  But the paired-delta across perturbations straddles 0 (−1.45..+2.17 cm), so the
+  apparent advantage is NOT robust. This is itself the lesson: **a single-timestep
+  frame can look like a win the convergence gate rejects** — the exact §26 trap,
+  which is why the paired/perturbed delta, not one rendered run, decides the verb.
+
 **But the advantage is convergent only in a narrow regime** (the whole point of
 the iteration-2 convergence gate). The PAIRED delta (soft.pull_in − fixed.pull_in
 at the SAME offset/dir/n/perturbation, 8 perturbations each):
@@ -1152,13 +1169,18 @@ at the SAME offset/dir/n/perturbation, 8 perturbations each):
 - n4-2.5 cm-**gap**: −0.31..+0.95 cm → OVERLAPS 0 (no re-centering in the gap dir;
   and soft holds WEAKLY there — soft-4-3.5 cm-gap converges as EM ~2.2–3.0 g,
   rattle high, vs fixed's 10 g).
-Soft's pull-in SIGN is itself timestep-unstable except at n4-3.5 cm-finger, and
-soft's ESCAPE-MARGIN is a knife-edge nearly everywhere (soft-4-2.5 cm-finger
+Soft's pull-in SIGN is itself timestep-unstable except at n4-3.5 cm-finger
+(n4-1.5 cm-finger sign −2.51..+0.46 = NOT stable; n6, n8 NOT stable), and soft's
+ESCAPE-MARGIN is a knife-edge nearly everywhere (soft-4-2.5 cm-finger
 CONVERGED=NO: EM swings 2.5/10/7.97 g across substep+seed — **exactly the §26
-artifact, caught by the gate this time instead of shipped**). So the earned claim
-is narrow: *soft re-centers more than fixed ONLY at low finger-count (n=4), finger
-direction, offset ≥2.5 cm; elsewhere the advantage is not convergently separable
-and soft's escape-margin is not a trustworthy number.*
+artifact, caught by the gate this time instead of shipped**). The n4-1.5 cm
+sign-instability is reported as an OBSERVATION, not a theory: at a small offset the
+re-centering distance is within the timestep/seed noise, so no stable sign appears
+— the effect is only legible at offset ≥2.5 cm in our data; we do not claim a
+mechanism for that threshold. So the earned claim is narrow: *soft re-centers more
+than fixed ONLY at low finger-count (n=4), finger direction, offset ≥2.5 cm;
+elsewhere the advantage is not convergently separable and soft's escape-margin is
+not a trustworthy number.*
 
 ### YALE (faithful underactuated hand) — convergently ejects, but it's the REGIME
 Yale convergently EJECTS the off-center free ball (yale-4-2.5 cm-finger

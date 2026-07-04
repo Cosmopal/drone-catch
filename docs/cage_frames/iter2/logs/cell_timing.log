@@ -14,3 +14,7 @@ CELL START 01:55:38 | --boundary --strategy fixed --n 4 --dir gap
 === cell_monitor stopped 2026-07-05 01:56:38 ===
 === cell_monitor(v2) started 2026-07-05 01:58:43 ===
 CELL START 02:00:23 | --boundary --strategy fixed --n 4 --dir gap 
+CELL END   02:04:03 | --boundary --strategy fixed --n 4 --dir gap   | cpu=217.83s wall=220s gap=3s
+CELL START 02:04:03 | --boundary --strategy fixed --n 4 --dir finger 
+CELL END   02:09:43 | --boundary --strategy fixed --n 4 --dir finger  | cpu=337.71s wall=340s gap=3s
+CELL START 02:09:43 | --boundary --strategy soft --n 4 --dir gap 
