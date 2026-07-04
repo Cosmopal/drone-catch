@@ -17,3 +17,66 @@
   CONVERGED: NO — knife-edge, do not trust
   pull-in across all variations: +1.11..+3.48 cm -> sign robustly POSITIVE (re-centers)
 ########## soft 6 0.025 finger ##########
+=== §2.3 convergence: soft n=6 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.94   -1.46    4.23   4  0.43   0.50
+     substep 4 (1/960) |   10.00   +2.06    0.00   6  0.82   1.00
+    substep 8 (1/1920) |   10.00   +0.53    0.11   6  0.73   1.00
+         contact x0.33 |   10.00   +2.16    0.01   6  0.82   1.00
+            contact x3 |   10.00   +2.08    0.01   6  0.85   1.00
+      seed 1 (+jitter) |    5.31   +0.96    1.22   5  0.58   1.00
+      seed 2 (+jitter) |   10.00   +1.84    0.00   6  0.68   1.00
+      seed 3 (+jitter) |    9.84   +0.83    0.01   6  0.67   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 5.31..10.00g (range 4.69g)
+  CONVERGED: NO — knife-edge, do not trust
+  pull-in across all variations: -1.46..+2.16 cm -> sign SIGN NOT stable
+########## soft 8 0.025 finger ##########
+=== §2.3 convergence: soft n=8 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.16   -1.90    4.25   3  0.57   0.54
+     substep 4 (1/960) |   10.00   +2.06    0.00   8  0.93   1.00
+    substep 8 (1/1920) |   10.00   +0.59    0.00   8  0.82   1.00
+         contact x0.33 |   10.00   +2.17    0.01   8  0.92   1.00
+            contact x3 |   10.00   +2.09    0.01   8  0.86   1.00
+      seed 1 (+jitter) |   10.00   +0.31    0.17   7  0.65   1.00
+      seed 2 (+jitter) |   10.00   +1.77    0.00   8  0.80   1.00
+      seed 3 (+jitter) |   10.00   +0.67    0.06   7  0.62   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
+  CONVERGED: YES
+  pull-in across all variations: -1.90..+2.17 cm -> sign SIGN NOT stable
+########## soft 4 0.025 gap ##########
+=== §2.3 convergence: soft n=4 off=2.5cm dir=gap ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.78   -2.15    4.27   4  0.39   0.42
+     substep 4 (1/960) |    3.75   +0.34    2.30   4  0.62   1.00
+    substep 8 (1/1920) |    5.00   -0.23    0.04   4  0.51   1.00
+         contact x0.33 |    4.38   +0.21    1.04   4  0.76   1.00
+            contact x3 |    2.81   +0.74    2.97   3  0.68   1.00
+      seed 1 (+jitter) |    2.81   +0.30    1.50   4  0.64   1.00
+      seed 2 (+jitter) |    2.50   +0.54    2.19   4  0.84   1.00
+      seed 3 (+jitter) |    3.12   +0.50    0.62   4  0.74   1.00
+
+  substep 4 vs 8 escape-margin: 3.75g vs 5.00g (|d|=1.25g)
+  seed spread (jitter) escape-margin: 2.50..3.12g (range 0.62g)
+  CONVERGED: NO — knife-edge, do not trust
+  pull-in across all variations: -2.15..+0.74 cm -> sign SIGN NOT stable
+SOFTCONV_DONE
+===== BOUNDARY scans =====
+########## fixed 4 gap ##########
+=== §2.3 boundary scan: fixed n=4 dir=gap ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    C    C    .    .    .    .
+    1/960   |    C    .    C    .    .    .
+    1/1920  |    C    C    C    C    .    .
+
+  boundary (largest caged offset) per substep:
+    1/480: 4.0 cm
+    1/960: 4.3 cm
+    1/1920: 4.5 cm
+  ⚠ NOT timestep-stable at offsets (cm): [4.0, 4.3, 4.5] — verdict flips with substep; DO NOT trust the boundary here.
+########## fixed 4 finger ##########

@@ -1,5 +1,20 @@
-===== SOFT pull-in SIGN convergence (finger dir + n6/n8) =====
+===== SOFT pull-in SIGN convergence (offset + finger-count) =====
 ########## soft 4 0.015 finger ##########
+=== §2.3 convergence: soft n=4 off=1.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.16   -2.51    4.23   4  0.37   0.15
+     substep 4 (1/960) |   10.00   +0.38    0.01   4  0.76   1.00
+    substep 8 (1/1920) |    9.84   +0.05    0.00   4  0.84   1.00
+         contact x0.33 |   10.00   +0.21    0.00   4  0.80   1.00
+            contact x3 |    7.50   +0.43    0.03   4  0.57   1.00
+      seed 1 (+jitter) |   10.00   +0.38    0.01   4  0.83   1.00
+      seed 2 (+jitter) |    6.87   +0.46    0.47   4  0.71   1.00
+      seed 3 (+jitter) |    9.84   +0.38    0.01   4  0.85   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 9.84g (|d|=0.16g)
+  seed spread (jitter) escape-margin: 6.87..10.00g (range 3.13g)
+  CONVERGED: NO — knife-edge, do not trust
+  pull-in across all variations: -2.51..+0.46 cm -> sign SIGN NOT stable
 ########## soft 4 0.035 finger ##########
 === §2.3 convergence: soft n=4 off=3.5cm dir=finger ===
              variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
@@ -17,3 +32,35 @@
   CONVERGED: NO — knife-edge, do not trust
   pull-in across all variations: +1.11..+3.48 cm -> sign robustly POSITIVE (re-centers)
 ########## soft 6 0.025 finger ##########
+=== §2.3 convergence: soft n=6 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.94   -1.46    4.23   4  0.43   0.50
+     substep 4 (1/960) |   10.00   +2.06    0.00   6  0.82   1.00
+    substep 8 (1/1920) |   10.00   +0.53    0.11   6  0.73   1.00
+         contact x0.33 |   10.00   +2.16    0.01   6  0.82   1.00
+            contact x3 |   10.00   +2.08    0.01   6  0.85   1.00
+      seed 1 (+jitter) |    5.31   +0.96    1.22   5  0.58   1.00
+      seed 2 (+jitter) |   10.00   +1.84    0.00   6  0.68   1.00
+      seed 3 (+jitter) |    9.84   +0.83    0.01   6  0.67   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 5.31..10.00g (range 4.69g)
+  CONVERGED: NO — knife-edge, do not trust
+  pull-in across all variations: -1.46..+2.16 cm -> sign SIGN NOT stable
+########## soft 8 0.025 finger ##########
+=== §2.3 convergence: soft n=8 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |    0.16   -1.90    4.25   3  0.57   0.54
+     substep 4 (1/960) |   10.00   +2.06    0.00   8  0.93   1.00
+    substep 8 (1/1920) |   10.00   +0.59    0.00   8  0.82   1.00
+         contact x0.33 |   10.00   +2.17    0.01   8  0.92   1.00
+            contact x3 |   10.00   +2.09    0.01   8  0.86   1.00
+      seed 1 (+jitter) |   10.00   +0.31    0.17   7  0.65   1.00
+      seed 2 (+jitter) |   10.00   +1.77    0.00   8  0.80   1.00
+      seed 3 (+jitter) |   10.00   +0.67    0.06   7  0.62   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
+  CONVERGED: YES
+  pull-in across all variations: -1.90..+2.17 cm -> sign SIGN NOT stable
+SOFTCONV_DONE

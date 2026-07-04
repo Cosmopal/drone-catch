@@ -1,0 +1,62 @@
+===== PAIRED delta soft-fixed (decides 're-centers MORE') =====
+########## soft-vs-fixed n=4 off=0.025 dir=finger ##########
+=== §2.3 PAIRED delta (soft-fixed) n=4 off=2.5cm dir=finger ===
+             variation |   soft PI  fixed PI   DELTA
+     substep 2 (1/480) |     +1.62     +1.10   +0.51
+     substep 4 (1/960) |     +1.93     +0.34   +1.59
+    substep 8 (1/1920) |     +0.70     +0.40   +0.31
+         contact x0.33 |     +2.06     +0.90   +1.15
+            contact x3 |     +2.15     -0.02   +2.17
+      seed 1 (+jitter) |     +0.70     +0.03   +0.67
+      seed 2 (+jitter) |     +1.92     +0.66   +1.27
+      seed 3 (+jitter) |     +1.13     +0.69   +0.44
+  paired delta across all variations: +0.31..+2.17 cm -> CONVERGENT POSITIVE -> 'soft re-centers MORE than fixed' EARNED
+########## soft-vs-fixed n=4 off=0.035 dir=finger ##########
+=== §2.3 PAIRED delta (soft-fixed) n=4 off=3.5cm dir=finger ===
+             variation |   soft PI  fixed PI   DELTA
+     substep 2 (1/480) |     +1.11     +0.20   +0.91
+     substep 4 (1/960) |     +2.46     +0.32   +2.14
+    substep 8 (1/1920) |     +3.48     +1.30   +2.18
+         contact x0.33 |     +1.90     -0.20   +2.10
+            contact x3 |     +2.09     +0.51   +1.58
+      seed 1 (+jitter) |     +2.55     +0.31   +2.24
+      seed 2 (+jitter) |     +2.51     +0.35   +2.17
+      seed 3 (+jitter) |     +2.03     +0.31   +1.72
+  paired delta across all variations: +0.91..+2.24 cm -> CONVERGENT POSITIVE -> 'soft re-centers MORE than fixed' EARNED
+########## soft-vs-fixed n=6 off=0.025 dir=finger ##########
+=== §2.3 PAIRED delta (soft-fixed) n=6 off=2.5cm dir=finger ===
+             variation |   soft PI  fixed PI   DELTA
+     substep 2 (1/480) |     -1.46     -0.01   -1.45
+     substep 4 (1/960) |     +2.06     -0.11   +2.17
+    substep 8 (1/1920) |     +0.53     +0.41   +0.12
+         contact x0.33 |     +2.16     +0.42   +1.75
+            contact x3 |     +2.08     +0.06   +2.02
+      seed 1 (+jitter) |     +0.96     -0.06   +1.01
+      seed 2 (+jitter) |     +1.84     -0.12   +1.95
+      seed 3 (+jitter) |     +0.83     -0.08   +0.91
+  paired delta across all variations: -1.45..+2.17 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from fixed'
+########## soft-vs-fixed n=8 off=0.025 dir=finger ##########
+=== §2.3 PAIRED delta (soft-fixed) n=8 off=2.5cm dir=finger ===
+             variation |   soft PI  fixed PI   DELTA
+     substep 2 (1/480) |     -1.90     +0.17   -2.06
+     substep 4 (1/960) |     +2.06     -0.28   +2.34
+    substep 8 (1/1920) |     +0.59     +0.11   +0.48
+         contact x0.33 |     +2.17     -0.22   +2.39
+            contact x3 |     +2.09     -0.11   +2.20
+      seed 1 (+jitter) |     +0.31     -0.27   +0.58
+      seed 2 (+jitter) |     +1.77     -0.06   +1.83
+      seed 3 (+jitter) |     +0.67     -0.27   +0.94
+  paired delta across all variations: -2.06..+2.39 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from fixed'
+########## soft-vs-fixed n=4 off=0.025 dir=gap ##########
+=== §2.3 PAIRED delta (soft-fixed) n=4 off=2.5cm dir=gap ===
+             variation |   soft PI  fixed PI   DELTA
+     substep 2 (1/480) |     -2.15     -1.84   -0.31
+     substep 4 (1/960) |     +0.34     +0.08   +0.27
+    substep 8 (1/1920) |     -0.23     -1.19   +0.95
+         contact x0.33 |     +0.21     +0.21   +0.01
+            contact x3 |     +0.74     -0.19   +0.93
+      seed 1 (+jitter) |     +0.30     -0.44   +0.74
+      seed 2 (+jitter) |     +0.54     -0.25   +0.79
+      seed 3 (+jitter) |     +0.50     -0.16   +0.66
+  paired delta across all variations: -0.31..+0.95 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from fixed'
+PAIRED_DONE

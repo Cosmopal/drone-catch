@@ -1,2 +1,2 @@
-===== BOUNDARY =====
+===== BOUNDARY scans =====
 ########## fixed 4 gap ##########

@@ -1,0 +1,15 @@
+=== cell_monitor started 2026-07-05 01:33:16 ===
+CELL START 01:33:16 | --paired --n 4 --offset 0.025 --dir gap 
+CELL END   01:40:17 | --paired --n 4 --offset 0.025 --dir gap       | cpu=504.44s wall=421s hibernation_gap=-83s
+CELL START 01:40:17 | --converge --strategy soft --n 4 --offset 0.015 --dir finger 
+CELL END   01:43:37 | --converge --strategy soft --n 4 --offset 0.015 --dir finger  | cpu=196.6s wall=200s hibernation_gap=4s
+CELL START 01:43:37 | --converge --strategy soft --n 4 --offset 0.035 --dir finger 
+CELL END   01:45:57 | --converge --strategy soft --n 4 --offset 0.035 --dir finger  | cpu=136.81s wall=140s hibernation_gap=4s
+CELL START 01:45:57 | --converge --strategy soft --n 6 --offset 0.025 --dir finger 
+CELL END   01:49:58 | --converge --strategy soft --n 6 --offset 0.025 --dir finger  | cpu=223.07s wall=241s hibernation_gap=18s
+CELL START 01:49:58 | --converge --strategy soft --n 8 --offset 0.025 --dir finger 
+CELL END   01:55:38 | --converge --strategy soft --n 8 --offset 0.025 --dir finger  | cpu=331.54s wall=340s hibernation_gap=9s
+CELL START 01:55:38 | --boundary --strategy fixed --n 4 --dir gap 
+=== wrapper gone 2026-07-05 01:56:38 ===
+=== cell_monitor stopped 2026-07-05 01:56:38 ===
+=== cell_monitor(v2) started 2026-07-05 01:58:43 ===
