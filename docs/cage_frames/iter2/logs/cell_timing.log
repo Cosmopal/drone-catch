@@ -18,3 +18,9 @@ CELL END   02:04:03 | --boundary --strategy fixed --n 4 --dir gap   | cpu=217.83
 CELL START 02:04:03 | --boundary --strategy fixed --n 4 --dir finger 
 CELL END   02:09:43 | --boundary --strategy fixed --n 4 --dir finger  | cpu=337.71s wall=340s gap=3s
 CELL START 02:09:43 | --boundary --strategy soft --n 4 --dir gap 
+CELL END   02:13:44 | --boundary --strategy soft --n 4 --dir gap    | cpu=230.44s wall=241s gap=11s
+CELL START 02:13:44 | --boundary --strategy soft --n 4 --dir finger 
+CELL END   02:20:24 | --boundary --strategy soft --n 4 --dir finger  | cpu=388.61s wall=400s gap=12s
+CELL START 02:20:24 | --boundary --strategy yale --n 4 --dir finger 
+CELL END   02:29:25 | --boundary --strategy yale --n 4 --dir finger  | cpu=250.9s wall=541s gap=291s
+=== run idle, monitor stopped 2026-07-05 02:29:25 ===

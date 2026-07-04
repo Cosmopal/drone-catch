@@ -26,3 +26,42 @@ verdict grid (C=caged, .=escaped); columns = offset cm
     1/1920: 5.0 cm
   boundary is timestep-stable across 1/480..1/1920 (converged).
 ########## soft 4 gap ##########
+=== §2.3 boundary scan: soft n=4 dir=gap ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    C    .    .    .    .    .
+    1/960   |    C    C    .    .    .    .
+    1/1920  |    C    C    C    .    .    .
+
+  boundary (largest caged offset) per substep:
+    1/480: 3.5 cm
+    1/960: 4.0 cm
+    1/1920: 4.3 cm
+  ⚠ NOT timestep-stable at offsets (cm): [4.0, 4.3] — verdict flips with substep; DO NOT trust the boundary here.
+########## soft 4 finger ##########
+=== §2.3 boundary scan: soft n=4 dir=finger ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    C    .    C    C    .    .
+    1/960   |    C    C    C    C    C    C
+    1/1920  |    C    C    C    C    C    C
+
+  boundary (largest caged offset) per substep:
+    1/480: 4.5 cm
+    1/960: 5.0 cm
+    1/1920: 5.0 cm
+  ⚠ NOT timestep-stable at offsets (cm): [4.0, 4.8, 5.0] — verdict flips with substep; DO NOT trust the boundary here.
+########## yale 4 finger ##########
+=== §2.3 boundary scan: yale n=4 dir=finger ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    .    .    C    C    .    .
+    1/960   |    .    .    C    .    .    .
+    1/1920  |    .    .    .    C    .    .
+
+  boundary (largest caged offset) per substep:
+    1/480: 4.5 cm
+    1/960: 4.3 cm
+    1/1920: 4.5 cm
+  ⚠ NOT timestep-stable at offsets (cm): [4.3, 4.5] — verdict flips with substep; DO NOT trust the boundary here.
+BOUNDARY_DONE

@@ -1223,6 +1223,26 @@ offset (the §26 band). `--migration` is the causal roll-vs-snap trace;
 (close/seated/post-disturbance) HUD triptychs. Canonical run logs live in
 `docs/cage_frames/iter2/logs/` (trust the `*.out` stdout, not the tee'd `*.txt`).
 
+**Boundary-scan result — the instrument flags its own untrustworthy band (D3
+working).** Scanning the caged→escaped cliff across substeps {2,4,8}
+(`boundary_rerun.out`): only **fixed-finger is timestep-STABLE** (converged
+boundary). The other four are NOT: fixed-gap flips at 4.0/4.3/4.5 cm, soft-gap at
+4.0/4.3 cm, soft-finger at 4.0/4.8/5.0 cm, yale-finger at 4.3/4.5 cm. So for 4 of
+5 strategies the caged/escaped verdict in the **4–5 cm band flips with the
+timestep** — exactly the §26 artifact zone. We therefore **refuse to certify a
+numeric capture-radius/boundary for those strategies** and report only "the
+harness flags this band as untrustworthy." The instrument detecting and declining
+its own ill-conditioned region IS the finding — it is the convergence detector
+doing its job, and it is why no capture-limit number is quoted except for
+fixed-finger. Rendered at the SAME physical offset (fixed-gap 4.0 cm), the seating
+swings with timestep: `boundary_ss2/cageQ_fixed_n4_gap_40mm_seated_under.png`
+(substep 2: a precarious 2-finger graze, ball 5.90 cm off, nearly out — yet still
+scores 26/26, a live example of the binary metric over-crediting a precarious
+hold) vs `boundary_ss8/cageQ_fixed_n4_gap_40mm_seated_under.png` (substep 8:
+4-finger hold, 3.99 cm). The quality metrics (escape-margin 3.91 g, centering
+5.9 cm, 2 fingers) flag the substep-2 hold as precarious where the binary score
+does not — exactly the iteration-1 gap this work closes.
+
 ### What I did NOT test (iteration-2 scope was the static quality metric)
 - **Gravity-ON / dynamic / momentum-seated capture** — the regime that would give
   Yale (and arguably soft's roll-in) a fair test. Deferred to Goal 2.
