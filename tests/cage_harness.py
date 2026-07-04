@@ -46,7 +46,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from config import ArmConfig                     # noqa: E402
 from ball import spawn_ball                      # noqa: E402
-import yale_hand                                 # noqa: E402
+import yale_hand                                 # noqa: E402 (contact-reading stand-in)
+import yale_prb                                  # noqa: E402 (faithful PRB mechanism)
 
 ASSETS = os.path.join(os.path.dirname(__file__), "..", "assets")
 sys.path.insert(0, ASSETS)
@@ -163,6 +164,7 @@ class FixedGripper:
                                useFixedBase=True)
         self.shoulder = self.elbow = self.ee_link = -1
         self.yale_cfg = yale_hand.YaleConfig()
+        self.prb_cfg = yale_prb.PRBConfig()
         fseg = {}
         for j in range(p.getNumJoints(self.body)):
             info = p.getJointInfo(self.body, j)
@@ -210,18 +212,28 @@ class FixedGripper:
                 p.changeDynamics(self.body, j, jointDamping=0.0)
                 p.setJointMotorControl2(self.body, j, p.VELOCITY_CONTROL,
                                         force=0.0)
+        elif strategy == "prb":
+            # faithful PRB Yale: regularize the near-massless-finger inertia
+            # (stated ceiling) + free the motors so pure torque governs the joints.
+            yale_prb.regularize_inertia(self.body, self.finger_links,
+                                        self.prb_cfg.inertia_scale)
+            yale_prb.prep(self.body, self.finger_joints)
 
     def apply_close(self, strategy, ball_id=None, progress=1.0):
         """Apply the close command for one step.
 
         `fixed`/`compliant`/`soft` servo toward the validated CLOSE_POSE and
         differ only in compliance (force cap / gain). `under` is a per-joint
-        deep-curl stand-in (no coupling). `yale` is the FAITHFUL underactuated
-        hand (`src/yale_hand.py`): one actuator displacement (ramped by
-        `progress`), inter-finger whiffletree + intra-finger tendon couplings, so
-        the hand SELF-DISTRIBUTES around the ball (`ball_id` read for live
-        contact). `under` was per-joint independent — `yale` is the real
-        mechanism."""
+        deep-curl stand-in (no coupling). `prb` is the FAITHFUL PRB Yale mechanism
+        (`src/yale_prb.py`): flexure return springs + a constant-tension tendon
+        (ramped `progress`), self-distribution EMERGENT from force balance with NO
+        contact-reading. `yale` is the OLD contact-reading stand-in
+        (`src/yale_hand.py`, reads `ball_id` contacts to script the redistribution)
+        — kept for the record; use `prb` for scoring the mechanism."""
+        if strategy == "prb":
+            pull = min(1.0, progress / 0.7) * self.prb_cfg.pull_max
+            yale_prb.actuate(self.body, self.finger_joints, pull, self.prb_cfg)
+            return
         if strategy == "yale":
             d_act = min(1.0, progress / 0.6) * self.yale_cfg.d_max
             yale_hand.actuate(self.body, self.finger_joints, ball_id, d_act,
@@ -1308,7 +1320,8 @@ def main():
     ap.add_argument("--render", action="store_true")
     ap.add_argument("--video", action="store_true")
     ap.add_argument("--strategy", default="fixed",
-                    choices=["fixed", "compliant", "soft", "under", "yale", "tendon"])
+                    choices=["fixed", "compliant", "soft", "under", "yale",
+                             "tendon", "prb"])
     ap.add_argument("--n", type=int, default=4)
     ap.add_argument("--offset", type=float, default=0.0)
     ap.add_argument("--dir", default="finger", choices=["finger", "gap", "outside"])
