@@ -1,0 +1,13 @@
+pybullet build time: Jan 29 2025 23:17:20
+intercept=[1.1, 0.0, 1.5] station_H=0.32 t_flight=0.944s
+[t=0.883s] CLOSE  cup_d=4.4cm rel=8.76
+
+=== RESULT ===
+closed=True captured=True caught=True held=True
+min cup-to-ball: 0.7cm   at: cup=[0.946, 0.001, 1.554] ball=[0.951, 0.0, 1.55] th=(-30,27)deg
+end: cup_d=3.1cm fingers=4 max_fingers=4
+  t=0.000 -> prepos cup_d=324.9cm rel=6.26 nf=0 ball_z=0.150
+  t=0.825 -> track  cup_d=47.4cm rel=3.77 nf=0 ball_z=1.794
+  t=0.900 -> hold   cup_d=1.0cm rel=0.45 nf=3 ball_z=1.618
+  t=1.904 -> lift   cup_d=2.6cm rel=0.10 nf=4 ball_z=1.534
+EXIT=0

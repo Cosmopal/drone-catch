@@ -1,0 +1,30 @@
+########## boundary prb finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 boundary scan: prb n=4 dir=finger ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    C    C    C    C    C    C
+    1/960   |    C    C    C    C    C    C
+    1/1920  |    C    C    C    C    C    C
+
+  boundary (largest caged offset) per substep:
+    1/480: 5.0 cm
+    1/960: 5.0 cm
+    1/1920: 5.0 cm
+  boundary is timestep-stable across 1/480..1/1920 (converged).
+########## boundary prb gap ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 boundary scan: prb n=4 dir=gap ===
+verdict grid (C=caged, .=escaped); columns = offset cm
+   substep |  3.5  4.0  4.3  4.5  4.8  5.0
+    1/480   |    C    C    C    C    C    C
+    1/960   |    C    C    C    C    C    C
+    1/1920  |    C    C    C    C    C    C
+
+  boundary (largest caged offset) per substep:
+    1/480: 5.0 cm
+    1/960: 5.0 cm
+    1/1920: 5.0 cm
+  boundary is timestep-stable across 1/480..1/1920 (converged).
+PRB_BOUNDARY_DONE
+EXIT=0

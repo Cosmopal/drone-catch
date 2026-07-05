@@ -1,0 +1,17 @@
+pybullet build time: Jan 29 2025 23:17:20
+   vx    vz    vy    dx    dy seed | caught  held rel@hit  peakF  absorb
+  2.5  -2.0   0.0  0.00  0.00    0 |   True  True    2.15  11.31    67ms
+  2.5  -3.2   0.0  0.00  0.00    0 |   True  True    2.44   8.18    67ms
+  2.5  -4.5   0.0  0.00  0.00    0 |   True  True    3.23   9.23    67ms
+  3.3  -2.0   0.0  0.00  0.00    0 |   True  True    2.51  11.31    67ms
+  3.3  -3.2   0.0  0.00  0.00    0 |   True  True    2.78   8.35    67ms
+  3.3  -4.5   0.0  0.00  0.00    0 |   True  True    3.45   8.68    67ms
+  4.5  -2.0   0.0  0.00  0.00    0 |   True  True    3.10  11.31    67ms
+  4.5  -3.2   0.0  0.00  0.00    0 |   True  True    3.36   8.79    67ms
+  4.5  -4.5   0.0  0.00  0.00    0 |   True  True    4.03   8.69    75ms
+  5.5  -2.0   0.0  0.00  0.00    0 |   True  True    3.69  11.31    67ms
+  5.5  -3.2   0.0  0.00  0.00    0 |   True  True    4.07   9.47    71ms
+  5.5  -4.5   0.0  0.00  0.00    0 |   True  True    4.64   8.59    79ms
+
+held 12/12  max peak force 11.3N
+EXIT=0
