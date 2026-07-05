@@ -181,18 +181,57 @@ and azimuthal **contact symmetry**. Transferable lessons:
   (CONVERGED=NO: EM 2.5/10/7.97 g across timestep+seed) — the same §26 artifact,
   caught by the gate this time. Only the pull-in SIGN (and only in the narrow
   convergent corner) is a trustworthy number.
-- **The testbed-regime trap (a specific "does the metric see the benefit" case).**
-  The faithful Yale hand convergently EJECTS an off-center ball on the static
-  gravity-off free-ball harness — but that is the regime that structurally
-  disadvantages an underactuated hand (nothing seats the object against the
-  fingers, so the differential never engages), NOT a verdict on the mechanism.
-  Report such a result as a *regime limitation* and name the regime that would be
-  fair (gravity-on / momentum-seated / constrained), or you will "confidently
-  reject the right answer."
+- **The mechanism-fidelity trap (the one that bit us — see the iteration-2 redo
+  below).** The §28 "Yale convergently EJECTS the off-center ball" result was run
+  on a **contact-reading STAND-IN** (`yale_hand.py` scripts the redistribution from
+  `getContactPoints`) — not a mechanism, a puppet, and it fails the faithfulness
+  test (does a finger stall because the *ball* is in its way, or because software
+  told it to?). When a **faithful** pseudo-rigid-body hand (physical tendon, no
+  contact reads) was built and re-scored, the verdict **reversed**: it cages *and*
+  re-centers. **Before scoring a mechanism, prove it IS the mechanism** — evaluate
+  a hand model on physics, not on a software abstraction wearing the hand's name.
 - **Cross-check every number against a rendered frame, and verify the causal
   story before asserting it.** The soft "re-centering" first looked like a
   one-step snap (coarse sampling); a dense per-sim-step trace showed a gradual
   ~62 ms roll. The number was right; the *mechanism story* would have been wrong.
+
+## Update — a FAITHFUL Yale hand reverses the verdict (iteration 2, Goal-1 redo)
+
+The §28 fixed-vs-Yale result above used a stand-in; Goal 1 was reopened to redo it
+with a **faithful pseudo-rigid-body (PRB) mechanism** (`src/yale_prb.py`,
+iteration_findings **§29**): flexure joints as torsional return springs + a
+**constant-tension, distal-weighted tendon**, one actuator, and — the test of
+faithfulness — **zero `getContactPoints` in the close law** (a finger stalls
+because the ball is physically in its way; the rest keep closing under the same
+tension, so self-distribution EMERGES). What changed:
+
+- **The verdict flips.** The stand-in "ejected" the off-center ball (a puppet
+  artifact). The faithful hand **cages it as robustly as the rigid fixed close**
+  (4 fingers, 26/26, escape-margin ≥10 g) **AND re-centers it** in the finger
+  direction — convergently (pull-in +1.3..+3.1 cm across 1.5-3.5 cm offsets,
+  seating to <0.4 cm; CONVERGED=YES at every substep/contact/seed). It re-centers
+  *more than fixed* (paired delta EARNED at n4-finger 2.5/3.5 cm and n6-finger).
+- **Envelope, stated as tightly as the soft result.** Re-centering is earned only
+  for **finger-direction** approaches at ring density **n4-n6**; it is honestly
+  ABSENT in the **gap direction** (ball lands between two fingers — cages but
+  nothing sits behind it to push it back) and at **n8** (too little per-finger
+  travel budget for a differential). The coverage weakness is the SAME one the
+  rigid close has, now shown to bound the adaptive hand's re-centering too.
+- **A robustness win the binary missed:** the faithful hand's compliant close cages
+  to ≥5 cm in *both* directions with a **timestep-STABLE** boundary — it escapes
+  the §26 artifact band (4-5 cm caged/escaped verdict that flips with the substep)
+  that the rigid fixed/soft closes still sit in.
+- **Numerical honesty of the fix:** the near-massless fingers need inertia
+  regularization (×50) to be integrable; that scaling is proven **scale-invariant**
+  (identical self-distribution at ×30/×50/×100), so it conditions the stiff ODE
+  without manufacturing the result. Stated ceiling: fixed-base, spherical object,
+  no continuous-flexure/true-tendon-friction/shape adaptation (a MuJoCo project).
+
+Transferable: **an adaptive/underactuated hand's headline advantage (re-centering
+an off-center object) is real but geometry-gated** — it needs a finger *behind* the
+object to translate it, and enough per-finger travel to differentiate. And, again:
+**mechanism claims must be scored on a faithful mechanism**, or you measure the
+stand-in, not the physics.
 
 ## Buildable at home (sim2real)
 

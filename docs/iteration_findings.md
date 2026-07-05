@@ -1268,3 +1268,113 @@ does not — exactly the iteration-1 gap this work closes.
   fixed and soft on the grid; not exhaustively convergence-gated).
 - **The escape-margin cap (10 g)** hides how robust the very-robust holds are —
   fine for grading precariousness (the point), not for ranking rock-solid holds.
+
+## 29. FAITHFUL Yale (PRB) re-score: §28's "Yale ejects" was a STAND-IN artifact — the faithful hand CAGES *and* re-centers (finger direction)
+
+**Why Goal 1 was reopened.** §28's fixed-vs-Yale verdict used the CONTACT-READING
+stand-in (`src/yale_hand.py` — its close law reads `getContactPoints` to *script*
+the redistribution), which fails the D9 mechanism gate: it is not a mechanism, it
+is a puppet. A **faithful pseudo-rigid-body hand** (`src/yale_prb.py`) was built to
+replace it — flexure joints as torsional return springs + a **constant-tension,
+distal-weighted tendon**, ONE actuator, **zero `getContactPoints` in the close
+law** (a finger stalls because the ball is physically in its way; the others keep
+closing under the same tension → self-distribution is EMERGENT). It is inertia-
+×50-regularized (the near-massless 3-4 g fingers are otherwise a stiff-ODE wall,
+§25); that regularization is proven **scale-invariant** (spread identical at ×30/
+×50/×100, `logs/prb_convergence.txt`) so it conditions the ODE without faking the
+result. This hand passed the D9 gate and was re-scored on the SAME 96-cell quality
+grid as the `prb` strategy (harness `--strategy prb`; additive, existing scores
+untouched). Canonical logs: `docs/cage_frames/iter2/logs/prb_quality_grid.txt`,
+`prb_converge_all.txt`, `prb_paired.txt`, `prb_boundary.txt`.
+
+### THE HEADLINE — does the verdict change? YES, it reverses (in the finger direction).
+§28 (stand-in): *"Yale convergently EJECTS the off-center free ball"* (pull-in
+−34..−103 cm, 0 contact fingers, score 0). **That "Yale ejects/loses" was a model
+artifact of the puppet.** The faithful PRB hand does the opposite: it **cages the
+off-center ball as robustly as the rigid fixed close** (4 contact fingers,
+score 26/26, escape-margin ≥10 g, held@2.5 g — identical binary to fixed) **AND, in
+the finger direction, drags it back toward center — convergently.** The verdict
+flips from "the adaptive hand ejects / loses to fixed" to "the adaptive hand cages
+*and* re-centers where the rigid close only pins."
+
+### Where it HOLDS (envelope, every number cited)
+**Re-centers, convergently (finger direction).** `prb_converge_all.txt`, all
+CONVERGED=YES (substep 2/4/8, contact ±3×, seed jitter):
+- n4-finger: pull-in sign robustly POSITIVE at 1.5 cm (**+1.30..+1.39**), 2.5 cm
+  (**+2.06..+2.26**), 3.5 cm (**+2.95..+3.15**).
+- n6-finger 2.5 cm: **+1.66..+1.73**, robustly POSITIVE.
+It doesn't just cage off-center, it *seats to near-center*: `prb_quality_grid.txt`
+n4-finger centering-err **0.15 / 0.25 / 0.38 cm** from **1.5 / 2.5 / 3.5 cm**
+injected (frame `cageQ_prb_n4_finger_25mm_seated_diag.png`: 4 fingers wrapped,
+symmetric flex +2.2, ball 0.25 cm off). Rattle is also lower than fixed's — mean
+over n×dir (`prb_quality_grid.txt` fixed-vs-prb table) prb **0.00-0.04 cm** vs fixed
+**0.08-0.17 cm** at the four offsets — the holds are tighter, not just centered.
+
+**Re-centers MORE than fixed (paired delta EARNED).** `prb_paired.txt`, per-
+perturbation delta (same substep/contact/seed → fair pairing), CONVERGENT POSITIVE:
+- n4-finger 2.5 cm: **+1.15..+2.28 cm** → EARNED.
+- n4-finger 3.5 cm: **+1.84..+3.15 cm** → EARNED.
+- n6-finger 2.5 cm: **+1.25..+1.85 cm** → EARNED.
+The fixed-vs-prb mean table (`prb_quality_grid.txt`) is consistent: mean pull-in
+prb **+0.54 / +0.51 / +0.52** cm vs fixed **−0.31 / −0.08 / +0.16** at 1.5/2.5/
+3.5 cm, and prb's mean symmetry exceeds fixed's at the hard 3.5 cm offset (0.71 vs
+0.43).
+
+**vs soft — TIES on magnitude, but with CLEAN convergence where soft was a knife-
+edge.** `prb_paired.txt` prb-soft: n4-finger 2.5 cm **+0.01..+1.54**, 3.5 cm
+**−0.34..+2.02**, gap 3.5 cm **−0.39..+0.70** — all OVERLAP 0 → NOT convergently
+distinguishable ("sign positive, magnitude not separable from soft"). So prb does
+NOT re-center *more* than soft. The distinction is trustworthiness, not magnitude:
+soft's own re-centering claim was gated to a narrow corner because soft's escape-
+margin is a knife-edge (§28: CONVERGED=NO, EM 2.5/10/7.97 g across timestep+seed),
+whereas **prb's escape-margin is a stable ≥10 g at every perturbation of every
+finger-direction cell** (`prb_converge_all.txt`) and its re-center holds across
+n4 AND n6 (soft's was n4-only). Same re-centering behavior, but earned on solid
+numerics instead of a flip-prone one.
+
+### Where it does NOT (honest limits — hedged exactly like the soft result)
+- **Gap direction (ball landing between two fingers): cages but does NOT re-
+  center.** `prb_converge_all.txt` n4-gap 2.5 cm **−0.11..+0.09**, 3.5 cm
+  **−0.35..−0.00** → SIGN NOT stable; the ball stays where it landed (centering-err
+  1.47/2.55/3.75 cm, `prb_quality_grid.txt`). It still *cages* — score 26/26, 4
+  fingers, held (frame `cageQ_prb_n4_gap_35mm_seated_under.png`: caged but sitting
+  3.75 cm off toward the gap, symmetry 0.44). Paired vs fixed at gap 3.5 cm
+  OVERLAPS 0 (**−0.22..+2.15**). *Mechanism:* in the finger direction the two
+  nearest fingers straddle the ball and the far pair's distal tuck pulls it in; in
+  the gap direction no finger sits behind the ball to push it back, so the tendon
+  cages around it but can't translate it. Denser rings even nudge it slightly out
+  (n6-gap 3.5 cm pull-in −1.21, n8-gap −1.10 — still caged).
+- **Dense ring (n8-finger): re-center washes out.** `prb_converge_all.txt`
+  n8-finger 2.5 cm **+0.02..+0.27** → SIGN NOT stable; paired vs fixed OVERLAPS 0
+  (**−0.07..+0.50**). With 8 fingers the per-finger travel budget is too small for
+  a meaningful differential — **n6 is the densest ring that convergently re-
+  centers.** (n8 still cages: score 26/26.)
+
+### Boundary — a second, independent robustness win over §28
+`prb_boundary.txt`: the faithful hand cages to **≥5.0 cm (the scan edge) in BOTH
+finger and gap directions**, and the caged verdict is **timestep-STABLE across
+1/480–1/1920** (converged) in both. This is the regime §28 flagged as
+UNTRUSTWORTHY for fixed/soft/yale — their 4–5 cm caged/escaped verdict FLIPPED with
+the substep (the §26 artifact band). The PRB hand's force-limited compliant close
+removes that band: no timestep-fragile boundary in the scanned range. Frame
+`cageQ_prb_n4_finger_50mm_seated_diag.png` confirms a real 4-finger cage at the
+5.0 cm extreme (escape-margin dropped to 6.09 g — precarious but held@2.5 g — and
+it still re-centered 5.0 → 3.04 cm; note the asymmetric flex +2.7/+2.4/**+1.6**/+2.4,
+the near finger stalled on the ball while the far ones closed — the self-
+distribution signature, visible directly).
+
+### Net (the answer, with the envelope stated as rigorously as soft was)
+The fixed-vs-Yale verdict **changes**: with a faithful mechanism, "Yale ejects /
+loses to fixed" becomes **"Yale cages as robustly as fixed and re-centers where
+fixed only pins."** That re-centering is EARNED (convergent, and convergently
+greater than fixed) in a specific envelope — **finger-direction approaches, ring
+density n4–n6, offsets 1.5–3.5 cm** — and is HONESTLY ABSENT in the gap direction
+and at n8 (cages, doesn't re-center). It ties the passive soft flexure on
+re-centering magnitude but on cleaner numerics. And its caged boundary is timestep-
+stable to ≥5 cm in both directions, escaping the §26 artifact band that fixed/soft
+still sit in. The §28 "ejects" number stands as a correct statement ABOUT THE
+STAND-IN, now explicitly labeled an artifact of the puppet; no §28 number is
+altered — this section adds the faithful-hand arm. **Still deferred (unchanged
+scope):** gravity-on / momentum-seated / on-drone quality; the finger-vs-gap
+coverage gap is the same one the rigid close has (a pose-optimization lever, §25
+open item), now shown to bound the adaptive hand's re-centering too.

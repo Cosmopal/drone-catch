@@ -1,0 +1,106 @@
+########## paired prb-fixed n=4 off=0.025 dir=finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-fixed) n=4 off=2.5cm dir=finger ===
+             variation |    prb PI  fixed PI   DELTA
+     substep 2 (1/480) |     +2.25     +1.10   +1.15
+     substep 4 (1/960) |     +2.25     +0.34   +1.91
+    substep 8 (1/1920) |     +2.25     +0.40   +1.85
+         contact x0.33 |     +2.06     +0.90   +1.16
+            contact x3 |     +2.26     -0.02   +2.28
+      seed 1 (+jitter) |     +2.22     +0.03   +2.19
+      seed 2 (+jitter) |     +2.23     +0.66   +1.57
+      seed 3 (+jitter) |     +2.23     +0.69   +1.54
+  paired delta across all variations: +1.15..+2.28 cm -> CONVERGENT POSITIVE -> 'prb re-centers MORE than fixed' EARNED
+########## paired prb-fixed n=4 off=0.035 dir=finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-fixed) n=4 off=3.5cm dir=finger ===
+             variation |    prb PI  fixed PI   DELTA
+     substep 2 (1/480) |     +3.12     +0.20   +2.93
+     substep 4 (1/960) |     +3.12     +0.32   +2.80
+    substep 8 (1/1920) |     +3.14     +1.30   +1.84
+         contact x0.33 |     +2.95     -0.20   +3.15
+            contact x3 |     +3.15     +0.51   +2.64
+      seed 1 (+jitter) |     +3.05     +0.31   +2.75
+      seed 2 (+jitter) |     +3.10     +0.35   +2.75
+      seed 3 (+jitter) |     +3.12     +0.31   +2.81
+  paired delta across all variations: +1.84..+3.15 cm -> CONVERGENT POSITIVE -> 'prb re-centers MORE than fixed' EARNED
+########## paired prb-fixed n=4 off=0.035 dir=gap ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-fixed) n=4 off=3.5cm dir=gap ===
+             variation |    prb PI  fixed PI   DELTA
+     substep 2 (1/480) |     -0.27     -2.41   +2.15
+     substep 4 (1/960) |     -0.25     -0.18   -0.07
+    substep 8 (1/1920) |     -0.25     -0.17   -0.08
+         contact x0.33 |     -0.00     +0.22   -0.22
+            contact x3 |     -0.35     -0.51   +0.16
+      seed 1 (+jitter) |     -0.26     -0.40   +0.14
+      seed 2 (+jitter) |     -0.23     -0.40   +0.17
+      seed 3 (+jitter) |     -0.14     -0.34   +0.20
+  paired delta across all variations: -0.22..+2.15 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from fixed'
+########## paired prb-fixed n=6 off=0.025 dir=finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-fixed) n=6 off=2.5cm dir=finger ===
+             variation |    prb PI  fixed PI   DELTA
+     substep 2 (1/480) |     +1.72     -0.01   +1.74
+     substep 4 (1/960) |     +1.73     -0.11   +1.84
+    substep 8 (1/1920) |     +1.72     +0.41   +1.31
+         contact x0.33 |     +1.66     +0.42   +1.25
+            contact x3 |     +1.73     +0.06   +1.67
+      seed 1 (+jitter) |     +1.71     -0.06   +1.77
+      seed 2 (+jitter) |     +1.73     -0.12   +1.85
+      seed 3 (+jitter) |     +1.68     -0.08   +1.76
+  paired delta across all variations: +1.25..+1.85 cm -> CONVERGENT POSITIVE -> 'prb re-centers MORE than fixed' EARNED
+########## paired prb-fixed n=8 off=0.025 dir=finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-fixed) n=8 off=2.5cm dir=finger ===
+             variation |    prb PI  fixed PI   DELTA
+     substep 2 (1/480) |     +0.10     +0.17   -0.07
+     substep 4 (1/960) |     +0.10     -0.28   +0.38
+    substep 8 (1/1920) |     +0.10     +0.11   -0.01
+         contact x0.33 |     +0.27     -0.22   +0.50
+            contact x3 |     +0.02     -0.11   +0.13
+      seed 1 (+jitter) |     +0.07     -0.27   +0.35
+      seed 2 (+jitter) |     +0.12     -0.06   +0.18
+      seed 3 (+jitter) |     +0.16     -0.27   +0.44
+  paired delta across all variations: -0.07..+0.50 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from fixed'
+########## paired prb-soft n=4 off=0.025 dir=finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-soft) n=4 off=2.5cm dir=finger ===
+             variation |    prb PI   soft PI   DELTA
+     substep 2 (1/480) |     +2.25     +1.62   +0.64
+     substep 4 (1/960) |     +2.25     +1.93   +0.31
+    substep 8 (1/1920) |     +2.25     +0.70   +1.54
+         contact x0.33 |     +2.06     +2.06   +0.01
+            contact x3 |     +2.26     +2.15   +0.11
+      seed 1 (+jitter) |     +2.22     +0.70   +1.52
+      seed 2 (+jitter) |     +2.23     +1.92   +0.31
+      seed 3 (+jitter) |     +2.23     +1.13   +1.10
+  paired delta across all variations: +0.01..+1.54 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from soft'
+########## paired prb-soft n=4 off=0.035 dir=finger ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-soft) n=4 off=3.5cm dir=finger ===
+             variation |    prb PI   soft PI   DELTA
+     substep 2 (1/480) |     +3.12     +1.11   +2.02
+     substep 4 (1/960) |     +3.12     +2.46   +0.66
+    substep 8 (1/1920) |     +3.14     +3.48   -0.34
+         contact x0.33 |     +2.95     +1.90   +1.05
+            contact x3 |     +3.15     +2.09   +1.06
+      seed 1 (+jitter) |     +3.05     +2.55   +0.50
+      seed 2 (+jitter) |     +3.10     +2.51   +0.59
+      seed 3 (+jitter) |     +3.12     +2.03   +1.09
+  paired delta across all variations: -0.34..+2.02 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from soft'
+########## paired prb-soft n=4 off=0.035 dir=gap ##########
+pybullet build time: Jan 29 2025 23:17:20
+=== §2.3 PAIRED delta (prb-soft) n=4 off=3.5cm dir=gap ===
+             variation |    prb PI   soft PI   DELTA
+     substep 2 (1/480) |     -0.27     -0.88   +0.61
+     substep 4 (1/960) |     -0.25     -0.06   -0.18
+    substep 8 (1/1920) |     -0.25     -0.30   +0.05
+         contact x0.33 |     -0.00     +0.39   -0.39
+            contact x3 |     -0.35     -0.71   +0.36
+      seed 1 (+jitter) |     -0.26     +0.03   -0.29
+      seed 2 (+jitter) |     -0.23     -0.87   +0.64
+      seed 3 (+jitter) |     -0.14     -0.84   +0.70
+  paired delta across all variations: -0.39..+0.70 cm -> OVERLAPS 0 -> NOT convergently distinguishable; downgrade to 'sign positive, magnitude not separable from soft'
+PRB_PAIRED_DONE
+EXIT=0
