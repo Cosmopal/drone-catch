@@ -1226,11 +1226,17 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
 
         def hud_close():
             nf = _fingers_touching(g, ball)
+            bp = np.array(p.getBasePositionAndOrientation(ball)[0])
+            cerr = float(np.linalg.norm(bp[:2] - cup[:2]))  # live re-centering
             lines = [f"{strategy}  off={offset_m*100:.1f}cm  dir={direction}"
                      + ("  [pinned]" if pin else ""),
-                     f"CLOSE   fingers touching: {nf}"]
-            if strategy == "yale":
-                fl = yale_hand.finger_flexions(g.body, g.finger_joints, g.yale_cfg)
+                     f"CLOSE   fingers touching: {nf}",
+                     f"centering-err: {cerr*100:.2f}cm  (injected {offset_m*100:.1f}cm)"]
+            if strategy in ("yale", "prb"):
+                fl = (yale_prb.finger_flexions(g.body, g.finger_joints, g.prb_cfg)
+                      if strategy == "prb"
+                      else yale_hand.finger_flexions(g.body, g.finger_joints,
+                                                     g.yale_cfg))
                 lines.append("finger flex: " + " ".join(f"{x:+.1f}" for x in fl))
                 lines.append(f"self-distrib spread: {max(fl)-min(fl):.2f} rad")
             return lines
