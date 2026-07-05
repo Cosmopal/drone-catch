@@ -637,7 +637,7 @@ def grid():
 
 def quality_grid(strategies=("fixed", "compliant", "soft", "yale"),
                  ns=(4, 6, 8), offsets=(0.0, 0.015, 0.025, 0.035),
-                 dirs=("finger", "gap")):
+                 dirs=("finger", "gap"), compare_strat="yale"):
     """§2.2 — re-score strategies on the CONTINUOUS quality metric per
     offset x direction x finger-count. Reports escape-margin (the discriminating
     signal — a precarious hold has a low margin even if it survives 2.5 g),
@@ -673,25 +673,27 @@ def quality_grid(strategies=("fixed", "compliant", "soft", "yale"),
                 print(f"{'':>9} {'':>2} {'':>6} SC| " + " ".join(
                     f"{c['score']:>7.2f}" for c in cells))
 
-    # --- the fixed-vs-Yale quality question, answered with numbers ---
+    # --- the fixed-vs-<compare_strat> quality question, answered with numbers ---
     # PULL-IN is the axis on which an adaptive hand can win — lead with it.
-    print("\n=== fixed vs Yale on QUALITY (mean over n x dir, per offset) ===")
-    print(f"{'offset':>7} | {'fx PULLIN':>9} {'yl PULLIN':>9} | "
-          f"{'fx rattle':>9} {'yl rattle':>9} | {'fx SY':>6} {'yl SY':>6} | "
-          f"{'fx CF':>6} {'yl CF':>6} | {'fx SC':>6} {'yl SC':>6}")
+    cs = compare_strat
+    cl = cs[:2]
+    print(f"\n=== fixed vs {cs} on QUALITY (mean over n x dir, per offset) ===")
+    print(f"{'offset':>7} | {'fx PULLIN':>9} {cl+' PULLIN':>9} | "
+          f"{'fx rattle':>9} {cl+' rattle':>9} | {'fx SY':>6} {cl+' SY':>6} | "
+          f"{'fx CF':>6} {cl+' CF':>6} | {'fx SC':>6} {cl+' SC':>6}")
     for o in offsets:
         def agg(strat, key):
             xs = [c[key] for c in rows if c["strategy"] == strat and c["offset"] == o]
             return np.mean(xs) if xs else float("nan")
         print(f"{o*100:>6.1f}cm | "
-              f"{agg('fixed','pull_in')*100:>+9.2f} {agg('yale','pull_in')*100:>+9.2f} | "
-              f"{agg('fixed','rattle')*100:>9.2f} {agg('yale','rattle')*100:>9.2f} | "
-              f"{agg('fixed','symmetry'):>6.2f} {agg('yale','symmetry'):>6.2f} | "
-              f"{agg('fixed','n_contact_fingers'):>6.2f} {agg('yale','n_contact_fingers'):>6.2f} | "
-              f"{agg('fixed','score'):>6.2f} {agg('yale','score'):>6.2f}")
-    print("\n(PULL-IN>0 => the close dragged the ball toward center; ~0 => it "
-          "held where the ball landed. If Yale's PULL-IN does not exceed fixed's, "
-          "the adaptive hand does not win on re-centering in this sim.)")
+              f"{agg('fixed','pull_in')*100:>+9.2f} {agg(cs,'pull_in')*100:>+9.2f} | "
+              f"{agg('fixed','rattle')*100:>9.2f} {agg(cs,'rattle')*100:>9.2f} | "
+              f"{agg('fixed','symmetry'):>6.2f} {agg(cs,'symmetry'):>6.2f} | "
+              f"{agg('fixed','n_contact_fingers'):>6.2f} {agg(cs,'n_contact_fingers'):>6.2f} | "
+              f"{agg('fixed','score'):>6.2f} {agg(cs,'score'):>6.2f}")
+    print(f"\n(PULL-IN>0 => the close dragged the ball toward center; ~0 => it "
+          f"held where the ball landed. If {cs}'s PULL-IN does not exceed fixed's, "
+          f"the adaptive hand does not win on re-centering in this sim.)")
     return 0
 
 
@@ -1340,6 +1342,16 @@ def main():
     ap.add_argument("--substep", type=int, default=None,
                     help="override sim sub-steps/240Hz tick (default 4=1/960); "
                          "use to inspect the off-center timestep-fragility (§26)")
+    ap.add_argument("--strats", default=None,
+                    help="with --quality-grid: comma list of strategies to score "
+                         "(default fixed,compliant,soft,yale). Additive.")
+    ap.add_argument("--compare", default="yale",
+                    help="with --quality-grid: strategy compared against fixed in "
+                         "the per-offset mean table (default yale)")
+    ap.add_argument("--paired-a", default="soft",
+                    help="with --paired: strategy A in the A-B pull-in delta")
+    ap.add_argument("--paired-b", default="fixed",
+                    help="with --paired: strategy B in the A-B pull-in delta")
     args = ap.parse_args()
     if args.prb_inertia is not None:
         global PRB_INERTIA_OVERRIDE
@@ -1353,7 +1365,10 @@ def main():
     if args.grid:
         return grid()
     if args.quality_grid:
-        return quality_grid()
+        if args.strats is not None:
+            strats = tuple(s.strip() for s in args.strats.split(",") if s.strip())
+            return quality_grid(strategies=strats, compare_strat=args.compare)
+        return quality_grid(compare_strat=args.compare)
     if args.converge:
         return converge_cell(args.strategy, args.n, args.offset, args.dir,
                              args.ready)
@@ -1364,8 +1379,8 @@ def main():
                                direction=args.dir, ready=args.ready,
                                out_dir=args.out)
     if args.paired:
-        return paired_converge("soft", "fixed", args.n, args.offset, args.dir,
-                               args.ready)
+        return paired_converge(args.paired_a, args.paired_b, args.n, args.offset,
+                               args.dir, args.ready)
     if args.quality_frames:
         render_quality(args.strategy, args.n, args.offset, args.dir, args.ready,
                        args.out, video=not args.no_video)
