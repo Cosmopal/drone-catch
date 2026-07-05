@@ -1,0 +1,13 @@
+pybullet build time: Jan 29 2025 23:17:20
+§2.4 quality frames for prb_n4_gap_35mm:
+  escape-margin=>=10.0g  centering-err=3.75cm  fingers=4  symmetry=0.44  score=26/26  weakest-bearing-held=True
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_close_diag.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_close_under.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_close_side.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_seated_diag.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_seated_under.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_seated_side.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_disturb_diag.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_disturb_under.png
+  /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_frames/iter2/cageQ_prb_n4_gap_35mm_disturb_side.png
+EXIT=0
