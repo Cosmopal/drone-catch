@@ -1,0 +1,4 @@
+pybullet build time: Jan 29 2025 23:17:20
+video (SLOW grasp-only, ~9.1s, diag+under): /mnt/c/Users/Palash/Projects/robots/drone-catch/.claude/worktrees/grasp-iter2/docs/cage_videos/cagevid_prb_n4_gap_35mm_slowmo.mp4
+  prb n=4 off=3.5cm dir=gap ready=splayed  seated_fingers=4
+EXIT=0
