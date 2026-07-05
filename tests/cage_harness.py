@@ -55,6 +55,7 @@ import make_gripper_variants as variants         # noqa: E402
 
 DT = 1.0 / 240.0
 G = 9.81
+PRB_INERTIA_OVERRIDE = None    # set by --prb-inertia to sweep the PRB inertia scale
 
 # ---- fixed-base catch pose (arm straight down, fingers below the EE) ----
 BASE_POS = (0.0, 0.0, 1.0)
@@ -164,7 +165,9 @@ class FixedGripper:
                                useFixedBase=True)
         self.shoulder = self.elbow = self.ee_link = -1
         self.yale_cfg = yale_hand.YaleConfig()
-        self.prb_cfg = yale_prb.PRBConfig()
+        self.prb_cfg = (yale_prb.PRBConfig(inertia_scale=PRB_INERTIA_OVERRIDE)
+                        if PRB_INERTIA_OVERRIDE is not None
+                        else yale_prb.PRBConfig())
         fseg = {}
         for j in range(p.getNumJoints(self.body)):
             info = p.getJointInfo(self.body, j)
@@ -1331,10 +1334,16 @@ def main():
                     help="with --video: pin the ball during close (see the wrap)")
     ap.add_argument("--slowmo", action="store_true",
                     help="with --video: ~9 s slow-motion of the grasp")
+    ap.add_argument("--prb-inertia", type=float, default=None,
+                    help="override the PRB inertia-regularization scale (to sweep "
+                         "whether the faithful-Yale behavior is scale-invariant)")
     ap.add_argument("--substep", type=int, default=None,
                     help="override sim sub-steps/240Hz tick (default 4=1/960); "
                          "use to inspect the off-center timestep-fragility (§26)")
     args = ap.parse_args()
+    if args.prb_inertia is not None:
+        global PRB_INERTIA_OVERRIDE
+        PRB_INERTIA_OVERRIDE = args.prb_inertia
     if args.substep is not None:
         global SUBSTEP, SIM_DT
         SUBSTEP = args.substep

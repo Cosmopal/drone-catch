@@ -1,0 +1,47 @@
+########## self-distribution convergence (D3) ##########
+=== PRB self-distribution convergence (off-center 3.5cm-finger spread) ===
+timestep:
+  substep 2 (1/480): spread=1.23 flex=[1.71, 2.93, 2.38, 2.94]
+  substep 4 (1/960): spread=1.22 flex=[1.72, 2.94, 2.32, 2.94]
+  substep 8 (1/1920): spread=1.21 flex=[1.73, 2.94, 2.28, 2.94]
+inertia-regularization SCALE (invariance = the fix doesn't fake it):
+  inertia x30: spread=1.22
+  inertia x50: spread=1.22
+  inertia x100: spread=1.22
+seed (sub-mm ball jitter):
+  seed 1: spread=1.24
+  seed 2: spread=1.21
+  seed 3: spread=1.19
+centered control: spread=0.00 (want ~0)
+########## FREE-BALL harness convergence (prb, 2.5cm-finger) ##########
+=== §2.3 convergence: prb n=4 off=2.5cm dir=finger ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |   10.00   +2.25    0.04   4  0.77   1.00
+     substep 4 (1/960) |   10.00   +2.25    0.03   4  0.60   1.00
+    substep 8 (1/1920) |   10.00   +2.25    0.03   4  0.60   1.00
+         contact x0.33 |   10.00   +2.06    0.20   4  0.75   1.00
+            contact x3 |   10.00   +2.26    0.02   4  0.83   1.00
+      seed 1 (+jitter) |   10.00   +2.22    0.04   4  0.60   1.00
+      seed 2 (+jitter) |   10.00   +2.23    0.03   4  0.60   1.00
+      seed 3 (+jitter) |   10.00   +2.23    0.04   4  0.60   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
+  CONVERGED: YES
+  pull-in across all variations: +2.06..+2.26 cm -> sign robustly POSITIVE (re-centers)
+########## FREE-BALL harness convergence (prb, 3.5cm-gap) ##########
+=== §2.3 convergence: prb n=4 off=3.5cm dir=gap ===
+             variation |   EM(g)  PI(cm)  RT(cm)  CF    SY  score
+     substep 2 (1/480) |   10.00   -0.27    0.01   4  0.44   1.00
+     substep 4 (1/960) |   10.00   -0.25    0.01   4  0.44   1.00
+    substep 8 (1/1920) |   10.00   -0.25    0.01   4  0.44   1.00
+         contact x0.33 |   10.00   -0.00    0.02   4  0.60   1.00
+            contact x3 |   10.00   -0.35    0.00   4  0.44   1.00
+      seed 1 (+jitter) |   10.00   -0.26    0.01   4  0.44   1.00
+      seed 2 (+jitter) |   10.00   -0.23    0.01   4  0.44   1.00
+      seed 3 (+jitter) |   10.00   -0.14    0.01   4  0.46   1.00
+
+  substep 4 vs 8 escape-margin: 10.00g vs 10.00g (|d|=0.00g)
+  seed spread (jitter) escape-margin: 10.00..10.00g (range 0.00g)
+  CONVERGED: YES
+  pull-in across all variations: -0.35..-0.00 cm -> sign SIGN NOT stable

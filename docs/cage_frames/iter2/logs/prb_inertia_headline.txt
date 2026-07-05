@@ -1,0 +1,22 @@
+=== FREE-BALL headline behavior vs inertia scale (verdict-flip gate) ===
+#### prb 2.5/3.5 off=0.025 dir=finger ####
+  inertia=30:
+      QUALITY: escape-margin=10.00 g (98.1 m/s^2, weakest bearing) | rattle@2g=0.04 cm (worst residual)
+      centering: injected=2.50cm -> err=0.31cm  PULL-IN=+2.19cm | contact-fingers=4 pts=10 symmetry=0.56
+  inertia=50:
+      QUALITY: escape-margin=10.00 g (98.1 m/s^2, weakest bearing) | rattle@2g=0.03 cm (worst residual)
+      centering: injected=2.50cm -> err=0.25cm  PULL-IN=+2.25cm | contact-fingers=4 pts=10 symmetry=0.60
+  inertia=100:
+      QUALITY: escape-margin=10.00 g (98.1 m/s^2, weakest bearing) | rattle@2g=0.02 cm (worst residual)
+      centering: injected=2.50cm -> err=0.07cm  PULL-IN=+2.43cm | contact-fingers=4 pts=12 symmetry=1.00
+#### prb 2.5/3.5 off=0.035 dir=gap ####
+  inertia=30:
+      QUALITY: escape-margin=10.00 g (98.1 m/s^2, weakest bearing) | rattle@2g=0.01 cm (worst residual)
+      centering: injected=3.50cm -> err=3.75cm  PULL-IN=-0.25cm | contact-fingers=4 pts=6 symmetry=0.44
+  inertia=50:
+      QUALITY: escape-margin=10.00 g (98.1 m/s^2, weakest bearing) | rattle@2g=0.01 cm (worst residual)
+      centering: injected=3.50cm -> err=3.75cm  PULL-IN=-0.25cm | contact-fingers=4 pts=6 symmetry=0.44
+  inertia=100:
+      QUALITY: escape-margin=10.00 g (98.1 m/s^2, weakest bearing) | rattle@2g=0.01 cm (worst residual)
+      centering: injected=3.50cm -> err=3.75cm  PULL-IN=-0.25cm | contact-fingers=4 pts=6 symmetry=0.44
+PRB_INERTIA_HEADLINE_DONE

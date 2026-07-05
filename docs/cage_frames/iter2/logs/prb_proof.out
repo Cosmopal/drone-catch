@@ -1,0 +1,14 @@
+########## D9 mechanism proof (pinned ball) ##########
+=== PRB Yale hand — mechanism-fidelity proof (D9) ===
+config: k=(0.25, 0.25, 0.25) c=(0.003, 0.003, 0.003) pull_max=0.25 inertia_scale=50.0
+close law src/yale_prb.actuate: contains getContactPoints? NO — self-distribution is physical
+
+(1)+(2) centered vs off-center (pinned ball):
+  CENTERED     flex=['+2.19', '+2.19', '+2.19', '+2.18'] spread=0.00 nf=4 seg=[3, 3, 3, 3]
+  OFF-CENTER   flex=['+1.72', '+2.94', '+2.32', '+2.94'] spread=1.22 nf=4 seg=[3, 1, 1, 1]
+
+VERDICT:
+  centered symmetric (spread<0.3): PASS
+  off-center self-distributes (spread>0.6): PASS
+  flexure conforms (a finger wraps >=2 segments): PASS
+  => emergent self-distribution + conformance from the MECHANISM: PROVEN

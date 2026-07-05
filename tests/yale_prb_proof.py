@@ -50,10 +50,10 @@ def _segments_touching(g, ball):
     return out
 
 
-def close_on_ball(offset_m, direction, cfg, render=False, tag=""):
+def close_on_ball(offset_m, direction, cfg, render=False, tag="", seed=None):
     """Close the PRB hand on a PINNED ball at (offset, direction); return
     (per_finger_flex, n_fingers_touch, per_finger_seg_contacts). Optionally save
-    3-angle HUD frames of the seated wrap."""
+    3-angle HUD frames of the seated wrap. `seed` adds sub-mm ball jitter."""
     p.connect(p.DIRECT)
     try:
         ch.setup_physics()
@@ -65,6 +65,10 @@ def close_on_ball(offset_m, direction, cfg, render=False, tag=""):
         az = (math.pi / 2 if direction == "finger"
               else math.pi / 2 + math.pi / 4)
         off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
+        if seed is not None:
+            j = np.random.default_rng(seed).normal(0, 3e-4, 3)
+            j[2] = 0.0
+            off = off + j
         cup = g.cup_world()
         ball = ch.setup_ball(cup + off)
         ball0 = np.array(p.getBasePositionAndOrientation(ball)[0])
@@ -117,10 +121,42 @@ def _render(g, ball, flex, seg, offset_m, direction, tag):
         print("  frame:", os.path.abspath(path))
 
 
+def converge():
+    """§2.3/D3 for the MECHANISM: is the emergent self-distribution (off-center
+    finger flex-spread) stable across timestep, the inertia regularization SCALE,
+    and seed? The scale-INVARIANCE is load-bearing — it shows the ×50 inertia
+    fix ENABLES the sim without MANUFACTURING the self-distribution. Committed to
+    a log (provenance ratchet)."""
+    base = prb.PRBConfig()
+    print("=== PRB self-distribution convergence (off-center 3.5cm-finger spread) ===")
+    print("timestep:")
+    for ss in (2, 4, 8):
+        ch.SUBSTEP, ch.SIM_DT = ss, ch.DT / ss
+        fl, _, _ = close_on_ball(0.035, "finger", base)
+        print(f"  substep {ss} (1/{240*ss}): spread={max(fl)-min(fl):.2f} "
+              f"flex={[round(x,2) for x in fl]}")
+    ch.SUBSTEP, ch.SIM_DT = 4, ch.DT / 4
+    print("inertia-regularization SCALE (invariance = the fix doesn't fake it):")
+    for isc in (30, 50, 100):
+        fl, _, _ = close_on_ball(0.035, "finger", prb.PRBConfig(inertia_scale=isc))
+        print(f"  inertia x{isc}: spread={max(fl)-min(fl):.2f}")
+    print("seed (sub-mm ball jitter):")
+    for sd in (1, 2, 3):
+        fl, _, _ = close_on_ball(0.035, "finger", base, seed=sd)
+        print(f"  seed {sd}: spread={max(fl)-min(fl):.2f}")
+    fl, _, _ = close_on_ball(0.0, "finger", base)
+    print(f"centered control: spread={max(fl)-min(fl):.2f} (want ~0)")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--headless", action="store_true")
+    ap.add_argument("--converge", action="store_true",
+                    help="run the self-distribution convergence sweep (D3)")
     args = ap.parse_args()
+    if args.converge:
+        return converge()
     cfg = prb.PRBConfig()
     render = not args.headless
 
