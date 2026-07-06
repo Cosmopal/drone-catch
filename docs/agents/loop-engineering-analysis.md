@@ -891,6 +891,73 @@ number as ground truth, and every fix is external to the loop's own consistency.
 
 ---
 
+# Appendix — Provenance & discussion record
+
+So a fresh session (or reader) has the full context, not just the conclusions.
+
+**Who/when.** Written by a meta-analysis session (Claude, session `d155edbe-…`,
+2026-07-04→06) at the user's request, in the role of "an AI engineer observing an
+experiment where I attempt to build a drone system with maximal AI work and minimal
+human oversight. The objective is to learn about the capabilities and limitations of
+AI agents and to discover insights and techniques to improve reliability of AI
+agents and loops for long running autonomous projects." Full transcript:
+`~/.claude/projects/-mnt-c-Users-Palash-Projects-robots-drone-catch/d155edbe-7048-4315-a7e7-ea544c31734d.jsonl`.
+
+**The user's question sequence** (each shaped a Part; user's pointers were explicitly
+"starting points, not boundaries"):
+1. Review the grasp experiment + transcripts; patterns/limitations/insights; which
+   published findings are reproduced; what increases autonomy; how to restructure —
+   e.g. "loop engineering" → **Parts I–II**.
+2. How can the system self-learn — what to record, how to analyze it into a better
+   goal doc/strategy → **Part I §5–6**.
+3. What knowledge to accrue; token-efficient management; "is RAG the only way?" →
+   **Part I §6, Part IV.3**.
+4. "Is loop engineering the only paradigm? What architectures have you studied?" →
+   **Part III**.
+5. Blue-sky objection: "we won't know failure modes in advance — can the lead agent
+   come up with them reliably?"; "this is engineering, not science"; "what is
+   first-class memory?"; "some multi-perspective adversarial approach is needed" →
+   **Part IV**.
+6. "Does it feel like we should enter world models? Earn your complexity" → **Part V**.
+7. "Review whether your research was actually thorough" → the remediation pass
+   (citation verification, SDL, world-models/METR) → **Part VI + amendments**.
+
+**This session's own loop-engineering data points** (the analysis session committed
+the same failure classes it was documenting — recorded because that is the finding):
+- **Built the first draft on the self-report.** Part I was written from the
+  reflection doc without reading the raw transcripts the user had pointed to —
+  trusting an interested party's summary. Caught by the user's thoroughness
+  question; fixed by the Part II primary-evidence audit, which materially changed
+  the conclusions (the artifact fooled the human too).
+- **Relayed ~60 citations unverified.** Four research digests were synthesized into
+  a committed doc with zero spot-checks — the orchestrator-trusts-worker failure.
+  The later verification pass found no hallucinated sources but 4 defects in 18
+  checks (a wrong arXiv ID and a misattributed statistic were already in the
+  committed doc).
+- **Verification-cost calibration.** That pass cost ~40k tokens to find those 4
+  defects; the user judged it poor ROI. Lesson: verify in proportion to
+  load-bearing-ness (the 3–4 claims the argument rests on), not breadth.
+- **Over-broad cancellation.** Asked to stop "verification," the session killed the
+  two *research* agents instead (the verifier had already finished). Recovered by
+  resuming the killed agents from their transcripts with a compile-only,
+  no-backfill instruction — worth knowing: killed agents' contexts survive and are
+  resumable, and "mark unreached sections NOT COVERED" prevents silent
+  memory-backfill.
+- **Structure that worked:** one synthesizer + parallel research agents (fan-out for
+  read/verify only); adversarially-framed prompts ("try to REFUTE me") — which is
+  what got the world-model verdict *corrected* rather than confirmed; digests
+  preserved raw with corrections layered separately.
+
+**Where everything lives:** this doc (synthesis + conclusions);
+`research/01–08` (unedited digests) + `research/transcripts/` (raw JSONL);
+`grasp-experiment-reflection.md` (the audited self-report); durable working
+preferences in the machine-local memory dir
+(`~/.claude/projects/-mnt-c-…-drone-catch/memory/` — auto-loaded each session,
+NOT in git): examine-frames-not-just-metrics, autonomy-general-detectors-not-
+failure-maps, framing-engineering-not-science.
+
+---
+
 ### Primary sources
 Anthropic, *Building Effective Agents* (2024); *Effective context engineering*
 (2025); *multi-agent research system* (2025); *Agent Skills* (2025). Cognition,

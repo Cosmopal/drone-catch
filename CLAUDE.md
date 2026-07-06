@@ -168,6 +168,7 @@ Living docs covering specific iterations:
 - `docs/iteration_findings.md` — Lee SO(3) singularity, paper estimates off by integer multiples, choreography tricks, marker palette.
 - `docs/arm_v1_status.md` — where the 2-link arm work *was* (mid-development snapshot). Largely superseded by what's described in this CLAUDE.md, but useful for understanding why specific things were built.
 - `docs/concepts/` — **learning companion** (a standing project objective: accrue transferable robotics/estimation/control knowledge). One short note per concept we use: what it is, where it lives in this codebase, what our experiments showed, what transfers to larger projects. Add a note whenever a new concept enters the work; keep the engineering narrative in iteration_findings.md and the conceptual reference here.
+- `docs/agents/` — **the AI-autonomy meta-study** (the project's second objective: learn how to run agent loops with minimal human oversight). `loop-engineering-analysis.md` is the main analysis (failure modes, gates/detectors, earn-your-complexity ledger — read before designing any new agent experiment or validation harness); `grasp-experiment-reflection.md` is the case it studies; `research/` holds the raw research digests + transcripts behind it.
 
 Subsystem isolation tests (validated foundations):
 
