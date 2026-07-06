@@ -152,6 +152,16 @@ Playback speed: 0.5× (slow-mo, set in `VideoRecorder.__init__`).
 
 ## Engineering log
 
+> **⚠️ Cage-robustness ITERATION 2 (hold-quality metrics + a faithful Yale hand) lives
+> on a SEPARATE branch `grasp-iter2`** (worktree `.claude/worktrees/grasp-iter2`), not
+> merged. It adds a continuous hold-QUALITY metric to `cage_harness.py` and a *faithful*
+> pseudo-rigid-body Yale hand (`src/yale_prb.py`, strategy `prb`) that replaced the
+> earlier contact-reading stand-in (`src/yale_hand.py`, strategy `yale`). Goal-1 result:
+> the faithful hand cages *and* re-centers off-center balls (finger direction),
+> reversing iteration-1's "Yale ejects" (a stand-in artifact). See
+> `docs/agents/grasp-iter2-STATUS.md` (handoff), `iteration_findings §28/§29`,
+> `concepts/13`. Goal 2 (adaptive re-centering + dynamic test) not started.
+
 Living docs covering specific iterations:
 
 - `docs/throw_planning.md` — ballistic math, planner algorithm, matched-t single ramp insight (largely historical now).
