@@ -22,6 +22,12 @@ as-produced, defects included — that is the point of a raw record.
 | 07 | self-driving-labs | the A-Lab failure precedent + critiques; SDL converged practices (orthogonal measurement, noise floor, known-answer runs) | Part VI |
 | 08 | world-models-metr-horizons | learned world models vs analytic sims (incl. the residual-physics refutation); METR time-horizon measurement | Part V amendment |
 
+Also archived: `transcripts/00-meta-analysis-session-d155edbe.jsonl.gz` — the
+**main meta-analysis session's own raw transcript** (the user↔Claude conversation
+that produced the analysis doc and spawned agents 01–08). Snapshot taken
+2026-07-06 near the session's end; the last few closing exchanges may be absent.
+`gunzip` to read (JSONL, one event per line).
+
 Provenance notes:
 - Agents 01–04 ran in the first research fan-out; 05 was the primary-evidence
   audit; 06–08 were the remediation pass after the thoroughness self-audit.
