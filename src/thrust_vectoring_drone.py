@@ -137,6 +137,12 @@ class ThrustVectoringDrone(Drone):
         # translational FF then reads (same ordering contract as the base Drone).
         ff_torque = (self._arm_reaction_ff_body_torque()
                      if self.arm_reaction_ff else None)
+        # Finger-reaction FF (additive, default off): pre-cancel the body torque
+        # from the gripper's finger-joint motor torques during a close, the same
+        # way arm_reaction_ff handles the arm sweep. See Drone.finger_reaction_ff.
+        if self.finger_reaction_ff:
+            fr = self._finger_reaction_ff_body_torque()
+            ff_torque = fr if ff_torque is None else ff_torque + fr
         # Translational recoil cancellation. The sweep's centripetal+tangential
         # force flings the body in the arm's plane (body x AND z). A full quad can
         # only cancel z directly (x needs a tilt it doesn't want); THE OVER-

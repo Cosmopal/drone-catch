@@ -54,6 +54,12 @@ class Drone:
     finger_joints: list = field(default_factory=list, init=False)
     finger_links: list = field(default_factory=list, init=False)
     _gripper_cmd: Optional[dict] = field(default=None, init=False)
+    # Optional external gripper controller (additive, default None = unchanged).
+    # If set to a callable, `_apply_gripper` delegates the per-step finger control
+    # to it (`external_gripper(self)`) instead of the built-in open/close logic —
+    # lets an external model (e.g. the Yale underactuated hand, src/yale_hand.py)
+    # drive the fingers without modifying the built-in close behaviour.
+    external_gripper: Optional[object] = field(default=None, init=False)
     # current arm command — applied each step via _apply_arm()
     _arm_mode: str = field(default="hold", init=False)
     _arm_targets: dict = field(default_factory=dict, init=False)
@@ -68,6 +74,15 @@ class Drone:
     # at θ=0 (mid-sweep), pulls drone down. We add the canceling thrust as
     # a world-frame z-force, separate from the cascade's thrust output.
     arm_translational_ff_z: bool = False
+    # Finger-reaction feedforward toggle (additive, default OFF). When True, the
+    # drone predicts the net body torque produced by the gripper's finger-joint
+    # motor torques during a close and pre-cancels it on the body — the same
+    # idea as arm_reaction_ff, applied to the hand. A constant-torque ("active"/
+    # tendon) close never stops applying torque, so on a floating base it reacts
+    # on the airframe (docs/concepts/13, iteration_findings §24 — it flipped the
+    # drone). Feeding it forward lets the body absorb it like it already absorbs
+    # the ball's momentum. See _finger_reaction_ff_body_torque.
+    finger_reaction_ff: bool = False
     # When True, recompute kR_y and kw_y each step from the current arm pose
     # + held-mass-induced pitch inertia, so the cascade stays at its design
     # ω_n and ζ across configurations. Off by default so static-gain
@@ -309,6 +324,9 @@ class Drone:
         return bool(self._gripper_cmd and self._gripper_cmd["mode"] == "close")
 
     def _apply_gripper(self):
+        if self.external_gripper is not None:
+            self.external_gripper(self)
+            return
         if not self.finger_joints or self._gripper_cmd is None:
             return
         cfg = self.arm_cfg
@@ -403,6 +421,9 @@ class Drone:
         if self.attitude_gain_schedule:
             self._apply_attitude_gain_schedule()
         ff_torque = self._arm_reaction_ff_body_torque() if self.arm_reaction_ff else None
+        if self.finger_reaction_ff:
+            fr = self._finger_reaction_ff_body_torque()
+            ff_torque = fr if ff_torque is None else ff_torque + fr
 
         thrust_mag, torque = self.controller.compute(
             pos=pos, vel=vel, R=R, omega=omega,
@@ -573,6 +594,39 @@ class Drone:
         self._shoulder_vel_cmd_prev = new_prev
         tau_predicted = I_arm * alpha
         return np.array([0.0, -tau_predicted, 0.0])
+
+    def _finger_reaction_ff_body_torque(self) -> np.ndarray:
+        """Predict the body torque that cancels the net reaction from the
+        gripper's finger-joint motor torques.
+
+        Each finger joint motor that applies torque τ_j about its (world-frame)
+        axis a_j exerts +τ_j·a_j on the finger and, by Newton's third law,
+        −τ_j·a_j back up the chain onto the airframe. The net body disturbance
+        is therefore Σ_j(−τ_j·a_j); to cancel it the body must add the opposite,
+        Σ_j(τ_j·a_j). We read the ACTUAL applied joint motor torque
+        (getJointState[3]) so this works for any close strategy — position-PD
+        ("fixed"), constant-torque ("active"/tendon), or spring ("passive").
+
+        Same kinematic, torque-pair approximation as `_arm_reaction_ff_body_torque`
+        (it ignores the second-order moments from finger contact forces). In the
+        arm-straight-down catch pose the finger axes are near-horizontal and the
+        ring is symmetric, so the true net is small — but an asymmetric seated
+        ball or a tilted arm breaks that symmetry, and this FF catches the
+        residual. Returns a body-frame 3-vector; 0 if no fingers.
+        """
+        if not self.finger_joints:
+            return np.zeros(3)
+        R = np.array(p.getMatrixFromQuaternion(self.orientation())).reshape(3, 3)
+        ff_world = np.zeros(3)
+        for segs in self.finger_joints:
+            for j in segs:
+                tau_j = p.getJointState(self.body_id, j)[3]   # applied motor torque
+                a_local = np.array(p.getJointInfo(self.body_id, j)[13], dtype=float)
+                R_child = np.array(p.getMatrixFromQuaternion(
+                    p.getLinkState(self.body_id, j)[5])).reshape(3, 3)
+                a_world = R_child @ a_local
+                ff_world += tau_j * a_world      # = -(reaction on body)
+        return R.T @ ff_world
 
     def _apply_arm(self):
         """Drive shoulder + elbow joints based on current _arm_mode."""

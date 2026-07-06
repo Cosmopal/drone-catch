@@ -859,3 +859,522 @@ Honest state of the grasp: the robust-enclosure-under-uncertainty sub-problem
 needs a *reliable* test harness (deterministic ball seating, a real caged metric
 via contact normals) + a systematic study — not more quick experiments. The
 validated fallback remains the soft-constraint compliant capture (96/96).
+
+## 25. Caging robustness under position uncertainty: a trustworthy harness says the current close already wins (and compliance/FF do not help)
+
+> **⚠️ RETRACTED IN PART — read §26 first.** The off-center conclusions below
+> ("gap is the failure mode," the strategy ranking, "compliance doesn't help /
+> soft fails") were a **timestep + rigid-contact numerical artifact**. At
+> converged numerics (compliant contact pads + 1/960) the close robustly cages to
+> ~3.5 cm in ALL directions and strategy makes no difference. The harness
+> scaffolding, the self-validated extremes, the tendon-ill-conditioning, and the
+> Phase-2 FF result stand; the off-center *rankings* do not.
+
+§24 ended by demanding a *reliable* harness for the robust-enclosure-under-
+uncertainty sub-problem, because ~10 quick grasp experiments gave noisy /
+contradictory results (the "caged" signal was distance + fingers-touching, and
+the ball seating was non-deterministic). Built one (`tests/cage_harness.py`) and
+ran the study. Several results overturn the intuitions the noisy experiments had
+suggested.
+
+**The harness (Phase 0, the gate).** Fixed-base gripper, arm held rigid in the
+catch pose, gravity OFF during the close, ball placed at a controlled
+(offset, direction) — fully deterministic. The "caged" metric is NOT distance +
+touching; it is a real **form-closure** test: after the close, `saveState`, then
+fire a battery of 26 disturbance accelerations (the {-1,0,1}^3 sphere) at ~2.5 g
+each, re-applied from the saved state, and count how many the ball survives
+trapped within the finger envelope. robustness score = survived / 26.
+Self-validation (mandatory, all PASS): determinism (same config 3x -> identical
+score), positive control (centered + current close -> 26/26), negative control
+(ball 8 cm outside -> 0/26, clean separation: caged ball moves 0.1 cm under
+2.5 g, escaped ball >150 cm).
+
+**Phase 1 result — nothing beats the current 4-finger splayed fixed-pose close.**
+Sweeping offset {0,1.5,2.5,3.5 cm} x direction {toward-finger, toward-gap} x
+strategy {fixed, compliant, soft} x fingers {4,6,8} x ready {splayed, curled}:
+- The current close survives a ball offset **3.5 cm toward a finger** (score ~1.0)
+  but fails **toward a finger GAP at even 1.5 cm** — the ball slips *between*
+  fingers into the gap and is shoved out. This gap-direction weakness is the real
+  failure mode, and it is **geometric coverage**, not close compliance.
+- **Compliance does not WIN, but it is not a flat negative either (re-examined).**
+  First pass: `compliant` (force-limited position to the cage pose) scored *worse*
+  off-center than rigid (0.25 vs 0.48 mean at offset>=2.5 cm) and `soft` (soft-PD
+  spring) scored **0.00 everywhere** (too soft to resist 2.5 g). But both servo to
+  the FIXED pose, so they can't adapt the finger SHAPE — they under-test
+  underactuation. A proper **underactuated/differential** model (`under`: low
+  force toward a DEEP curl, each joint stalling on contact while the rest curl
+  further) **does help the failure mode** — gap-2.5 cm scores **0.50 vs fixed's
+  0.00** — but no setting beats fixed overall (aggressive enough to help the gap
+  *ejects* centered/finger balls in the gravity-off isolation; gentle settings
+  hold centered but lose finger robustness). Caveat: the gravity-off isolation
+  (mandatory — the down-opening cup drops a ball under gravity before the close)
+  is biased against an aggressive under-tuck; a *dynamic* catch (ball entering the
+  cup with downward momentum) would seat it. So the compliance question is *not
+  won* on the static metric but is plausibly under-credited by it — the fair test
+  is the moving catch. See §25 detail below.
+- **More fingers (6,8) trade gap-coverage for finger-direction robustness** with
+  no net gain *at the un-retuned close pose* (the cage pose (0.5,1.0,1.3) is
+  tuned for 4). Closing the gaps properly needs a close-pose re-optimisation per
+  finger count — which the harness now makes tractable.
+- **Splayed ready beats partly-curled** uniformly (a curled start doesn't open
+  the mouth wide enough to receive, so it often fails to cage even centered).
+- A renders-not-metrics check confirmed the mechanism: the fixed close wraps the
+  proximal to the equator and tucks middle+distal under (validated cage);
+  off-center toward a gap, the same fixed shape paddles the ball out the gap.
+
+So the honest answer to "find a config that clearly beats the current close
+off-center" is: **none of the obvious levers WIN on this static metric** — but
+underactuation is the most promising and is plausibly under-credited by the
+gravity-off isolation (it measurably helps the gap; it loses only because the
+under-tuck ejects upward with nothing to seat the ball). The current close is at
+the geometric ceiling for a 4-finger ring; the residual gap-direction slip needs
+either a denser ring with a re-tuned close pose, or the underactuated close tested
+on the *dynamic* catch where gravity/incoming-momentum seats the ball.
+
+**A numerical caveat worth recording:** a *constant joint torque* close ("tendon",
+`close_gripper(compliant=True)`) is **numerically ill-conditioned** on this near-
+massless 3-link finger chain in PyBullet — a Coulomb-friction-like joint
+threshold (small torques produce zero motion until ~1 N.m), sign-flips, and
+frozen distal joints. It neither reproduces the cage shape nor gives repeatable
+results, and on a floating base it flips the body (the §24 flip). Force-limited
+*position* control toward the cage pose is the robust, behaviourally-faithful
+stand-in for yield-on-contact compliance.
+
+**Phase 2 — finger-reaction feedforward (the user's hypothesis): a clean
+negative.** Implemented `Drone.finger_reaction_ff` (additive, default OFF): pre-
+cancel the net body torque from the finger-joint motor torques, the same idea as
+`arm_reaction_ff` for the arm sweep (`_finger_reaction_ff_body_torque`). Tested on
+a hovering drone (`tests/cage_drone_close.py`). The FF **does not work as hoped**,
+and the measurement says why: in the arm-straight-down catch pose the symmetric
+finger ring's motor torques **sum to ~0** (the FF predicts ~0), while the *actual*
+body disturbance during a close (~0.35 rad/s of pitch in one step) comes from the
+**asymmetric finger-link inertial + contact reactions**, which a motor-torque-sum
+model can't see. This matches §09's geometry note (near-zero net by symmetry in
+the down pose). The constant-torque close still flips the body (numerics, above)
+and the FF can't rescue a numerical instability. The Phase-1 *winning* close
+(rigid position) needs no FF: on the level-holding thrust-vectoring drone it holds
+body pitch to **2.0 deg < 5 deg** during the close (the underactuated drone takes
+~7 deg and recovers). The FF stays in as opt-in/default-off (harmless; existing
+tests re-verified unchanged).
+
+**Honest gap remaining:** a full end-to-end *retained* catch on the TV drone was
+NOT achieved — but the blocker is the pre-existing TV arm-tracking station-keeping
+instability (rapid per-tick IK arm slews drive the TV body up into the ceiling;
+the repo's TV catch is WIP, §20), not the close strategy. The winning close +
+sub-5-deg body pitch on the TV drone are confirmed; the underactuated scoop
+(`elbow_catch_solo`) remains the validated retained catch.
+
+## 26. CORRECTION: the §25 off-center findings were a timestep + rigid-contact ARTIFACT (the harness wasn't trustworthy where it mattered)
+
+While investigating a video-smoothness question (sampling the close at a finer
+rate), I ran the harness at a finer simulation timestep — and the central §25
+finding evaporated. This is the most important entry in this file: **the metric
+that §25 trusted was numerically untrustworthy precisely in the off-center band
+it was used to study.**
+
+**What broke.** A 65 g rigid ball held by light (~3-4 g/segment, inertia
+~3e-6 kg·m²) RIGID fingers, pressed continuously by a PD close in zero gravity, is
+an ill-conditioned contact problem — the large ball/finger mass ratio across a
+STIFF rigid contact. (The 3-4 g finger mass is realistic, NOT the bug: it matches
+a lightweight FDM print / hollow-rib TPU Fin-Ray; a solid print would be ~2-3x
+heavier. And tested — scaling finger mass up x3..x100 does NOT fix the artifact,
+it caged WORSE; the RIGID CONTACT is the culprit, fixed by compliant pads, which
+real fingers have.) At the project's 1/240 timestep the "is the off-center ball
+caged or paddled out" verdict is **timestep-fragile**:
+- `fixed` gap-3.5 cm: nf=0 at 1/240, **nf=4 at 1/480 and 1/960**, nf=0 at 1/1920
+  — non-monotonic; the capture-vs-paddle-out event flips with the step.
+- even the "robust" finger-3.5 cm direction fails at very fine steps with rigid
+  contact (nf=0 at 1/3840).
+- the CENTERED control is rock-stable (nf=4, <0.3 cm across 1/240→1/7680) and the
+  8-cm-outside control always escapes — which is exactly why the §0
+  self-validation passed: **it only exercised the two stable extremes, not the
+  fragile off-center band.** A passing self-test did not certify the off-center
+  scores.
+
+**The fix (and it is more physical).** Give the fingers + ball **compliant
+contact pads** (`contactStiffness=1e4`, `contactDamping=3e2` — real caging fingers
+have foam/rubber) AND a finer substep (1/960). With both, the verdict **CONVERGES
+(substep 4 == substep 8)** and the negative control still escapes. This is now the
+harness default (`SUBSTEP`, `CONTACT_*` in `tests/cage_harness.py`; `--substep`
+to inspect the fragility).
+
+**The corrected, trustworthy result** (full 26-direction battery, converged):
+- The current 4-finger fixed close **robustly cages off-center balls to 3.5 cm in
+  ALL directions** (gap-2.5, gap-3.5, finger-3.5 all 1.00; centered 1.00; 8 cm
+  outside 0.00).
+- The real **capture limit is ~4.5 cm** — finger direction holds to ~5 cm, gap to
+  ~4 cm (a *small, real* ~1 cm directional difference, not the 1.5 cm "gap fails"
+  of the artifact). Beyond ~4.5 cm the ball is outside the basket.
+- **Strategy makes no meaningful difference**: fixed / compliant / soft / under
+  ALL cage to 3.5 cm (even `soft`, which scored 0.00 everywhere under rigid
+  contact, is now ~1.0 — its "too weak / grab-then-release limit cycle" was the
+  rigid-contact artifact too) and ALL fail past the ~4.5 cm geometric limit. No
+  strategy extends the capture radius.
+
+**So nearly every §25 off-center conclusion is RETRACTED:** "gap is the failure
+mode," the strategy ranking, "compliance doesn't help / soft fails," "splayed vs
+curled," and the §26-in-§25 underactuation nuance were all reading numerical
+noise. What SURVIVES from §25: the harness scaffolding and the *self-validated
+extremes* (centered cages; far-outside escapes); the constant-torque "tendon"
+close is genuinely ill-conditioned (separate issue); and the Phase-2 finger-
+reaction-FF result (it lives on the floating drone, a different sim, and is
+unaffected by this contact metric).
+
+**The transferable lesson (the real one):** a deterministic, self-validating
+harness can still be *untrustworthy* if the self-validation only covers the easy
+extremes while the regime you actually study sits on an ill-conditioned knife
+edge. Vary the **timestep** (and contact model) as a convergence check on any
+contact-rich result before believing it — determinism is not convergence. This is
+the §23 "scalar metrics hide failure modes — you have to LOOK" lesson, one level
+deeper: you also have to check the numerics converge in the regime of interest.
+
+## 27. A FAITHFUL Yale-OpenHand underactuated hand: the coupling is real, but in sim it does not beat the rigid close
+
+The `under` strategy (§25/§26) was a per-joint deep-curl stand-in — it had no
+COUPLING, the defining feature of a Yale hand. Built the real mechanism
+(`src/yale_hand.py`), a numerically-stable POSITION-based tendon:
+- **inter-finger whiffletree**: one actuator displacement = the MEAN of the
+  per-finger tendon travels; a finger that contacts early caps its travel and the
+  freed budget feeds the free fingers (they close MORE) — self-distribution;
+- **intra-finger tendon**: a finger's flexion budget is shared distal-biased
+  across its 3 joints, and a contacting joint hands its share to the joints below
+  (wrap-and-tuck);
+- **compliant joints**: a soft position servo that yields on contact; contacting
+  joints maintain tendon TENSION (keep pulling toward the cap) so the grip holds.
+
+**Self-distribution VERIFIED (the gate before any scoring).** With a pinned ball
+(isolating the coupling from the gravity-off ejection), the per-finger total
+flexions come out UNEQUAL for an off-center ball and ~equal for a centered one:
+- centered: [2.85, 2.88, 3.00, 2.41] (spread 0.6, ~equal);
+- 3.5 cm toward finger 0: **[-0.2, 3.14, 3.14, 3.18]** (spread 3.4 — the near
+  finger stalls at the ball, the far three wrap further);
+- 3.5 cm toward a gap: [2.15, 1.44, 2.92, 2.98] (the two fingers by the gap close
+  less). The whiffletree differential is real, driven by the live contact.
+
+**Static harness (corrected numerics): Yale LOSES to the rigid close.** Centered
+0.62 vs 1.00; every off-center cell 0.00. This is the §26 anti-tuck bias made
+concrete: gravity-OFF, a free off-center ball is pushed away by the first
+contacting finger before sustained contact can cap it, so the differential never
+engages and the ball ejects. The static metric is the wrong test for this hand —
+exactly as flagged.
+
+**Dynamic catch (the fair test): Yale MATCHES the rigid close at the design point,
+does NOT beat it.** Reusing the validated scoop (`elbow_catch_solo`) unchanged and
+swapping only the close (via the additive `Drone.external_gripper` hook;
+`tests/cage_dynamic_catch.py`):
+- at nominal both retain (caught+held) — a TIE;
+- the Yale hand needs a FIRMER tendon tension (soft_force 0.7) than the rigid
+  close (0.5) to hold the ball through the lift — a gentle compliant close
+  captures (sub-cm, 3-4 fingers) but the ball works loose. So it is more complex
+  AND needs more grip force for the same result;
+- across the ball-velocity grid (off-nominal => more off-center seating): rigid
+  **2/5**, Yale **1/5** — Yale is marginally worse, and the off-nominal misses are
+  dominated by the SCOOP's own tracking fragility (elbow's baseline is ~2/12),
+  not the hand.
+
+**Honest conclusion.** The coupling works and is verified; but in this PyBullet
+sim the simple rigid close is already good enough and firmer, so the faithful
+Yale hand does not beat it (it ties at nominal, costs more force + complexity, and
+the gravity-off static metric is actively biased against it). The Yale hand's real
+advantage — adaptation to the position/shape/sensing uncertainty that ALWAYS
+exists on real hardware — is precisely what this sim does not model (we inject
+only clean offsets, and rigid contact). So this is the expected "no sim benefit;
+the benefit is for hardware we don't model" outcome. The model + the
+external-gripper hook are committed (opt-in, default off) for the day there is a
+hardware testbed or a richer uncertainty model to exercise them.
+
+## 28. Hold-QUALITY metrics (iteration 2): the binary "caged" tied the strategies; quality separates them — but only where convergence allows
+
+§25–27 scored caging with a BINARY form-closure battery ("survives 26 directions
+at 2.5 g → caged"). That metric over-credits precarious holds: a ball pinned by
+one off-center finger scores the same as a deep symmetric wrap (the iteration-1
+miss). Iteration 2 adds CONTINUOUS hold-QUALITY metrics to `tests/cage_harness.py`
+(additive/opt-in; the binary `--grid` path is unchanged) and re-scores every
+strategy on them, convergence-checking every contact-rich number. The headline:
+**quality DOES separate strategies the binary metric tied — but the separation is
+real only in the narrow regime where the numbers converge, and the convergence
+gate caught our own most-exciting result as a knife-edge before it shipped.**
+
+### The metrics (`--quality`, `--quality-grid`)
+- **escape-margin** — min disturbance accel over ALL 26 directions that dislodges
+  the ball (bisected per direction; m/s² and g). A continuous margin, not pass/fail
+  at a fixed g. Keeps the binary battery as one input (score = #dirs surviving
+  2.5 g, derived from the same sweep).
+- **pull-in** = injected_offset − residual centering-err. How much the close
+  DRAGGED the ball toward the cup center. >0 = re-centered; ~0 = held where it
+  landed; <0 = pushed out. THE axis an adaptive/compliant close can win on (a
+  fixed close's centering-err just re-reports its input).
+- **rattle@2 g** — worst residual displacement under a fixed SUB-dislodging pulse.
+  A graded companion INSIDE the caged band, where escape-margin saturates.
+- **centering-err**, **# contact fingers** (real `getContactPoints`), **contact
+  symmetry** = 1 − |R_xy|, the azimuthal resultant of the unit ball→contact
+  directions (1 = surrounded, 0 = one-sided). Azimuthal, not 3D, because the
+  down-opening cup always has a −z bias that would swamp lateral one-sidedness.
+
+### escape-margin is BIMODAL in this static sim (an honest limit, not a bug)
+A caged ball saturates the 10 g search cap in every direction; a missed ball
+collapses to ~0.16 g. So escape-margin robustly CONFIRMS binary caging but does
+NOT finely grade precariousness within the caged band. The GRADED quality signals
+are centering-err + symmetry + contact-count + pull-in. (This matches §26: at
+converged numerics everything within ~4 cm cages.)
+
+### FIXED close — the convergence-backed baseline
+Converged (substep 2/4/8, contact ±3×, seed all agree): EM 10 g everywhere,
+score 1.00 everywhere — a **reliable trap** to the ~4 cm geometric limit. But it
+**pins, it does not seat**: pull-in hovers near 0 (grid −0.4..+0.35 cm; converge
+cell +0.03..+1.10 cm), centering-err ≈ injected offset, and **symmetry degrades
+with offset** (1.00 centered → 0.43–0.55 at 3.5 cm). Frames:
+`docs/cage_frames/iter2/cageQ_fixed_n4_finger_0mm_seated_under.png` (symmetric
+X-wrap, symmetry 1.00) vs `..._gap_35mm_seated_side.png` (one-sided wrap,
+symmetry 0.32) vs `..._gap_45mm_disturb_side.png` (fingers close on empty air,
+ESCAPED — the ~4.5 cm capture cliff).
+
+### SOFT (Fin-Ray flexure stand-in) — re-centers, but only where it converges
+The pull-in axis reveals what the binary tie hid: soft's low-stiffness close
+**rolls an off-center ball toward the cup center** while the stiff fixed close
+pins it. Verified causally (`--migration`, reviewer-D5): a DENSE per-sim-step
+trace shows soft's centering-err declines smoothly 2.50 → ~0.07 cm over ~60 sim
+steps (~62 ms, largest single step only 3 % of the drop), then damped-settles at
+0.57 cm — a GRADUAL physical roll, NOT a one-step teleport (a coarse first pass
+mislabeled it "snap"; the dense trace corrected it). Frames
+`docs/cage_frames/iter2/migrate_soft_finger_25mm_000pct.png` (ball off to one
+side) → `..._010pct.png` (centered, symmetric wrap); fixed stays put over the
+same window.
+
+**Win vs null, rendered (so the narrowness is visible, not just tabular). Every
+number below is from a committed log — the migration drop from `migration_dense.txt`,
+the paired-delta bands from `followup.out`:**
+- WIN — n4-2.5 cm-finger (committed causal cell): migration drop soft **+2.43 cm**
+  (GRADUAL ~62 ms roll, largest single step 3 % of it) vs fixed **+0.37 cm**
+  (negligible) — soft re-centers ~6× more (`migration_dense.txt`). *Metric note
+  (the two re-centering numbers are DIFFERENT measurements, both committed):* the
+  migration "drop" = ces[0] − MIN centering-err reached DURING the close; here the
+  ball rolls in and overshoots to ~0.07 cm, so drop = +2.43 cm. The grid "pull-in"
+  = injected − FINAL settled centering-err = 2.50 − 0.57 = +1.93 cm. They differ by
+  the overshoot-then-settle; for a non-monotonic trajectory (e.g. the gap
+  direction) they can differ the other way — so we report each with its own name
+  and do not treat them as interchangeable. Both here agree soft re-centers
+  strongly (`migration.txt` / `quality_grid.txt`).
+  SAME-direction seated frames: `cageQ_soft_n4_finger_25mm_seated_under.png` (ball
+  re-centered, CE 0.57 cm, symmetric wrap) vs
+  `cageQ_fixed_n4_finger_25mm_seated_under.png` (pinned off-center, CE 2.16 cm).
+  The convergent-positive paired delta holds at n4-2.5 cm-finger (+0.31..+2.17) AND
+  n4-3.5 cm-finger (+0.91..+2.24), so the win is not a single-offset artifact.
+- CLEAN NULL — n4-2.5 cm-**gap**: paired delta −0.31..+0.95 → OVERLAPS 0 — soft
+  does not re-center MORE than fixed in the gap direction (its grid pull-in there
+  is only +0.34 cm vs +1.93 cm in the finger direction). Seated frame
+  `migrate_soft_gap_25mm_100pct.png` shows the ball held **2.16 cm off-center**
+  (≈ `migrate_fixed_gap_25mm_100pct.png`). Visible proof the advantage is
+  direction-specific.
+- SUBTLE NULL — n6-2.5 cm-finger: paired delta −1.45..+2.17 → OVERLAPS 0. (A
+  single NOMINAL-timestep render can LOOK like a soft win at n6, but it does not
+  survive the perturbation sweep — the exact §26 trap, and why the paired/perturbed
+  delta, not one rendered run, decides the verb.)
+
+**But the advantage is convergent only in a narrow regime** (the whole point of
+the iteration-2 convergence gate). The PAIRED delta (soft.pull_in − fixed.pull_in
+at the SAME offset/dir/n/perturbation, 8 perturbations each):
+- n4-2.5 cm-finger: **+0.31..+2.17 cm → CONVERGENT POSITIVE** (earned)
+- n4-3.5 cm-finger: **+0.91..+2.24 cm → CONVERGENT POSITIVE** (earned; sign also
+  robustly positive here, +1.11..+3.48 cm — the cleanest cell)
+- n6-2.5 cm-finger: −1.45..+2.17 cm → OVERLAPS 0 (not separable)
+- n8-2.5 cm-finger: −2.06..+2.39 cm → OVERLAPS 0
+- n4-2.5 cm-**gap**: −0.31..+0.95 cm → OVERLAPS 0 (no re-centering in the gap dir;
+  and soft holds WEAKLY there — soft-4-3.5 cm-gap converges as EM ~2.2–3.0 g,
+  rattle high, vs fixed's 10 g).
+Soft's pull-in SIGN is itself timestep-unstable except at n4-3.5 cm-finger
+(n4-1.5 cm-finger sign −2.51..+0.46 = NOT stable; n6, n8 NOT stable), and soft's
+ESCAPE-MARGIN is a knife-edge nearly everywhere (soft-4-2.5 cm-finger
+CONVERGED=NO: EM swings 2.5/10/7.97 g across substep+seed — **exactly the §26
+artifact, caught by the gate this time instead of shipped**). The n4-1.5 cm
+sign-instability is reported as an OBSERVATION, not a theory: at a small offset the
+re-centering distance is within the timestep/seed noise, so no stable sign appears
+— the effect is only legible at offset ≥2.5 cm in our data; we do not claim a
+mechanism for that threshold. So the earned claim is narrow: *soft re-centers more
+than fixed ONLY at low finger-count (n=4), finger direction, offset ≥2.5 cm;
+elsewhere the advantage is not convergently separable and soft's escape-margin is
+not a trustworthy number.*
+
+### YALE (faithful underactuated hand) — convergently ejects, but it's the REGIME
+Yale convergently EJECTS the off-center free ball (yale-4-2.5 cm-finger
+CONVERGED=YES: EM 0.16 g, pull-in −34..−103 cm, 0 contact fingers, score 0, every
+perturbation). Centered it does NOT eject (stays, centering-err 0.64 cm) but holds
+precariously (EM 1.72 g, rattle 4 cm). Frame
+`docs/cage_frames/iter2/cageQ_yale_n4_finger_25mm_seated_side.png` (fingers fully
+curled, NO ball). **This is a TESTBED-REGIME limitation, NOT a verdict on the
+mechanism** (D6): this sim is gravity-OFF, free/unconstrained, lightweight-ball,
+static — precisely the regime that structurally disadvantages an underactuated
+tendon hand (the first finger to contact an off-center free ball shoves it out
+before the whiffletree differential can cap and engage; centered, first contacts
+are symmetric so it stays). The regime that WOULD let Yale show its benefit —
+gravity-ON / momentum-seated (ball pressed INTO the cup) / constrained object /
+sensing-shape uncertainty — is deferred to the Goal-2 dynamic test (and §27's
+dynamic result already had Yale TIE the rigid close there). Do not conclude
+against Yale on this sim.
+
+### The fixed-vs-Yale (and soft) answer — does quality change the verdict?
+Iteration 1 found a binary "tie." Quality does NOT rescue Yale (it's convergently
+worse ON THIS STATIC TESTBED — but that's the regime, deferred). Quality DOES
+reveal a distinction the binary hid — the passive SOFT flexure biases the ball
+toward center — but the convergence gate then NARROWS that to n=4 / finger /
+≥2.5 cm and flags soft's escape-margin as untrustworthy. **Net: no single strategy
+is a clean winner that survives convergence. Fixed is the reliable-but-unseating
+baseline; soft seats better only in a narrow convergent corner; Yale is deferred.**
+That "no clean winner, and here is exactly where each claim is / isn't trustworthy"
+IS the iteration-2 result: the convergence gate caught the knife-edge iteration 1
+would have shipped as a headline.
+
+### Convergence gate (`--converge`, `--boundary`) and the tooling
+Every contact-rich number is checked across timestep (substep 2/4/8), contact
+model (stiffness/damping ±3×), and seed (sub-mm ball jitter). `--converge` prints
+the per-variation table + an EM-convergence verdict + a pull-in SIGN verdict;
+`--paired` runs the soft-vs-fixed PAIRED delta per perturbation (same seed → same
+jitter → fair pairing) and rules CONVERGENT-POSITIVE / OVERLAPS-0; `--boundary`
+scans the caged→escaped cliff across substeps and flags any timestep-unstable
+offset (the §26 band). `--migration` is the causal roll-vs-snap trace;
+`--quality-frames` renders the 3-angle (diag/under/side) × 3-moment
+(close/seated/post-disturbance) HUD triptychs. Canonical run logs live in
+`docs/cage_frames/iter2/logs/` (trust the `*.out` stdout, not the tee'd `*.txt`).
+
+**Boundary-scan result — the instrument flags its own untrustworthy band (D3
+working).** Scanning the caged→escaped cliff across substeps {2,4,8}
+(`boundary_rerun.out`): only **fixed-finger is timestep-STABLE** (converged
+boundary). The other four are NOT: fixed-gap flips at 4.0/4.3/4.5 cm, soft-gap at
+4.0/4.3 cm, soft-finger at 4.0/4.8/5.0 cm, yale-finger at 4.3/4.5 cm. So for 4 of
+5 strategies the caged/escaped verdict in the **4–5 cm band flips with the
+timestep** — exactly the §26 artifact zone. We therefore **refuse to certify a
+numeric capture-radius/boundary for those strategies** and report only "the
+harness flags this band as untrustworthy." The instrument detecting and declining
+its own ill-conditioned region IS the finding — it is the convergence detector
+doing its job, and it is why no capture-limit number is quoted except for
+fixed-finger. Rendered at the SAME physical offset (fixed-gap 4.0 cm), the seating
+swings with timestep: `boundary_ss2/cageQ_fixed_n4_gap_40mm_seated_under.png`
+(substep 2: a precarious 2-finger graze, ball 5.90 cm off, nearly out — yet still
+scores 26/26, a live example of the binary metric over-crediting a precarious
+hold) vs `boundary_ss8/cageQ_fixed_n4_gap_40mm_seated_under.png` (substep 8:
+4-finger hold, 3.99 cm). The quality metrics (escape-margin 3.91 g, centering
+5.9 cm, 2 fingers) flag the substep-2 hold as precarious where the binary score
+does not — exactly the iteration-1 gap this work closes.
+
+### What I did NOT test (iteration-2 scope was the static quality metric)
+- **Gravity-ON / dynamic / momentum-seated capture** — the regime that would give
+  Yale (and arguably soft's roll-in) a fair test. Deferred to Goal 2.
+- **Non-spherical / deformable objects, real sensing/shape uncertainty** — the
+  uncertainty adaptive hands exist to absorb; this sim injects only clean offsets.
+- **On-drone (floating-base) quality** — this is the fixed-base harness; the
+  finger-reaction on a flying base is §25/concepts-09, not re-tested here.
+- **Ready-pose × finger-count interactions at quality resolution**, and
+  compliant-strategy convergence beyond spot cells (compliant tracked between
+  fixed and soft on the grid; not exhaustively convergence-gated).
+- **The escape-margin cap (10 g)** hides how robust the very-robust holds are —
+  fine for grading precariousness (the point), not for ranking rock-solid holds.
+
+## 29. FAITHFUL Yale (PRB) re-score: §28's "Yale ejects" was a STAND-IN artifact — the faithful hand CAGES *and* re-centers (finger direction)
+
+**Why Goal 1 was reopened.** §28's fixed-vs-Yale verdict used the CONTACT-READING
+stand-in (`src/yale_hand.py` — its close law reads `getContactPoints` to *script*
+the redistribution), which fails the D9 mechanism gate: it is not a mechanism, it
+is a puppet. A **faithful pseudo-rigid-body hand** (`src/yale_prb.py`) was built to
+replace it — flexure joints as torsional return springs + a **constant-tension,
+distal-weighted tendon**, ONE actuator, **zero `getContactPoints` in the close
+law** (a finger stalls because the ball is physically in its way; the others keep
+closing under the same tension → self-distribution is EMERGENT). It is inertia-
+×50-regularized (the near-massless 3-4 g fingers are otherwise a stiff-ODE wall,
+§25); that regularization is proven **scale-invariant** (spread identical at ×30/
+×50/×100, `logs/prb_convergence.txt`) so it conditions the ODE without faking the
+result. This hand passed the D9 gate and was re-scored on the SAME 96-cell quality
+grid as the `prb` strategy (harness `--strategy prb`; additive, existing scores
+untouched). Canonical logs: `docs/cage_frames/iter2/logs/prb_quality_grid.txt`,
+`prb_converge_all.txt`, `prb_paired.txt`, `prb_boundary.txt`.
+
+### THE HEADLINE — does the verdict change? YES, it reverses (in the finger direction).
+§28 (stand-in): *"Yale convergently EJECTS the off-center free ball"* (pull-in
+−34..−103 cm, 0 contact fingers, score 0). **That "Yale ejects/loses" was a model
+artifact of the puppet.** The faithful PRB hand does the opposite: it **cages the
+off-center ball as robustly as the rigid fixed close** (4 contact fingers,
+score 26/26, escape-margin ≥10 g, held@2.5 g — identical binary to fixed) **AND, in
+the finger direction, drags it back toward center — convergently.** The verdict
+flips from "the adaptive hand ejects / loses to fixed" to "the adaptive hand cages
+*and* re-centers where the rigid close only pins."
+
+### Where it HOLDS (envelope, every number cited)
+**Re-centers, convergently (finger direction).** `prb_converge_all.txt`, all
+CONVERGED=YES (substep 2/4/8, contact ±3×, seed jitter):
+- n4-finger: pull-in sign robustly POSITIVE at 1.5 cm (**+1.30..+1.39**), 2.5 cm
+  (**+2.06..+2.26**), 3.5 cm (**+2.95..+3.15**).
+- n6-finger 2.5 cm: **+1.66..+1.73**, robustly POSITIVE.
+It doesn't just cage off-center, it *seats to near-center*: `prb_quality_grid.txt`
+n4-finger centering-err **0.15 / 0.25 / 0.38 cm** from **1.5 / 2.5 / 3.5 cm**
+injected (frame `cageQ_prb_n4_finger_25mm_seated_diag.png`: 4 fingers wrapped,
+symmetric flex +2.2, ball 0.25 cm off). Rattle is also lower than fixed's — mean
+over n×dir (`prb_quality_grid.txt` fixed-vs-prb table) prb **0.00-0.04 cm** vs fixed
+**0.08-0.17 cm** at the four offsets — the holds are tighter, not just centered.
+
+**Re-centers MORE than fixed (paired delta EARNED).** `prb_paired.txt`, per-
+perturbation delta (same substep/contact/seed → fair pairing), CONVERGENT POSITIVE:
+- n4-finger 2.5 cm: **+1.15..+2.28 cm** → EARNED.
+- n4-finger 3.5 cm: **+1.84..+3.15 cm** → EARNED.
+- n6-finger 2.5 cm: **+1.25..+1.85 cm** → EARNED.
+The fixed-vs-prb mean table (`prb_quality_grid.txt`) is consistent: mean pull-in
+prb **+0.54 / +0.51 / +0.52** cm vs fixed **−0.31 / −0.08 / +0.16** at 1.5/2.5/
+3.5 cm, and prb's mean symmetry exceeds fixed's at the hard 3.5 cm offset (0.71 vs
+0.43).
+
+**vs soft — TIES on magnitude, but with CLEAN convergence where soft was a knife-
+edge.** `prb_paired.txt` prb-soft: n4-finger 2.5 cm **+0.01..+1.54**, 3.5 cm
+**−0.34..+2.02**, gap 3.5 cm **−0.39..+0.70** — all OVERLAP 0 → NOT convergently
+distinguishable ("sign positive, magnitude not separable from soft"). So prb does
+NOT re-center *more* than soft. The distinction is trustworthiness, not magnitude:
+soft's own re-centering claim was gated to a narrow corner because soft's escape-
+margin is a knife-edge (§28: CONVERGED=NO, EM 2.5/10/7.97 g across timestep+seed),
+whereas **prb's escape-margin is a stable ≥10 g at every perturbation of every
+finger-direction cell** (`prb_converge_all.txt`) and its re-center holds across
+n4 AND n6 (soft's was n4-only). Same re-centering behavior, but earned on solid
+numerics instead of a flip-prone one.
+
+### Where it does NOT (honest limits — hedged exactly like the soft result)
+- **Gap direction (ball landing between two fingers): cages but does NOT re-
+  center.** `prb_converge_all.txt` n4-gap 2.5 cm **−0.11..+0.09**, 3.5 cm
+  **−0.35..−0.00** → SIGN NOT stable; the ball stays where it landed (centering-err
+  1.47/2.55/3.75 cm, `prb_quality_grid.txt`). It still *cages* — score 26/26, 4
+  fingers, held (frame `cageQ_prb_n4_gap_35mm_seated_under.png`: caged but sitting
+  3.75 cm off toward the gap, symmetry 0.44). Paired vs fixed at gap 3.5 cm
+  OVERLAPS 0 (**−0.22..+2.15**). *Mechanism:* in the finger direction the two
+  nearest fingers straddle the ball and the far pair's distal tuck pulls it in; in
+  the gap direction no finger sits behind the ball to push it back, so the tendon
+  cages around it but can't translate it. Denser rings even nudge it slightly out
+  (n6-gap 3.5 cm pull-in −1.21, n8-gap −1.10 — still caged).
+- **Dense ring (n8-finger): re-center washes out.** `prb_converge_all.txt`
+  n8-finger 2.5 cm **+0.02..+0.27** → SIGN NOT stable; paired vs fixed OVERLAPS 0
+  (**−0.07..+0.50**). With 8 fingers the per-finger travel budget is too small for
+  a meaningful differential — **n6 is the densest ring that convergently re-
+  centers.** (n8 still cages: score 26/26.)
+
+### Boundary — a second, independent robustness win over §28
+`prb_boundary.txt`: the faithful hand cages to **≥5.0 cm (the scan edge) in BOTH
+finger and gap directions**, and the caged verdict is **timestep-STABLE across
+1/480–1/1920** (converged) in both. This is the regime §28 flagged as
+UNTRUSTWORTHY for fixed/soft/yale — their 4–5 cm caged/escaped verdict FLIPPED with
+the substep (the §26 artifact band). The PRB hand's force-limited compliant close
+removes that band: no timestep-fragile boundary in the scanned range. Frame
+`cageQ_prb_n4_finger_50mm_seated_diag.png` confirms a real 4-finger cage at the
+5.0 cm extreme (escape-margin dropped to 6.09 g — precarious but held@2.5 g — and
+it still re-centered 5.0 → 3.04 cm; note the asymmetric flex +2.7/+2.4/**+1.6**/+2.4,
+the near finger stalled on the ball while the far ones closed — the self-
+distribution signature, visible directly).
+
+### Net (the answer, with the envelope stated as rigorously as soft was)
+The fixed-vs-Yale verdict **changes**: with a faithful mechanism, "Yale ejects /
+loses to fixed" becomes **"Yale cages as robustly as fixed and re-centers where
+fixed only pins."** That re-centering is EARNED (convergent, and convergently
+greater than fixed) in a specific envelope — **finger-direction approaches, ring
+density n4–n6, offsets 1.5–3.5 cm** — and is HONESTLY ABSENT in the gap direction
+and at n8 (cages, doesn't re-center). It ties the passive soft flexure on
+re-centering magnitude but on cleaner numerics. And its caged boundary is timestep-
+stable to ≥5 cm in both directions, escaping the §26 artifact band that fixed/soft
+still sit in. The §28 "ejects" number stands as a correct statement ABOUT THE
+STAND-IN, now explicitly labeled an artifact of the puppet; no §28 number is
+altered — this section adds the faithful-hand arm. **Still deferred (unchanged
+scope):** gravity-on / momentum-seated / on-drone quality; the finger-vs-gap
+coverage gap is the same one the rigid close has (a pose-optimization lever, §25
+open item), now shown to bound the adaptive hand's re-centering too.
