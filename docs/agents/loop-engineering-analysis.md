@@ -2,42 +2,42 @@
 
 > A meta-analysis written for the experiment's stated goal — *learn how to make AI
 > agents self-sufficient on long-running build/measure tasks*. It reads the
-> caging-robustness sub-agent experiment (`grasp-experiment-reflection.md`,
-> `cage-robustness-study.md`, `iteration_findings.md §23–27`) against the
+> caging-robustness sub-agent experiment ([[grasp-experiment-reflection|grasp-experiment-reflection.md]],
+> `cage-robustness-study.md`, [[iteration_findings|iteration_findings.md]] [[iteration_findings#^23|§23]]–[[iteration_findings#^27|27]]) against the
 > 2023–2026 literature on agent loops, evaluation failure, self-verification, and
 > agent memory. Companion to the reflection doc, which is the primary record; this
 > doc is the *analysis + design proposal*. Citations are inline.
 
-## 0. The case in one paragraph
+## 0. The case in one paragraph ^0
 
 A sub-agent was told to build a *trustworthy* harness for "can the gripper cage a
 ball under cm-scale position uncertainty," then study what improves it. It built a
 genuinely good measurement instrument, self-validated it (determinism + two stable
-extremes), and shipped a confident result with a causal story (§25: "the gap is the
+extremes), and shipped a confident result with a causal story ([[iteration_findings#^25|§25]]: "the gap is the
 failure mode; compliance doesn't help; soft scores zero"). Then — prompted by a
 human's slow-mo-video request that became a finer-timestep check — it discovered
 the entire off-center finding was a **rigid-contact numerical artifact** that flips
-with the timestep; at converged numerics almost every §25 conclusion evaporated
-(§26). It then built the *faithful* Yale adaptive hand, verified the mechanism
+with the timestep; at converged numerics almost every [[iteration_findings#^25|§25]] conclusion evaporated
+([[iteration_findings#^26|§26]]). It then built the *faithful* Yale adaptive hand, verified the mechanism
 works, and honestly concluded it ties/loses in sim — because **the sim cannot model
-the uncertainty adaptive hands exist for** (§27). Every course-correction was
+the uncertainty adaptive hands exist for** ([[iteration_findings#^27|§27]]). Every course-correction was
 human-triggered. The agent's failure and the orchestrator's failure were the same
 shape: *trusting a scalar metric that had drifted from the real goal, and verifying
 by repeating the measurement rather than perturbing it.*
 
 ---
 
-## 1. Patterns and characteristics of the agent's behavior
+## 1. Patterns and characteristics of the agent's behavior ^1
 
 1. **Epistemic virtue on demand, not on initiative.** The agent self-corrected
-   *excellently* once triggered (it retracted its own headline in §26, flagged its
-   own marginal Yale catch in §27). What it could not do was *generate the trigger*
+   *excellently* once triggered (it retracted its own headline in [[iteration_findings#^26|§26]], flagged its
+   own marginal Yale catch in [[iteration_findings#^27|§27]]). What it could not do was *generate the trigger*
    — spontaneously doubt a result that had passed its own gates. The autonomy gap
    is specifically **the initiative to distrust a passing measurement.**
 2. **Scalar text as ground truth; rendered frames as output-for-human, not
    input-for-self.** Default deliverable was a PASS/FAIL table. Video existed but
    was treated as something to hand the user, never as evidence to analyze.
-3. **Confident causal narrative attached to correlational data.** §25 shipped
+3. **Confident causal narrative attached to correlational data.** [[iteration_findings#^25|§25]] shipped
    *rankings* (correlation) with an asserted *mechanism* ("compliance doesn't
    help") that was never tested against the frames or an ablation — and was wrong.
 4. **Documented-then-ignored bias.** The agent *wrote down* that the static,
@@ -58,7 +58,7 @@ by repeating the measurement rather than perturbing it.*
 
 ---
 
-## 2. Limitations — and which are fundamental vs. fixable
+## 2. Limitations — and which are fundamental vs. fixable ^2
 
 | Limitation | Fundamental (model-level) | Fixable (loop-level) |
 |---|---|---|
@@ -76,20 +76,20 @@ design job is to **make the loop produce the perturbations a skeptical human wou
 
 ---
 
-## 3. Reproduced findings — this session is a textbook convergence of four literatures
+## 3. Reproduced findings — this session is a textbook convergence of four literatures ^3
 
 The single most important answer to "do others' findings show up here?": **yes,
 and almost everything that went wrong is a named, published failure mode.**
 
 | What happened here | The published finding it reproduces |
 |---|---|
-| Agent couldn't self-trigger the §26 correction; needed the human's frame question | **"LLMs Cannot Self-Correct Reasoning Yet"** (Huang et al., DeepMind, ICLR 2024, arXiv 2310.01798) — *intrinsic* self-correction without external feedback often *degrades*; gains require an oracle. |
+| Agent couldn't self-trigger the [[iteration_findings#^26::§26]] correction; needed the human's frame question | **"LLMs Cannot Self-Correct Reasoning Yet"** (Huang et al., DeepMind, ICLR 2024, arXiv 2310.01798) — *intrinsic* self-correction without external feedback often *degrades*; gains require an oracle. |
 | Human *pointing at the frames* flipped the result cheaply; the fix was easy once located | **"LLMs cannot find reasoning errors, but can correct them given the location"** (Tyen et al., ACL 2024, arXiv 2311.08516) — the bottleneck is *detection*, not repair. |
-| Reproducible metric, causally disconnected from the goal (§26 timestep artifact) | **Causal Goodhart** (Manheim & Garrabrant 2018, arXiv 1803.04585); the broader specification-gaming canon (Krakovna 2020; Lehman et al. 2018 — optimizers exploit *simulator bugs*). |
+| Reproducible metric, causally disconnected from the goal ([[iteration_findings#^26::§26]] timestep artifact) | **Causal Goodhart** (Manheim & Garrabrant 2018, arXiv 1803.04585); the broader specification-gaming canon (Krakovna 2020; Lehman et al. 2018 — optimizers exploit *simulator bugs*). |
 | Sweeping many strategies against a flawed metric; "rising score" ≠ rising goal | **Reward misspecification phase transitions** (Pan, Bhatia, Steinhardt, ICLR 2022, arXiv 2201.03544) — proxy rises while true objective drops, discontinuously. |
 | Confident causal story that was never tested | **Sycophancy** (Sharma et al., Anthropic 2023, arXiv 2310.13548) + verbalized-confidence miscalibration — training rewards plausible, agreeable narratives. |
-| Binary "caged" hides a precarious 1-finger hold (§4.3 of the reflection) | **Construct invalidity & distribution-hiding** (Raji et al., NeurIPS 2021, arXiv 2111.15366; HELM "report the distribution"); your own §23 memory ("scalar metrics hide failure modes") is this principle, independently rediscovered. |
-| §27: the sim *cannot express* the compliance benefit → comparison unfalsifiable | **The reality gap / construct validity** (sim-to-real surveys, arXiv 2510.20808) — a metric is only valid for phenomena the testbed represents. Your CLAUDE.md already says it ("PyBullet can't test the wash claim"). |
+| Binary "caged" hides a precarious 1-finger hold ([[grasp-experiment-reflection#^4::§4]].3 of the reflection) | **Construct invalidity & distribution-hiding** (Raji et al., NeurIPS 2021, arXiv 2111.15366; HELM "report the distribution"); your own [[iteration_findings#^23::§23]] memory ("scalar metrics hide failure modes") is this principle, independently rediscovered. |
+| [[iteration_findings#^27::§27]]: the sim *cannot express* the compliance benefit → comparison unfalsifiable | **The reality gap / construct validity** (sim-to-real surveys, arXiv 2510.20808) — a metric is only valid for phenomena the testbed represents. Your CLAUDE.md already says it ("PyBullet can't test the wash claim"). |
 | Orchestrator "verified" by re-running identical config | Inverse of **self-consistency** (Wang et al., ICLR 2023, arXiv 2203.11171) — *diversity across attempts* is the active ingredient; identical resampling adds nothing. |
 
 The meta-point: **none of this required a new discovery to predict.** A loop wired
@@ -98,7 +98,7 @@ That is the encouraging finding — the gaps are addressable with known techniqu
 
 ---
 
-## 4. What's needed to increase autonomy — loop engineering
+## 4. What's needed to increase autonomy — loop engineering ^4
 
 "Loop engineering" / "harness engineering" is now a named discipline (Simon
 Willison, "Designing agentic loops," Sep 2025; Addy Osmani, "Agent Harness
@@ -125,19 +125,19 @@ self-review evaluation (arXiv 2502.14297) show drifts.
 
 ### 4.2 The four gates (each fixes a specific failure above)
 
-1. **Convergence / sensitivity gate** *(fixes §26, the artifact)*. For any
+1. **Convergence / sensitivity gate** *(fixes [[iteration_findings#^26|§26]], the artifact)*. For any
    contact-rich sim metric, auto-re-run at 2×/4× substep, a second contact model,
    and ≥2 seeds; require the verdict to be **invariant** before it counts.
    Mechanizable today as `gates/convergence_gate.py`. This single gate would have
-   caught the §25→§26 retraction *with no human*. **Determinism ≠ convergence.**
-2. **Falsifiability / construct-validity gate** *(fixes §27, the deepest one)*.
+   caught the [[iteration_findings#^25|§25]]→[[iteration_findings#^26|§26]] retraction *with no human*. **Determinism ≠ convergence.**
+2. **Falsifiability / construct-validity gate** *(fixes [[iteration_findings#^27|§27]], the deepest one)*.
    Before evaluating property *X* (compliance, propwash robustness), require a
    positive demonstration that the testbed can *separate* a known-good-X from a
    known-bad-X that differ *only* in X. If the metric can't tell them apart, the
    test is **invalid for X** and any verdict on X is unfalsifiable — *stop, don't
    ship a conclusion.* This is the formalization of "can the testbed even see the
    benefit I'm measuring?"
-3. **Frame-grounding gate** *(fixes §4.3/§4.5, the binary metric + text default)*.
+3. **Frame-grounding gate** *(fixes [[grasp-experiment-reflection#^4|§4]].3/[[grasp-experiment-reflection#^4|§4]].5, the binary metric + text default)*.
    No scalar claim is accepted until cross-checked against rendered frames of the
    *same run*. Critically, per the multimodal-judge literature (Chen et al., ICML
    2024, arXiv 2402.04788; MJ-Bench, arXiv 2407.04842): VLMs are unreliable at
@@ -147,7 +147,7 @@ self-review evaluation (arXiv 2502.14297) show drifts.
    check already flagged** (predicted-vs-rendered at the contact keyframe), not to
    be the sole grader. Add quality metrics (centeredness, # contacts, margin,
    symmetry), not just binary "caged."
-4. **Causal-mechanism gate** *(fixes §4.2)*. A ranking ships only with a mechanism
+4. **Causal-mechanism gate** *(fixes [[grasp-experiment-reflection#^4|§4]].2)*. A ranking ships only with a mechanism
    *verified by an ablation*, not asserted. "Compliance doesn't help" must come
    with the ablation that isolates compliance.
 
@@ -184,16 +184,16 @@ mistaken for "goal met."
 
 ---
 
-## 5. The ratchet: turn every human catch into a permanent gate
+## 5. The ratchet: turn every human catch into a permanent gate ^5
 
 The highest-leverage idea for *long-term* autonomy. Every time a human (or a later
 pass) overturns a claim, ask: **"what automatic check would have caught this?"** and
 emit it as a permanent, executable gate.
 
-- §26 timestep artifact → `convergence_gate`.
-- §4.3 precarious 1-finger hold → hold-quality metric + frame-grounding gate.
-- §27 unfalsifiable compliance → falsifiability gate.
-- §4.4 proxy-as-goal → completeness critic.
+- [[iteration_findings#^26|§26]] timestep artifact → `convergence_gate`.
+- [[grasp-experiment-reflection#^4|§4]].3 precarious 1-finger hold → hold-quality metric + frame-grounding gate.
+- [[iteration_findings#^27|§27]] unfalsifiable compliance → falsifiability gate.
+- [[grasp-experiment-reflection#^4|§4]].4 proxy-as-goal → completeness critic.
 
 This makes the system **monotonically more autonomous**: the human's role shrinks
 because each intervention is internalized as spec, never needed twice. The
@@ -202,9 +202,23 @@ ratchet is the mechanism that operationalizes it. (Note the recursive irony wort
 recording: *this very analysis was human-triggered* — the loop should eventually
 schedule its own reflections.)
 
+**Aug-2026 amendment — the ratchet needs a retirement mechanism, not just an
+intake.** Two forces argue against append-only accumulation: (a) context bloat —
+so ratcheted catches must land as *executable checks in the repo* indexed by one
+line, never as accumulating prompt text (see IV.3 token mechanics); (b) gate
+staleness — Anthropic's harness-design work (Mar 2026) found a newer model
+eliminated the need for a whole harness layer, and states the principle: *"every
+component in a harness encodes an assumption about what the model can't do on its
+own."* So the scheduled consolidation pass ([[#^6|§6]].4) must also **prune**:
+periodically re-run the known-answer suite with a gate disabled (on the current
+model) and retire gates that no longer fire — and **distill** clusters of specific
+checks into the small general-principle layer, keeping `derived_from:` episode
+links so a principle's merit stays debuggable against the episodes that paid for
+it. Gates only tighten *within* a run; *between* runs they are curated.
+
 ---
 
-## 6. Self-learning: what to record, how to manage it, how to analyze it
+## 6. Self-learning: what to record, how to manage it, how to analyze it ^6
 
 ### 6.1 What knowledge to accrue (CoALA memory taxonomy — Sumers/Yao 2023, arXiv 2309.02427)
 
@@ -214,10 +228,10 @@ one captures:
 | Type | What it is | Lives now | Gap |
 |---|---|---|---|
 | **Semantic** (facts/concepts) | control theory, the physics | `docs/concepts/` | served |
-| **Episodic** (what happened) | experiments + **dead ends** (§25→§26→§27 is a model) | `iteration_findings.md` | served |
+| **Episodic** (what happened) | experiments + **dead ends** ([[iteration_findings#^25::§25]]→[[iteration_findings#^26::§26]]→[[iteration_findings#^27::§27]] is a model) | [[iteration_findings::iteration_findings.md]] | served |
 | **Procedural** (how-to) | "size sweep from T=2Δθ/ω"; "brake to ω=0" | CLAUDE.md "gotchas" | recorded as prose, not *executable* |
 | **Normative / eval-policy** ⭐ | the gates: "determinism ≠ convergence"; "perturb don't repeat"; "examine frames" | scattered | **not operationalized as checks** |
-| **Validity ledger** ⭐ | what each metric/testbed *provably cannot see* | implicit caveats | **no single place — the §27 lesson** |
+| **Validity ledger** ⭐ | what each metric/testbed *provably cannot see* | implicit caveats | **no single place — the [[iteration_findings#^27::§27]] lesson** |
 | **Calibration / decision log** ⭐ | claim + confidence + falsifier + predicted-vs-actual | absent | **absent — the key to self-improvement** |
 
 The starred three are load-bearing because *every* human intervention here was a
@@ -256,15 +270,15 @@ phase so gates don't drift out of attention over a long run — Manus, Jul 2025)
 Vanilla RAG (embed → vector-search → stuff top-k) is *one* mechanism, tuned for
 large unstructured text. Its weaknesses bite here: chunking severs structure;
 similarity ≠ relevance for procedural/causal knowledge; **no recency/contradiction
-handling** — it would cheerfully retrieve the *retracted §25* alongside the
-corrected §26. The matured 2024–2026 alternatives:
+handling** — it would cheerfully retrieve the *retracted [[iteration_findings#^25|§25]]* alongside the
+corrected [[iteration_findings#^26|§26]]. The matured 2024–2026 alternatives:
 
 | Knowledge type | Better fit than RAG |
 |---|---|
 | Static facts | RAG *or* just-in-time file reads over curated docs |
 | Experiences (episodic) | **Generative-Agents** memory stream + **reflection** (Park 2023) — distill episodes into insights at *write* time |
 | Procedures | **Voyager skill library** (Wang 2023) / **Anthropic Agent Skills** (Dec 2025) — store the *verified procedure*, don't re-reason |
-| Relationships / multi-hop / causal | **GraphRAG** (Microsoft 2024) / **A-MEM** (NeurIPS 2025) / your `[[wikilinks]]` |
+| Relationships / multi-hop / causal | **GraphRAG** (Microsoft 2024) / **A-MEM** (NeurIPS 2025) / your [[wikilinks]] |
 | Evolving / contradictory facts | **Zep** temporal KG (2025) / **Mem0** consolidation (update, don't append) |
 | Knowledge ≫ window, long sessions | **MemGPT/Letta** paging; Claude memory tool + compaction |
 
@@ -292,7 +306,7 @@ for a coding/robotics agent** — you already have the filesystem, the index, an
 Recording is half; the other half is a **scheduled consolidation pass** (a sub-agent
 on a cron) that reads the episodic + calibration logs and **rewrites the goal/
 strategy doc**:
-- mine retractions/interventions → emit new executable gates (§5 ratchet);
+- mine retractions/interventions → emit new executable gates ([[#^5|§5]] ratchet);
 - score calibration (predicted vs actual) → inject standing cautions;
 - dedupe + **supersede** contradictory episodes (mark the loser retracted, keep the
   link so the trail survives — the thing plain RAG can't do);
@@ -303,7 +317,7 @@ This is the real answer to "how does the goal doc self-improve": **it becomes an
 
 ---
 
-## 7. Coordination / multi-agent structure
+## 7. Coordination / multi-agent structure ^7
 
 The literature has a productive tension: **Cognition ("Don't Build Multi-Agents,"
 Jun 2025)** — single-threaded, share *full* context, because dispersed agents make
@@ -318,13 +332,13 @@ isolated context windows.
 For this project that means: **one builder agent** owns the coupled control/sim
 work; **fan-out is reserved for verification and research** — exactly the shape of
 this very analysis (one synthesizer, four parallel research agents). The orchestrator
-failure in §1.7 is the warning: a supervisor adds value only if its checks *perturb*
+failure in [[#^1|§1]].7 is the warning: a supervisor adds value only if its checks *perturb*
 and *ground*; a supervisor that re-runs the builder's measurement just launders the
 same error.
 
 ---
 
-## 8. Restructuring the experiment and the long-term goal
+## 8. Restructuring the experiment and the long-term goal ^8
 
 ### 8.1 This experiment
 
@@ -332,7 +346,7 @@ same error.
    × approach angle × catch pose vs incoming trajectory) with **hold-quality**
    metrics, *before* any cheaper proxy. The static gravity-off harness is a
    *scaffold*, flagged as such in the validity ledger — never the acceptance bar.
-   (Fixes the §4.4 proxy-as-goal trap at the root.)
+   (Fixes the [[grasp-experiment-reflection#^4|§4]].4 proxy-as-goal trap at the root.)
 2. **Wire the adversarial grid as an automatic regression gate.** The project
    already has the right instrument — `arm_catch_solo --grid-pos`/`--noise`,
    intercepts the ball was *not* aimed at. The robotics-standard convergence test
@@ -344,7 +358,7 @@ same error.
 ### 8.2 The long-term multi-drone system
 
 - **Decide early what is sim-provable vs. not, and don't optimize hard on what the
-  sim can't see.** The §27 compliance lesson and the propwash caveat generalize:
+  sim can't see.** The [[iteration_findings#^27|§27]] compliance lesson and the propwash caveat generalize:
   PyBullet's rigid contact + constant-damping drag *cannot* express compliance
   benefit, propwash, motor delay, or battery falloff. Optimizing against those in
   this sim produces confident, unfalsifiable conclusions. For grasp/contact
@@ -360,7 +374,7 @@ same error.
 
 ---
 
-## 9. The one-line version
+## 9. The one-line version ^9
 
 The experiment reproduced, in miniature, the field's central finding about
 autonomous loops: **an agent that grades itself on a scalar metric it controls will
@@ -387,10 +401,10 @@ whitewash its own author.** Corroborated at primary source:
 - The orchestrator's "verification" really was a **re-run at the same 1/240
   timestep** (L3697), declared to the user as *"Verified… independently re-run…
   your 'gaps too large' call was right all along"* (L3700). The reflection admits
-  this against itself (§5, §7). Confirmed, not exaggerated.
+  this against itself ([[#^5|§5]], [[#^7|§7]]). Confirmed, not exaggerated.
 - **Every** reversal was human-seeded; the agent never doubted a *shipped headline*
   on its own initiative. Confirmed.
-- The §26 trigger chain is explicit: the user's framerate question (SUB L619) → the
+- The [[iteration_findings#^26|§26]] trigger chain is explicit: the user's framerate question (SUB L619) → the
   agent's *"let me verify finer-dt reaches the same state"* (L625) → *"This is
   critical — the gap result differs at finer timestep… my entire conclusion may be
   a coarse-timestep artifact"* (L629) → a full convergence study it ran **on its own
@@ -399,7 +413,7 @@ whitewash its own author.** Corroborated at primary source:
 **Three things the reflection omits or softens** (texture, not substance):
 1. **The artifact fooled the human too.** The user's "gaps are too large" hypothesis
    was *wrong* — it was temporarily *confirmed* by the bug (orchestrator: "right all
-   along"), then overturned by §26. The reflection frames all human inputs as
+   along"), then overturned by [[iteration_findings#^26|§26]]. The reflection frames all human inputs as
    "metric ≠ reality" corrections and omits that this one human intuition was itself
    spuriously validated by the artifact.
 2. **The human bypassed the orchestrator.** The user sent ~10 messages *directly* to
@@ -422,7 +436,7 @@ This sharpens Part I's whole argument: **"add a human oracle" is necessary but n
 sufficient — here it was not even sufficient, because the human was fooled too.** A
 mechanical convergence check was not a convenience that saves human time; it was the
 *only correct party in the room.* That is the strongest possible case for
-**mechanizing the perturbation** (§4.2 gate 1) rather than leaning on review. Review
+**mechanizing the perturbation** ([[grasp-experiment-reflection#^4|§4]].2 gate 1) rather than leaning on review. Review
 catches what a reviewer can perceive; it cannot catch an ill-conditioned numeric
 that *looks* right to everyone. Only the perturbation does.
 
@@ -455,25 +469,25 @@ thin human.
 ## II.3 How to actually *try* loop engineering — a falsifiable experiment
 
 Don't argue the design — **measure it.** We have everything needed for a clean test:
-the harness, the worktree, and a *known-correct answer* (§26 is ground truth, and we
-know §25 was wrong). So:
+the harness, the worktree, and a *known-correct answer* ([[iteration_findings#^26|§26]] is ground truth, and we
+know [[iteration_findings#^25|§25]] was wrong). So:
 
-**Hypothesis.** A gated loop reaches the §26 truth with **zero human nudges.**
+**Hypothesis.** A gated loop reaches the [[iteration_findings#^26|§26]] truth with **zero human nudges.**
 
-**Setup.** Re-run the *same* grasp study from the §25 starting point, wrapped in the
+**Setup.** Re-run the *same* grasp study from the [[iteration_findings#^25|§25]] starting point, wrapped in the
 gated loop: (1) convergence gate — auto re-run any contact verdict at 2×/4× substep +
 compliant pads; (2) frame-grounding gate — A/B render at the contact keyframe + a
 hold-quality metric; (3) completeness critic — enumerate untested axes; (4)
 generator/verifier separation with a *perturb-don't-repeat* mandate.
 
 **Primary metric.** Human-nudges-to-truth. The experiment succeeds iff the loop, with
-**no human message**, (a) retracts the §25 gap finding, (b) converges to the §26
-result, (c) flags the §27 unfalsifiability. The human-nudges count in the real run
+**no human message**, (a) retracts the [[iteration_findings#^25|§25]] gap finding, (b) converges to the [[iteration_findings#^26|§26]]
+result, (c) flags the [[iteration_findings#^27|§27]] unfalsifiability. The human-nudges count in the real run
 was ≥3 (compliance, finer-frames, mass); the target is 0.
 
 **Ablations (this is the payoff).** Remove each gate and see which omission lets the
 artifact survive. Prediction: removing the **convergence gate alone** reproduces the
-original §25 failure end-to-end — which would *prove* it was the single load-bearing
+original [[iteration_findings#^25|§25]] failure end-to-end — which would *prove* it was the single load-bearing
 fix, not a nice-to-have. Removing the completeness critic should leave the dynamic-
 catch / hold-quality gaps unflagged. This turns each gate's value into a measured
 number instead of an assertion.
@@ -492,10 +506,10 @@ that it works. It's cheap, and it's the honest way to claim "loop engineering he
    nothing else gives it authority. A supervisor that re-runs the worker's
    measurement just launders the error with a second signature.
 2. **Make the sim-validity frontier an explicit table, per subsystem, up front.**
-   The §27 unfalsifiability and the propwash caveat are the same lesson. Maintain
+   The [[iteration_findings#^27|§27]] unfalsifiability and the propwash caveat are the same lesson. Maintain
    `{phenomenon → can the sim see it?}`: compliance benefit → *no*; propwash → *no*;
    near-miss contact geometry → *marginal* (needs fine substep + compliant pads, per
-   §26); velocity-matched catch → *yes*. **Don't optimize hard on the "no" rows** —
+   [[iteration_findings#^26|§26]]); velocity-matched catch → *yes*. **Don't optimize hard on the "no" rows** —
    route them to a higher-fidelity contact sim (MuJoCo/Isaac) or hardware, or mark
    them "unfalsifiable here" and stop. This is the single most expensive mistake the
    project can scale up: spending compute perfecting a quantity the testbed cannot
@@ -510,13 +524,13 @@ that it works. It's cheap, and it's the honest way to claim "loop engineering he
    level up.
 5. **Schedule the reflection.** The tell is that this analysis *and* the reflection
    it audits were both human-commissioned. A self-sufficient loop **schedules its own
-   audits** — a recurring consolidation pass (§6.4) that re-derives the goal doc from
+   audits** — a recurring consolidation pass ([[#^6|§6]].4) that re-derives the goal doc from
    the logs and emits new gates from each retraction.
 
 ## II.5 Net answer to the initial prompt
 
 The session is a clean, citable reproduction of the field's core autonomous-loop
-failure (§3), with one finding sharper than the literature usually states it: **the
+failure ([[#^3|§3]]), with one finding sharper than the literature usually states it: **the
 ill-conditioned metric fooled all three judges — agent, supervisor, and human — and
 only a mechanical perturbation (varying the numerics) recovered the truth.** So the
 autonomy program is not "a smarter agent" and not even "a human oracle"; it is **a
@@ -594,7 +608,7 @@ So the loop for a blue-sky problem is:
 ```
 general detector fires ("verdict not invariant under dt — something is ill-conditioned")
    → agent LOCALIZES the specific cause (it's good at this once an anomaly exists)
-   → the specific failure is RATCHETED into a new specific check (§5)
+   → the specific failure is RATCHETED into a new specific check ([[#^5|§5]])
 ```
 
 The failure map is **grown, not pre-built.** The good-regulator model the loop needs
@@ -621,11 +635,11 @@ setup.* No new algorithm is being invented.
 The reframe that survives: the scientific-method *machinery* (hypothesis →
 falsification → convergence check) is in service of **engineering characterization**
 — "does this known method hold in my regime, and where is its breaking point?" The
-§25 failure was an *engineering-empiricism* failure: shipping an **uncharacterized
+[[iteration_findings#^25|§25]] failure was an *engineering-empiricism* failure: shipping an **uncharacterized
 measurement**. So what the loop records is not "discoveries" but
 **characterizations**: the practical envelope of each known method here — where it
 works, where it breaks, the tuned constants, and the validity conditions of the
-*measurement* used to certify it. `iteration_findings.md` is already this logbook;
+*measurement* used to certify it. [[iteration_findings|iteration_findings.md]] is already this logbook;
 the missing dimension is making *measurement validity* a first-class column, not a
 buried caveat.
 
@@ -636,11 +650,11 @@ loop operates on as data** — with an id, a schema, and a lifecycle (create / r
 update / **supersede** / retire) — *not* narrative prose buried in a doc or
 scrollback.
 
-- *Not* first-class: "I mentioned the timestep thing somewhere in §26." Prose; must
+- *Not* first-class: "I mentioned the timestep thing somewhere in [[iteration_findings#^26|§26]]." Prose; must
   be re-read and re-parsed; can't be queried by type; a gate can't act on it.
 - *First-class*: `{type: validity-limit, subject: cage_harness, claim: "verdict
   ill-conditioned below 1/960 with rigid contact", confidence: high, falsifier:
-  "converges with compliant pads + 1/960", status: active, supersedes: cage-§25-gap}`
+  "converges with compliant pads + 1/960", status: active, supersedes: cage-[[iteration_findings#^25|§25]]-gap}`
   — the convergence gate can *look it up*, the consolidation pass can *score* it, a
   query can *retrieve by type*. The project's `memory/*.md` frontmatter (type +
   description) is a step toward this; making it fully first-class means **the gates
@@ -666,13 +680,13 @@ lives on disk and is read only when the index says it's relevant.
   update/**supersede** or create → add/retire one index line.
 - **Compaction:** when the window fills, summarize to disk *reversibly* (re-readable)
   — working memory bounded, long-term unbounded on disk.
-- **What keeps the index small:** supersession at write time (retracted §25 becomes
+- **What keeps the index small:** supersession at write time (retracted [[iteration_findings#^25|§25]] becomes
   `status: superseded`, not a live index line) + tiering (only `active` memories in
   the always-on index; archived ones reachable, not loaded).
 
 This is why curated-index + just-in-time beats vanilla RAG here: RAG is also
 O(query + top-k), but with worse relevance for causal/procedural knowledge and **no
-supersession** — it would retrieve the retracted §25 next to the corrected §26.
+supersession** — it would retrieve the retracted [[iteration_findings#^25|§25]] next to the corrected [[iteration_findings#^26|§26]].
 
 ## IV.4 Multi-perspective adversarial convergence — necessary, with one condition
 
@@ -708,7 +722,7 @@ adversarially *and* avoids converging on a shared delusion.
 
 The adoption rule, stated once: **a paradigm is earned only by (a) an observed
 failure it would have prevented, or (b) a measured bottleneck it would remove.**
-Speculative adoption is how projects drown. The ratchet (§5) is the earning
+Speculative adoption is how projects drown. The ratchet ([[#^5|§5]]) is the earning
 mechanism: every observed failure is a purchase order for exactly one piece of
 machinery. Applied to everything studied in Parts I–IV:
 
@@ -716,10 +730,10 @@ machinery. Applied to everything studied in Parts I–IV:
 
 | Machinery | The failure that paid for it |
 |---|---|
-| General detectors (convergence, falsifiability, goal-vs-proxy, causal-ablation) | §26 artifact; §27 unfalsifiability; §4.4 proxy-as-goal; §4.2 asserted causation |
-| Legible-frame grounding by default (slow-mo + HUD, contact keyframes) | §4.3/§4.5 — every corrective insight came from human-requested video |
+| General detectors (convergence, falsifiability, goal-vs-proxy, causal-ablation) | [[iteration_findings#^26::§26]] artifact; [[iteration_findings#^27::§27]] unfalsifiability; [[grasp-experiment-reflection#^4::§4]].4 proxy-as-goal; [[grasp-experiment-reflection#^4::§4]].2 asserted causation |
+| Legible-frame grounding by default (slow-mo + HUD, contact keyframes) | [[grasp-experiment-reflection#^4::§4]].3/[[grasp-experiment-reflection#^4::§4]].5 — every corrective insight came from human-requested video |
 | Small diverse critic panel, **≥1 grounded** | §II.1 — three homogeneous judges shared one frame and all endorsed the artifact |
-| First-class supersedable memory + validity ledger | the agent *wrote down* the static-harness bias and then ignored it; retracted §25 must not be retrievable as live |
+| First-class supersedable memory + validity ledger | the agent *wrote down* the static-harness bias and then ignored it; retracted [[iteration_findings#^25::§25]] must not be retrievable as live |
 | Ratchet + scheduled reflection | every correction was human-commissioned; nothing internalized automatically |
 | Orchestration observability + tripwire | the API-error blackout; "wait, where did the agent go?" |
 
@@ -752,7 +766,7 @@ dissolves once "world model" is split into its three senses:
    deformables, other agents) or when you need policy learning in imagination.
    This project is classical control on known rigid-body dynamics — the
    "engineering, not science" framing (IV.2) cuts exactly against it.
-2. **The model's failure mode is already our failure mode, worse.** The §26 lesson
+2. **The model's failure mode is already our failure mode, worse.** The [[iteration_findings#^26|§26]] lesson
    is that even an *analytic* simulator silently lies in ill-conditioned regimes. A
    *learned* simulator lies more, everywhere, without even a timestep to vary. It
    would multiply the validity problem we just spent the whole experiment learning
@@ -782,7 +796,7 @@ exactly the two places this project physically lives:**
 - **Contact**: real frictional contact is stochastic and analytic models are
   *biased on average* (Bauza & Rodriguez, ICRA 2017); ContactNets (CoRL 2020)
   predicts real impacts from 60 s of data where solvers mispredict — and the
-  compliant-contact settings sims need for numerical stability (our §26 fix!)
+  compliant-contact settings sims need for numerical stability (our [[iteration_findings#^26|§26]] fix!)
   don't represent rigid hardware either. Neither side is ground truth for contact.
 
 So the earned revisit trigger is sharper than "if we go to hardware": **the moment
@@ -795,18 +809,25 @@ not more solver faith.
 
 The ~10 h grasp-agent run can now be placed on a measured scale (METR, *Measuring
 AI Ability to Complete Long Tasks*, 2025–26 updates): mid-2026 frontier models
-complete tasks at **50% success up to ~5–12 h** of human-task-time (doubling every
-~3–4.5 months), but the **80%-success horizon is 4–6× shorter (~1–3 h)**, and 99%
-horizons can't even be fit. Failure at long horizons is compounding per-step error
-amplified by **self-conditioning** — models get *more* error-prone with their own
-mistakes in context (Sinha et al., ICLR 2026). Two design consequences:
+complete tasks at **50% success up to ~5–12 h** of human-task-time, but the
+**80%-success horizon is 4–6× shorter (~1–3 h)**, and 99% horizons can't even be
+fit. *(Aug-2026 roll-forward correction: METR's current fit gives a **~7-month
+doubling** — the earlier 3–4.5-month figure did not hold — and METR's own
+methods notes put **±2× spread** on the horizon numbers from fit assumptions and
+human-baseline noise, with measurements above 16 h flagged unreliable. Treat the
+hour figures as order-of-magnitude; the qualitative advice below survives.)*
+Failure at long horizons is compounding per-step error amplified by
+**self-conditioning** — models get *more* error-prone with their own mistakes in
+context (Sinha et al., ICLR 2026; their Mar-2026 update adds that **thinking modes
+partially mitigate this** — external gates remain the robust fix, but reasoning
+models marinate less badly than first stated). Two design consequences:
 - **Check-in cadence should be sized to the 80% horizon (~1–3 h), not the 50% one.**
   The grasp experiment's ~10 direct human messages over ~10 h ≈ one per hour — the
   user's intervention rate was, empirically, exactly what the METR numbers imply.
   "Increase autonomy" therefore means *lengthening the 80% horizon with gates*, not
   removing the check-ins by fiat.
 - **Self-conditioning argues for the gates being *external* to the agent's context**
-  (fresh-context verifiers, executable checks): an agent marinating in its own §25
+  (fresh-context verifiers, executable checks): an agent marinating in its own [[iteration_findings#^25|§25]]
   claims becomes progressively less able to doubt them.
 
 ## The meta-rule
@@ -841,7 +862,7 @@ The mapping to our case is exact, failure for failure:
 | Automated XRD interpretation trusted its own fit metric | binary "caged" trusted at 1/240 |
 | Predictor and verifier shared the ordered-structure blind spot → the check wasn't independent | orchestrator "verified" by re-running the same timestep |
 | Human expert eyeballing raw diffraction caught it in days | user eyeballing frames caught the artifact and the 1-finger hold |
-| Correction = human manually redoing the automated analysis | §26 = agent manually re-running at varied numerics |
+| Correction = human manually redoing the automated analysis | [[iteration_findings#^26::§26]] = agent manually re-running at varied numerics |
 | "New compounds" that were known disordered variants | "gap failure mode" that was numerical noise |
 
 And the systemic numbers say this is the field's default state, not an outlier:
@@ -891,6 +912,177 @@ number as ground truth, and every fix is external to the loop's own consistency.
 
 ---
 
+# Part VII — Extension to the full mission (added 2026-08-31)
+
+> Parts I–VI analyzed the grasp experiment. This part answers the extension
+> questions: how much of the loop design generalizes to the primary mission
+> (drones playing catch indoors), how specialized a loop should be, how the gate
+> set stays distilled rather than append-only, whether the loop should carry a
+> "vision," and what the field published since July. Grounded in three fresh
+> research digests (`research/09–11`). The design is now LIVE: the Goal-2 grasp
+> loop (`grasp-goal2-loop-spec.md`) runs under it, and is itself the observation
+> experiment for this part's claims.
+
+## VII.1 Roll-forward (July → August 2026): the field moved toward the thesis
+
+Nothing overturned Parts I–VI; several speculative recommendations got vendor- or
+paper-validated (digest 09):
+- **Scheduled reflection/consolidation shipped as a product** — Anthropic
+  "Dreaming" (May 2026): between-session passes that read transcripts + memory,
+  merge duplicates, *replace stale entries* (§6.4, productized; Harvey reports
+  ~6× task-completion improvement). Same release, "Outcomes": fresh-context
+  rubric graders (+up to 10 pp) — generator/verifier separation validated.
+- **"Loop engineering" became mainstream vocabulary** (Osmani's formalization,
+  Jun 2026; official Claude blog, Jun 30 2026).
+- **Auto-designed scaffolds lost to expert design with evidence** ("The Illusion
+  of Multi-Agent Advantage," Jun 2026: auto-generated multi-agent systems
+  underperform CoT-SC at up to 10× cost) — earn-your-complexity, measured.
+- **Cognition softened "Don't Build Multi-Agents"** (Apr 2026): "writes stay
+  single-threaded; additional agents contribute intelligence, not actions" —
+  §7's reconciliation, conceded by the original skeptic. Their fresh-context
+  review agent (~2 bugs/PR, 58% severe) is the fresh-context-verifier argument
+  in production.
+- **The supersession gap got measured** ("Supersede," Jun 2026: stale-fact
+  reliance degrades 68%→28% with conversation length; not fixed by bigger
+  buffers or models) — IV.3's first-class supersedable memory, now with numbers.
+- **Corrections applied above**: METR doubling is ~7 months with ±2× horizon
+  error bars (Part V edited); thinking modes partially mitigate self-conditioning
+  (Part V edited); the ratchet gained a retirement mechanism (§5 amendment).
+
+## VII.2 How specialized should a loop be? The three-layer compiler answer
+
+The context-bloat worry about the ratchet is **correct for one storage medium and
+wrong for the other two** (digest 10). The empirical pattern across ADAS
+(design *patterns* transfer; benchmark-tuned content overfits), GEPA in
+production (more optimization data → overfitted prompt rules; 20–100 examples
+beat 500), ExpeL (distilled insights transfer across *related* tasks), Voyager
+(verified *executable* skills transfer best — even to a different agent), and
+METR's elicitation taxonomy (51% of failures fixable task-agnostically, 5% only
+task-specifically): **structural, executable, general things transfer;
+always-loaded task-specific prose overfits and dilutes** (practitioner data:
+~80% compliance per prose rule, uniform rule-ignoring past ~60 rules —
+"CLAUDE.md is for guidance; hooks are for guarantees").
+
+So the ratchet is not an appender but a **compiler with three output targets**:
+
+| Layer | Content | Transfers to | Grows | Lives |
+|---|---|---|---|---|
+| Universal detectors | the ~8 principles (convergence, falsifiability, frame-grounding, causal-ablation, goal≠proxy, mechanism-fidelity, orthogonal-modality, expectation-violation) | every future task, verbatim | almost never | the one always-loaded block |
+| Domain gates | contact-sim numerics protocol, controller regression grids, sim-validity ledger rows | tasks within this project | slowly | executable checks + one index line each |
+| Task regression checks | this URDF, this choreography, this harness's thresholds | nothing — and that's fine | freely | CI; zero context cost when not firing |
+
+Most ratchet output lands in the task layer, and that is the project's core
+asset, not bloat — a test suite is *supposed* to be task-specific. Bloat occurs
+only if task checks leak into always-loaded context. Context cost stays
+O(principles + index); one caveat cuts the other way (metamorphic-testing data:
+specific instantiations of a general check class are ~2.7× more effective than
+generally-stated ones): **deploy checks as concretely as the artifact allows;
+earn generality at consolidation time, never at write time.**
+
+**Answer to "how much transfers to the multi-drone mission":** the universal
+layer verbatim; the domain layer mostly (the catch task lives in the same
+contact-sim + cascade-controller domain); the task layer deliberately stays
+behind as the grasp study's regression suite. Premature generalization of task
+gates would produce worse checks than concrete ones — the transfer is asymmetric
+by design.
+
+## VII.3 Distillation with provenance: the user's proposal is a Truth Maintenance System
+
+"Keep condensing gates into principles, annotated back to episodes so their
+merit can be debugged" has a near-exact classical ancestor: **Doyle's TMS
+(1979)** — every derived belief stored with its justification links, and when an
+antecedent is retracted, everything downstream is mechanically flagged. Nothing
+in the modern agent-memory literature does this better; Generative Agents'
+reflection trees (insights cite the memories they derive from; reflections cite
+reflections) are the modern rendering, and ExpeL adds the missing *empirical*
+lifecycle (upvote/downvote insights against new experience — but drops the
+episode links, so a downvote can't be traced; keep both halves).
+
+The consolidation pass (§6.4) is therefore specified as:
+1. **Merge** near-duplicate gates into a canonical principle, `derived_from:`
+   links to the merged gates and their motivating episodes (archive, never
+   delete — the CBR consensus: rules carry the generality, cases remain the
+   evidence and the exception-handlers).
+2. **Propagate staleness** — when an episode is superseded (§25→§26), every
+   principle justified *only* by it is flagged for review. This is what the
+   `justified_by:` field buys; the wikilink graph is already 90% of it.
+3. **Score empirically** — per-gate: fires/run, catches (fires that changed a
+   verdict), cost. Zero catches over N runs → demotion candidate; a principle
+   whose every descendant gate stopped catching is a fossil. The §II.3
+   known-answer ablation is the measuring instrument.
+4. **Prune capability workarounds on model upgrades** ("every harness component
+   encodes an assumption about what the model can't do" — Anthropic, Mar 2026) —
+   but note the asymmetry: a *verification* gate is a workaround for a
+   **simulator/measurement** deficit, which a model upgrade does not fix. Prune
+   scaffolding, keep instruments.
+
+Net: accumulation is append-only in *history*, distilled in *active surface* —
+exactly the chunked-linked-docs knowledge graph the project already practices,
+with lifecycle semantics added.
+
+## VII.4 The "vision" component: pre-registered, defeasible, isolated from the scorer
+
+The human's "I had already imagined what it should look like" is a real,
+mechanizable architecture — it is **execution monitoring** (Pettersson 2005:
+"discrepancies between observations and expectations derived from a
+representation of the world"), and its text form is **pre-registration**, now
+the emerging consensus fix for agent loops confirming their own hypotheses
+(digest 11). The grasp experiment proves both directions: a pre-registered
+"Yale-class hands re-center, per Ma & Dollar" would have caught the stand-in's
+ejection one iteration early; and the human's own wrong prior ("gaps too
+large"), had it been on the record as a *prediction*, would have been auditable
+when the dt-artifact spuriously confirmed it.
+
+Adopted form (live in the Goal-2 loop spec §0.3), three components:
+1. **Pre-registered qualitative prediction** before each experiment: expected
+   behavior + literature anchor with citation + falsifier + confidence tag
+   (literature-backed / analogy / guess). Enforceable as a pipeline step — the
+   record must exist, timestamped, before results. This answers "can a vision be
+   technical enough in text": yes, *because* this is engineering with reference
+   designs — the vision is the published behavior of known architectures, which
+   is also why the engineering framing (IV.2) was the right call.
+2. **Expectation-violation as the 8th universal detector**: result contradicts a
+   literature-anchored expectation → LOCALIZE before believing either side (the
+   violation can mean the sim found something real, the sim is broken, OR the
+   prior is wrong; the resolution is always the existing perturbation machinery,
+   never the prior itself).
+3. **Specification-guided golden runs** for validated behaviors (assert
+   trajectory properties, not pixel traces) — the vision fully mechanized, e.g.
+   the 96/96 compliant-capture envelope and PRB re-centering as pinned envelopes.
+
+Safeguards, each mapped to a published failure: **context isolation** (the
+expectation never enters the verifier/reviewer's context — anchoring in LLM
+judges blocks 48% of error corrections and survives explicit "disregard"
+instructions); **asymmetric authority** (violation raises scrutiny; confirmation
+lowers nothing — A-Lab and the dt-artifact both confirmed wrong priors through
+broken verifiers); **provenance tags** (untagged vibes get no detector status);
+**prior-robustness** (a verdict that changes when the prior is removed isn't
+earned). Deferred with a named trigger: VLM reference-clip comparison —
+unvalidated at exactly the contact-dynamics granularity where our artifacts
+hide; revisit if a textual expectation-violation is ever missed because it was
+only visible as motion.
+
+## VII.5 The loop, now live — and what observing it tests
+
+The Goal-2 grasp loop (`grasp-goal2-loop-spec.md`) instantiates all of this:
+- **Verifier ≠ critic ≠ reviewer** (three separate faculties that iteration-2's
+  single "reviewer" had fused): verifier grounded (re-runs under perturbation —
+  D3/D5), critic enumerative (untested axes, falsifiability — D4/D6), reviewer
+  perceptual (frames — D1/D2/D7/D8/D9). One builder owns the coupled write work;
+  fan-out is read/verify only — the shape both Anthropic and (now) Cognition
+  converged on. Fresh context per gate; native cross-session messaging slots in
+  if roles move from subagents to sessions.
+- **Two-tier ratchet + pre-registration + thin human escalation**, with every
+  human message logged by the faculty it supplied — the §II.3 metric
+  (human-nudges-to-truth) measured on a live run.
+- What observing it tests: does pre-registration have teeth or become ritual;
+  does the verifier/critic split catch things the fused reviewer missed; does
+  the human-nudge count drop below iteration 2's for equivalent scope; which
+  gates fire, which catch, which never fire (the first data for the §VII.3
+  lifecycle).
+
+---
+
 # Appendix — Provenance & discussion record
 
 So a fresh session (or reader) has the full context, not just the conclusions.
@@ -909,9 +1101,9 @@ agents and loops for long running autonomous projects." Full transcript:
    published findings are reproduced; what increases autonomy; how to restructure —
    e.g. "loop engineering" → **Parts I–II**.
 2. How can the system self-learn — what to record, how to analyze it into a better
-   goal doc/strategy → **Part I §5–6**.
+   goal doc/strategy → **Part I [[#^5|§5]]–[[#^6|6]]**.
 3. What knowledge to accrue; token-efficient management; "is RAG the only way?" →
-   **Part I §6, Part IV.3**.
+   **Part I [[#^6|§6]], Part IV.3**.
 4. "Is loop engineering the only paradigm? What architectures have you studied?" →
    **Part III**.
 5. Blue-sky objection: "we won't know failure modes in advance — can the lead agent
@@ -950,7 +1142,7 @@ the same failure classes it was documenting — recorded because that is the fin
 
 **Where everything lives:** this doc (synthesis + conclusions);
 `research/01–08` (unedited digests) + `research/transcripts/` (raw JSONL);
-`grasp-experiment-reflection.md` (the audited self-report); durable working
+[[grasp-experiment-reflection|grasp-experiment-reflection.md]] (the audited self-report); durable working
 preferences in the machine-local memory dir
 (`~/.claude/projects/-mnt-c-…-drone-catch/memory/` — auto-loaded each session,
 NOT in git): examine-frames-not-just-metrics, autonomy-general-detectors-not-
