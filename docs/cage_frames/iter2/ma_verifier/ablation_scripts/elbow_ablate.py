@@ -58,10 +58,22 @@ HOLD_REL_VEL = 0.6
 SETTLE_S = 2.5
 
 
+FINGER_TORQUE_CAP = 0.5   # N.m -- must track config.py ArmConfig.finger_close_torque
+
+
 def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
         noise=False, seed=0, verbose=True, inert_query=False,
         force_log_only=False, force_video_only=False, solver_iters=150,
-        log_decimate=2):
+        log_decimate=2, torque_log_window=None, trace_out=None):
+    """`torque_log_window=(t0, t1)`: log applied finger-joint torque
+    (p.getJointState -- a different call class from the settle-window FK
+    mechanism, already used above for shoulder/elbow in the inert_query
+    branch) vs FINGER_TORQUE_CAP into the per-tick `trace` list (NOT the
+    Logger/extra_payload path -- decoupled from runs_dir entirely, so torque
+    logging never depends on whether the FK-sensitive default Logger is
+    enabled). None (default) = no extra querying, unchanged behavior.
+    `trace_out`: if given, write the full per-tick trace list to this path
+    as JSON lines at the end of the run."""
     log_path, video_path = auto_run_paths(runs_dir)
     if force_log_only:
         video_path = None
@@ -279,10 +291,26 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
                 if verbose:
                     print(f"[t={t:.3f}s] CLOSE  cup_d={cup_d*100:.1f}cm rel={rel:.2f}")
 
-        trace.append({"t": t, "phase": phase, "cup_d": cup_d, "rel": rel,
-                      "nf": nf, "ball_z": bp[2]})
+        trace_row = {"t": t, "phase": phase, "cup_d": cup_d, "rel": rel,
+                    "nf": nf, "ball_z": bp[2]}
         extra_payload = {"cup_to_ball": cup_d, "rel_vel": rel,
                          "fingers": nf, "ball_pos": bp.tolist()}
+        if torque_log_window is not None and torque_log_window[0] <= sim.t <= torque_log_window[1]:
+            # p.getJointState -- a different call class from the settle-
+            # window FK mechanism (getLinkState). Only queried post-settle,
+            # in the main loop, where gripper_world_position()/joint_states()
+            # already call getLinkState/getJointState unconditionally every
+            # tick regardless of this flag -- so this adds no NEW query class
+            # to the run, only extends which joints get read.
+            max_applied = 0.0
+            for segs in catcher.finger_joints:
+                for jidx in segs:
+                    applied = p.getJointState(catcher.body_id, jidx)[3]
+                    max_applied = max(max_applied, abs(applied))
+            trace_row["finger_max_abs_applied_torque"] = max_applied
+            trace_row["finger_frac_of_cap"] = max_applied / FINGER_TORQUE_CAP
+            trace_row["sim_t"] = sim.t
+        trace.append(trace_row)
         if inert_query in ("mid_inline", "mid_inline_full"):
             # Replicate Sim.tick() exactly, inserting the full drone_state
             # query set at the SAME point the real Logger branch would run
@@ -345,6 +373,11 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
 
     if runs_dir:
         rotate_runs(__import__("pathlib").Path(runs_dir), keep=5)
+    if trace_out:
+        import json
+        with open(trace_out, "w") as f:
+            for row in trace:
+                f.write(json.dumps(row) + "\n")
     return result
 
 

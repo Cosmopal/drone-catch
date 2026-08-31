@@ -57,6 +57,10 @@ DT = 1.0 / 240.0
 G = 9.81
 FK_ABLATE = False  # scratch-only: force getLinkState(computeForwardKinematics=1) each close-loop tick
 PRB_INERTIA_OVERRIDE = None    # set by --prb-inertia to sweep the PRB inertia scale
+SOLVER_ITERS = 150             # set externally (e.g. by cage_solver_driver.py --solver-iters)
+                                # to sweep numSolverIterations -- mirrors elbow_ablate.py's
+                                # solver_iters= parameter. cage_harness.py's own setup_physics()
+                                # hardcodes 150 with no override; this is that override, additive.
 
 # ---- fixed-base catch pose (arm straight down, fingers below the EE) ----
 BASE_POS = (0.0, 0.0, 1.0)
@@ -136,7 +140,7 @@ BALL_FRICTION = 1.4
 def setup_physics():
     """Solver + finer timestep + zero gravity — the validated numerics."""
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=SIM_DT)
+    p.setPhysicsEngineParameter(numSolverIterations=SOLVER_ITERS, fixedTimeStep=SIM_DT)
     p.setGravity(0, 0, 0)
 
 
