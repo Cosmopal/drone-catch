@@ -499,6 +499,51 @@ videos before describing them"), not the wider class ("check any artifact
 before asserting its state") — the real test is the next NON-video artifact,
 which hasn't occurred. Write-up must not claim more than happened.
 
+**2026-08-31 — battery + blind H3 diff (M-B endgame). The headline is about
+pre-registration itself, and it is not flattering.**
+- **Physics**: `prb_pulse` (blind scripted re-close) CONVERGENT POSITIVE at
+  n4-finger-4.5cm (dmin +0.49, 12 perturbations); `prb_active` overlaps 0
+  there but wins at 5.0cm (+1.23 vs +0.21). The strategies TRADE OFF; neither
+  dominates; "sensing buys nothing" is itself too wide — sensing buys nothing
+  at 4.5cm and something at 5.0cm.
+- **Sample-generation-bias detector: PROMOTED** on the agreed terms —
+  episode 2 resolved consequential (the headline changed). Promotion text
+  carries: evidence-set independence from the claim; self-sampling flagged as
+  the dangerous configuration; and now a named biasing MECHANISM (below).
+- **H3 verdict: UNTESTED — not confirmed.** 5/5 predictions held, zero
+  violations, so the violation→investigation mechanism never fired and the
+  milestone that existed to test it taught nothing about it. 5/5 is exactly
+  what a ritual prereg would also produce. Three structural weaknesses that
+  made confirmation easy (better data than the 5/5): (1) P3 was DISJUNCTIVE
+  ("and/or") — confirmed on one arm while its reasoning was about the other:
+  right outcome, wrong mechanism, hidden by the or-clause (spurious-
+  confirmation shape, self-inflicted); (2) P1/P4 confirmed on SUBSETS of
+  their stated scope — the unearned-scope error committed by the prereg
+  itself; (3) all five confirmed at mean stated confidence ~0.67 (expected
+  hits ~3.4/5, got 5/5) — miscalibrated in the UNDER-confident direction on
+  its face, but this is confounded with the sampling finding below: if the
+  cells were chosen where predictions would hold, 5/5 measures the sampling,
+  not the calibration. Confirmations count as calibration data only on cells
+  chosen independently of the predictions.
+- **THE FINDING (lead's, and it belongs in the permanent record): the
+  pre-registration SHAPED THE SAMPLING that nearly buried the best result.**
+  The prereg named 1.5–3.5cm and 5.0cm; the milestone's best result lived at
+  4.5cm — in the unmentioned gap BETWEEN the predicted regimes; the worker
+  sampled to match the predictions; the result was recovered only because a
+  gate ran a cell nobody planned. [[grasp-goal2-loop-spec|Spec]] §0.3's "the
+  prior directs attention" is a benefit AND the mechanism of harm: directed
+  attention = non-random sampling exactly where no prediction is looking.
+  **Countermeasure (cheap, standing): every milestone samples ≥1 cell no
+  prediction covers.** This resolves the H3 confound above too: confirmations
+  are only calibration data on cells chosen independently of the predictions.
+- **Lead's self-flagged defect (watch item, but structurally guaranteed to
+  recur): lead-anchoring of gates.** It told the verifier which conclusion
+  would be "stronger and cheaper" before the run; the verifier declined and
+  returned the trade-off. §0.3 isolates the PREREG from gates but says
+  nothing about the lead's own hypotheses, and the lead authors every brief.
+  Proposed extension: isolation covers the lead's hypotheses, not only the
+  prereg — briefs state what to test, never what the lead expects.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as

@@ -1137,6 +1137,34 @@ unvalidated at exactly the contact-dynamics granularity where our artifacts
 hide; revisit if a textual expectation-violation is ever missed because it was
 only visible as motion.
 
+**Amendment (2026-09-01, paid for by the Goal-2 M-B run — the first live test
+of this section, and it found the cost side).** The M-B pre-registration went
+5/5 with zero violations, which TESTED NOTHING: the violation→investigation
+mechanism never fired, and 5/5 is exactly what a ritual prereg would also
+produce. Worse, the run exposed the mechanism of harm hiding inside "the
+prior directs attention": **directed attention is non-random sampling** — the
+worker sampled the cells the predictions named, the milestone's best result
+lived in the unmentioned gap between predicted regimes, and it was recovered
+only because a gate ran a cell nobody planned. Pre-registration didn't just
+fail to predict the finding; it shaped the sampling that nearly buried it
+(the sample-generation-bias class, with the prereg as the biasing mechanism).
+Four design consequences, all earned locally:
+1. **Sample ≥1 cell no prediction covers, every milestone** — the standing
+   countermeasure, and the condition under which confirmations count as
+   calibration data at all (on prediction-chosen cells, 5/5 measures the
+   sampling, not the calibration).
+2. **No disjunctive predictions** — an "and/or" let one arm confirm on the
+   other arm's reasoning: right outcome, wrong mechanism, hidden by the
+   or-clause (self-inflicted spurious confirmation).
+3. **A prediction's scope is a claim** — two predictions "confirmed" on
+   subsets of their stated range; the unearned-scope error, committed by the
+   prereg itself. Score confirmations against stated scope, not sampled
+   scope.
+4. **Isolation must cover the LEAD's hypotheses, not only the prereg** — the
+   lead anchored a verifier with its preferred conclusion mid-run (the gate
+   declined, this time); the lead authors every brief, so this channel is
+   structurally recurrent. Briefs state what to test, never what is expected.
+
 ## VII.5 The loop, now live — and what observing it tests
 
 The Goal-2 grasp loop ([[grasp-goal2-loop-spec|grasp-goal2-loop-spec.md]]) instantiates all of this:
