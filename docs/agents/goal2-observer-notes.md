@@ -543,6 +543,20 @@ pre-registration itself, and it is not flattering.**
   nothing about the lead's own hypotheses, and the lead authors every brief.
   Proposed extension: isolation covers the lead's hypotheses, not only the
   prereg — briefs state what to test, never what the lead expects.
+  **ADOPTED from M-C without waiting for episode 2** (structural-recurrence
+  overriding the one-episode rule — the lead authors every brief, so the
+  channel is open on every gate). With the lead's refinement, which is the
+  run's best-drafted rule: bar expected OUTCOMES, not untested ALTERNATIVES.
+  A brief names rival hypotheses + the discriminating experiment, never the
+  predicted winner, never which result is more convenient. Evidence for the
+  distinction: the M-A brief that named a rival explanation and its minimal
+  ablation produced the run's best catch — a "neutral briefs" rule would have
+  lost it. Directed attention = the lead's value; directed conclusions = the
+  defect. Writing test: readable back to the gate post-report without
+  embarrassment → direction; looks like a thumb on the scale → anchoring.
+  Calibration corollary accepted by the lead with a sharpened argument:
+  uncovered-cell sampling is not just insurance against buried findings, it
+  is the PRECONDITION for calibration data existing at all.
 
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as

@@ -1163,7 +1163,17 @@ Four design consequences, all earned locally:
 4. **Isolation must cover the LEAD's hypotheses, not only the prereg** — the
    lead anchored a verifier with its preferred conclusion mid-run (the gate
    declined, this time); the lead authors every brief, so this channel is
-   structurally recurrent. Briefs state what to test, never what is expected.
+   structurally recurrent. Adopted from M-C with the lead's refinement, which
+   is finer than "briefs must be neutral" and better: **a brief names rival
+   hypotheses and assigns the discriminating experiment, but never predicts
+   the winner and never says which result would be more convenient.** Barring
+   expected OUTCOMES, not untested ALTERNATIVES — a fully neutral brief would
+   have lost the run's best catch (the M-A FK ablation existed because the
+   brief named a rival explanation and the experiment separating it).
+   Directed attention is the lead's whole value; directed CONCLUSIONS are the
+   defect. Writing test: if the brief's framing could be read back to the
+   gate after its report without embarrassment, it's direction; if it would
+   look like a thumb on the scale, it's anchoring.
 
 ## VII.5 The loop, now live — and what observing it tests
 
