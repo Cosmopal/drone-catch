@@ -306,6 +306,23 @@ load-bearing claims need an artifact-pointed auditor (which the lead is
 currently providing ad hoc). Score at consolidation: direction of every
 observer error, and whether any framework-UNFLATTERING observer error ever
 got caught (if none is ever even made, that asymmetry is itself the signal).
+**AMENDMENT (lead, raised against its own role-flattering hypothesis): H7 is
+currently UNSCOREABLE — the sample has a selection effect.** The lead audits
+claims that are (a) load-bearing for a decision AND (b) cheaply checkable
+against a committed artifact. Flattering errors are characteristically
+overstated citations, which trip both triggers every time (the overstated
+source sits right there to check); unflattering errors ("weaker than we
+think") typically have no artifact and no decision riding on them, so they'd
+rarely be audited and likely not be noticed. "Zero unflattering catches" is
+what this process produces even under direction-neutral error generation —
+the asymmetry measures the AUDITOR'S SAMPLING, not the observer's bias. To
+make H7 scoreable: deliberately sample the observer's modest/self-deprecating
+claims and audit those too — the harder check, since confirming "better
+grounded than stated" means assembling grounding nobody assembled. Fourth
+instance of the run's signature error class (a real pattern wearing a scope
+nothing tested), this time flagged by the party the hypothesis flattered, at
+the moment the conclusion was agreeable — behavioral evidence that the
+discipline is cultural, not only structural.
 
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
