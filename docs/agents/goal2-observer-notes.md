@@ -428,6 +428,20 @@ code with zero drift). First complete milestone under the gated loop.**
   paired comparisons sharing declared numerics. The earn-your-complexity
   ledger, operating at milestone cadence.
 
+**2026-08-31 — H7 first scoreable datum, supplied by the HUMAN: the WikiSkill
+miss.** The roll-forward agent (ran Aug 30) missed Google's WikiSkill (arXiv
+2608.27454, published Aug 29 — the closest published system to our loop
+design; see the [[loop-engineering-analysis|analysis doc]] VII.1 addendum for
+the mapping). The observer then asserted, without checking dates, that
+publication postdated the sweep — a framework-flattering excuse, wrong on the
+facts, caught by the human. Two entries: (a) coverage bound on single-pass
+literature sweeps — recall decays at the recency edge where indexing lags; a
+sweep's "no change" verdict carries an implicit date scope that should be
+stated (the scope error class AGAIN, in a literature claim); (b) H7: fifth
+observer error, fifth framework-flattering direction, and the first caught by
+the human performing exactly the deliberate-sampling duty the lead said H7
+scoring required.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
