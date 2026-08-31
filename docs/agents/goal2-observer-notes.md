@@ -75,6 +75,10 @@ it by inspection, but only because the human prompted the check).**
 - D8 hole exposed: it constrains frame COVERAGE/citation, not artifact
   RETENTION or MEDIUM. The failure under study is temporal (hold nf=3 → lift
   nf=0 vs baseline nf=3 → nf=4); a still samples that, video shows it.
+  ~~SUPERSEDED~~ **[corrected later same day: the "nf=3 → nf=4" baseline trace
+  was a cross-run chimera — see the reviewer-verdict entry below. True PASS
+  trace per its own jsonl: hold nf=4 → lift nf=4. The temporal-failure point
+  stands; the specific figures were contaminated.]**
 - Latent evidence-destroyer found in the same pass: `rotate_runs(keep=5)` on
   `--runs-dir` — a rotating dir under every future dynamic result.
 - Two ratchet candidates (both executable, correctly classified by the lead):
@@ -183,6 +187,44 @@ of the OBSERVER — record both readings, and the meta-event).**
   error-class instance: promotion justified partly by an already-covered
   episode. Recorded against myself per the appendix tradition — the analyst is
   not exempt from the failure classes it curates.
+
+**2026-08-31 — M-A reviewer verdict: REVISE — reviewer's first catch, ON THE
+LEAD (provenance ratchet primary; D8/D1 secondary). Nudges still 4.**
+- The catch: the PASS run's claimed phase trace "hold nf=3 → lift nf=4" is
+  contradicted by its own committed jsonl (601 rows: hold begins t=3.400 with
+  nf=4; true trace nf=4 → nf=4). The claimed figures are verbatim the
+  HISTORICAL baseline's (hold at t=0.900) — a number that travelled between
+  runs and was re-attached to a run nobody re-derived it from.
+- **Contamination path was THREE hops, not two** (observer addition): worker
+  summary → lead (run log + reviewer brief) → OBSERVER NOTES (the nudge-#4
+  entry above quoted the chimera trace; now superseded in place). Every layer
+  that consumed a SUMMARY propagated it; the one role pointed at the primary
+  artifact stopped it. This is the strongest possible evidence for the
+  gates-read-artifacts-not-briefs design — a reviewer fed only the lead's
+  brief would have countersigned the error.
+- **Attribution (lead recorded it against itself, unsoftened)**: the
+  provenance-ratchet violation was committed by the role that enforces the
+  provenance ratchet. And it's the counterexample to over-reading the earlier
+  observer-audit: the SAME session in the SAME turn window audited my citation
+  adversarially AND propagated an unchecked figure of its own. H5 carries
+  both: role discipline is real but not a property of the agent — it's a
+  property of WHERE THE ROLE IS POINTED (artifact vs summary).
+- **D8 redemption arc**: the same detector nudge #4 exposed as incomplete now
+  earned its keep — reviewer established the two dynamic videos CANNOT resolve
+  the disputed quantity (fingers unresolvable at ~20–30 px) and refused to
+  approve on faith, demanding specific renders. Medium-adequacy is now
+  demonstrated behavior, strengthening the case for writing it into D8 at
+  consolidation.
+- **Practical vindication of the verifier's corrected causal story**: since
+  the perturbing element is specifically getLinkState(computeForwardKinematics=1)
+  during settle (not logging as such), an FK-free logger is inert → the FAIL
+  run IS loggable/renderable. The corrected mechanism converts "provably
+  unobtainable evidence" into a render job. Every reviewer demand is
+  satisfiable.
+- Tally: verifier 2, reviewer 1 (on the lead), critic 0, human 1. All three
+  agent layers have now each been caught once by another layer (worker by
+  verifier, lead by reviewer, observer by lead) — nobody exempt, zero human
+  nudges consumed in any of it.
 
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
