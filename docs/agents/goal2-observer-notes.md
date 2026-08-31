@@ -125,6 +125,40 @@ load-bearing event for the whole study so far:
   [[grasp-experiment-reflection#^4|§4]].3, now firing on OUR OWN regression
   gate.
 
+**2026-08-31 — Claim 4 CONFIRMED by experiment; M-A has no open UNDETERMINED;
+second gate catch at human-nudge count zero.** FK-forcing has zero effect on
+the fixed-base static harness (bit-identical, two cells, one off the worker's
+chosen point) → pathology is specific to the floating-base dynamic test; §29
+static numbers stand; M-B's measurement foundation is sound.
+- **H5, third data point, the strongest**: the verifier had a plausible
+  structural immunity argument in hand and REFUSED to promote it to a verdict —
+  it located the structural analogue of the settle window in the static harness
+  (~616-tick close+settle loop), noted the precondition was weakened but not
+  absent, and ran the ablation. The grounded role resists substituting a
+  mechanism story for an experiment — the exact substitution iteration 1's
+  orchestrator made.
+- **NEW ERROR CLASS (the lead's find, and it's a real taxonomy addition):
+  "correct number, unearned scope."** Claim 1 was a wrong causal story from an
+  un-run ablation (classic D5). Claim 4 was a CORRECT measurement carrying an
+  untested generalization ("only the dynamic test shows this") inferred from a
+  structural difference. Every detector aimed at whether a number is RIGHT
+  passes it, because the number is right. Candidate detector: "is the SCOPE of
+  this claim tested, or inferred?" — note this is the executable rendering of
+  "evidence-licensed claims" (claims only as strong as the validation actually
+  performed — the Calibration Turn, [[11-vision-reference-priors|digest 11]]
+  thread 2), which until now we had only as prose. Layer if promoted:
+  UNIVERSAL (it's domain-agnostic — scope inflation is how §25's "the gap is
+  the failure mode" got minted too). Strong candidate for the consolidation
+  pass.
+- **Ratchet done right, including the timing half**: FK-ablation scripts
+  preserved out of session scratchpad into the worktree (durable, re-runnable);
+  the --fk-ablate converge axis queued for CLOSE-OUT with an explicit reason
+  (mid-study instrument retooling would break the paired comparisons). The
+  ratchet discipline now includes WHEN-not-to-ratchet — worth carrying into
+  the [[grasp-goal2-loop-spec|loop spec]] §6 at consolidation.
+- Tally: verifier 2 catches, reviewer 0 (running), critic 0 (not convened),
+  human 1. Nudges still 4, all pre-gate.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
