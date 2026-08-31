@@ -954,6 +954,45 @@ paper-validated (digest 09):
   error bars (Part V edited); thinking modes partially mitigate self-conditioning
   (Part V edited); the ratchet gained a retirement mechanism ([[#^5|§5]] amendment).
 
+**Addendum (2026-08-31, surfaced by the human — the roll-forward agent MISSED
+this despite running after its Aug 29 publication; from press coverage of
+arXiv 2608.27454, paper not yet read, so the structural mapping is
+ANALOGY-TIER until it is): Google's WikiSkill.** The closest published system
+to this doc's design, independently converging on the same shape:
+- Three tiers: Raw Layer (immutable execution traces) / Wiki Layer
+  (continuously-growing distilled insights — failures AND rejected proposals
+  stay documented) / Skill Layer (active procedural instructions, rolled back
+  if performance drops). That is "append-only in history, distilled in active
+  surface" (VII.2–VII.3), with our raw-transcripts / findings+ledger /
+  spec-principles tiers as the analogues.
+- Its loop — Inference Agent → Wiki Maintainer → Skill Proposer → **gating
+  mechanism validating every proposed skill change on a held-out validation
+  set** — is the consolidation pass ([[#^6|§6]].4) made agentic and, the part
+  our design left manual, GATED: promotion requires passing an executable
+  check ("a local refutation-capable episode," mechanized). Reported:
+  Gemini-3.5-Flash 49.5%→68.1% avg over five benchmarks (LiveMath, SealQA,
+  SpreadSheet, OfficeQA, ALFWorld); a ~9B model with it matching a 27B
+  without.
+- Two caveats against drop-in adoption: the gating works because benchmarks
+  HAVE ground-truth validation sets — an open-ended engineering loop's
+  analogue is known-answer/drift runs (§II.3; Part VI #7), scarcer and
+  dearer; and the authors report cross-model skill transfer is inconsistent —
+  matching digest 10's GEPA finding that tuned content doesn't transfer,
+  structure does.
+- Net: with Anthropic's Dreaming (memory consolidation) and Google's
+  WikiSkill (gated skill compilation), both major labs have now shipped the
+  write-time-distillation + lifecycle architecture this doc assembled from
+  fragments in July. What remains distinctly ours are the questions
+  benchmarks don't force: validation-set-free gating, provenance/staleness
+  propagation, finding-vs-preference status of the distilled layer.
+- Process note, kept per the appendix tradition: the roll-forward's miss of a
+  2-day-old publication is a coverage bound on single-pass literature sweeps
+  (recall decays at the recency edge, where indexing lags); the observer then
+  compounded it by asserting, without checking dates, that publication
+  postdated the sweep — a framework-flattering error caught by the HUMAN.
+  First human catch of an observer error this run; H7's "deliberately sample
+  the flattering claims" duty was performed by the human, unprompted.
+
 ## VII.2 How specialized should a loop be? The three-layer compiler answer
 
 The context-bloat worry about the ratchet is **correct for one storage medium and
