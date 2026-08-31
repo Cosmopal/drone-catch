@@ -388,6 +388,46 @@ catch; nudges still 4.**
 - M-B remains blocked pending the solver-axis experiment + gate-A attack.
   Zero human input consumed by the entire M-A gate sequence to date.
 
+**2026-08-31 — M-A CLOSED (HEAD c3ee083, sweeps regenerate from committed
+code with zero drift). First complete milestone under the gated loop.**
+- Substance: gate A trustworthy (12/12; 108/108 under attack — 3 cells × 9
+  solver settings × 4 velocity nudges); gate B demoted to informational
+  (marginal on both platforms — not a platform regression); the static
+  harness M-B runs on certified on two axes measured DIRECTLY on it; the env
+  shift implicated in nothing (human decision #3 confirmed at evidence level).
+- **Final M-A tally: verifier 2, critic 2, reviewer 1, lead 2, human 1 —
+  every gate role caught something no other role would have; the CHEAPEST
+  role (critic, zero runs) blocked closure twice.** Lowest compute cost,
+  highest block rate: the cost-side argument H4 was missing, one milestone's
+  worth.
+- **Zero human input consumed by any gate verdict** across three revision
+  rounds. Four nudges total, all infrastructure/process/scope/evidence-
+  standards — none epistemic. §II.3 metric moving the right way; not settled
+  on one milestone (lead's own hedge, correctly placed this time).
+- **Lead insight #1 (adopt for consolidation): the loop's value was not
+  preventing bad work — the worker never shipped a wrong measurement — it
+  was preventing plausible, internally-consistent, wrongly-SCOPED work from
+  being BELIEVED.** Every catch was scope/attribution, not measurement. This
+  reframes what "reliability" means for the mission loop: the gates are
+  belief-formation infrastructure, not quality control.
+- **Lead insight #2: first in-run ratchet self-tightening from experience
+  ([[grasp-goal2-loop-spec|spec]] §0.2's prediction, now observed).**
+  "Every figure traces to a committed LOG" was satisfied and still
+  insufficient — a log records what happened, not how to reproduce it.
+  Promoted to committed-CODE provenance mid-milestone.
+- **Hypothesis scoring at M-A close**: H1 supported (report contract routed
+  all three rounds without format round-trips) — promote at consolidation.
+  H2 confirmed (4/4 nudges outside the II.2 catalog). H3 pending M-B. H4
+  strongly supported + first cost datum. H5 strongly supported within its
+  stated bound (artifact-backed claims). H6 one instance + one control case.
+  H7 unscoreable as designed. Scope detector: promotable. Watch items:
+  retraction-standard, justification-audit.
+- M-B runs under SIX standing requirements, all EARNED in M-A, none designed
+  in advance: committed-code provenance, solver-axis in convergence, video
+  alongside stills, falsifiers-before-running, explicit scope statements,
+  paired comparisons sharing declared numerics. The earn-your-complexity
+  ledger, operating at milestone cadence.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
