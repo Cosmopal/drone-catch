@@ -159,6 +159,31 @@ static numbers stand; M-B's measurement foundation is sound.
 - Tally: verifier 2 catches, reviewer 0 (running), critic 0 (not convened),
   human 1. Nudges still 4, all pre-gate.
 
+**2026-08-31 — CORRECTION to the scope-detector promotion case (lead's audit
+of the OBSERVER — record both readings, and the meta-event).**
+- The lead checked my §25 citation against source instead of accepting it. It
+  survives as pattern evidence but NOT as gap evidence: §25's scope error ran
+  over the NUMERICS axis, which D3 / principle 1 already cover (§26 is the
+  record of D3-equivalent machinery catching it). Claim 4's scope error ran
+  over the MECHANISM/REGIME axis (fixed- vs floating-base), which nothing in
+  D1–D9 covers. So: the pattern generalizes across ≥2 contexts, but the NEW
+  detector's marginal value rests on Claim 4 alone. Consolidation must record
+  both statements, not the stronger one.
+- **Drafting consequence (adopt)**: write the detector with its teeth on
+  NON-numerics axes — "scope inferred from a structural/regime difference,
+  where the measurement is sound and the generalization is the unvalidated
+  part." Written generically it reads as a D3 restatement and gets demoted for
+  redundancy at first lifecycle review, taking its one unique axis down with
+  it. (General lesson for the ratchet: a new detector should be scoped to its
+  MARGINAL coverage, not its motivating pattern.)
+- **Meta-event for H5, arguably its strongest form**: the verification culture
+  propagated UP a layer — the Opus lead adversarially audited the Fable
+  observer's claim and caught the spurious-confirmation shape ([[grasp-goal2-loop-spec|spec]]
+  §0.3) applied to our own meta-work. The observer committed the run's third
+  error-class instance: promotion justified partly by an already-covered
+  episode. Recorded against myself per the appendix tradition — the analyst is
+  not exempt from the failure classes it curates.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
