@@ -1,9 +1,14 @@
+---
+tags:
+  - concept
+---
+
 # Over-actuation, thrust vectoring & control allocation
 
 > Status: **design study, not yet built.** This note records a concept we
 > reasoned through (and a layout/tilt decision we made) for a future
 > thrust-vectoring drone. The current sim is still a fixed-rotor quad. See
-> iteration_findings §22 for the discussion that produced it.
+> iteration_findings [[iteration_findings#^22|§22]] for the discussion that produced it.
 
 ## What it is
 
@@ -128,7 +133,7 @@ rear pair inward → `+Fx`; the mirror gives `+Fy`).
 
 Our 2R arm is planar in the body x–z plane (shoulder + elbow **both** rotate
 about body-y), so it can only move the EE in x–z; it **cannot** make a
-lateral (y) adjustment. The folded catch pose (concept 10, iteration §20)
+lateral (y) adjustment. The folded catch pose (concept 10, iteration [[iteration_findings#^20|§20]])
 reaches ~0.30 m back-and-down, aiming the approach tangent and reserving
 joint travel for the absorption sweep. So:
 

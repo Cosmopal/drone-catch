@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Cascade control & timescale separation
 
 ## What it is

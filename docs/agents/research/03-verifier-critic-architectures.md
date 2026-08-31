@@ -1,8 +1,13 @@
+---
+tags:
+  - research-digest
+---
+
 # Research digest: Self-verifying agent loops: generator-verifier, VLM grounding, test-time verification
 
 > Raw output of research subagent `a3122cf6bc9eebe98` (session d155edbe, 2026-07-04),
 > spawned for the loop-engineering meta-analysis. Unedited final message;
-> synthesis and corrections live in `../loop-engineering-analysis.md`.
+> synthesis and corrections live in ../[[loop-engineering-analysis|loop-engineering-analysis.md]].
 > Full transcript: `transcripts/03-verifier-critic-architectures.jsonl`.
 
 All five research agents have completed. Here is the synthesized, cited digest.
@@ -13,7 +18,7 @@ All five research agents have completed. Here is the synthesized, cited digest.
 
 A note on the through-line: every credible system below pairs a **generator** with a **structurally independent verifier**, and trusts only **grounded / out-of-distribution** signals. The recurring failure mode — directly relevant to your "metrics diverge from reality" problem — is a generator grading itself on scalar, in-distribution metrics. That is precisely what the literature says not to do.
 
-## 1. Generator–verifier / critic architectures & evaluator-optimizer loops
+## 1. Generator–verifier / critic architectures & evaluator-optimizer loops ^1
 
 - **Anthropic, "Building Effective Agents" (Dec 2024).** The *evaluator-optimizer* workflow uses one LLM to generate and a **separate** LLM call to evaluate and return feedback, looping until satisfied; *orchestrator-workers* has a central LLM decompose tasks, delegate, and synthesize. Anthropic conditions evaluator-optimizer on two things being true: responses *demonstrably improve* with feedback, AND the LLM *can reliably provide* that feedback. *Takeaway: the loop pays off only when a reliable critic and clear criteria exist — it is a pattern, not a guarantee.* https://www.anthropic.com/research/building-effective-agents
 - **Shinn et al., "Reflexion" (Mar 2023, NeurIPS 2023).** Converts feedback — usually an *external* signal (unit tests, env reward, heuristic) — into a verbal self-reflection stored in episodic memory and prepended on the next attempt; 91% pass@1 on HumanEval. *Takeaway: verbal "reinforcement" works because it reflects on a real external signal, not pure introspection.* https://arxiv.org/abs/2303.11366
@@ -24,7 +29,7 @@ A note on the through-line: every credible system below pairs a **generator** wi
 
 **Conflict to internalize:** Self-Refine/Reflexion (self-feedback helps) vs. Huang et al. (intrinsic self-correction hurts reasoning). Reconciliation: self-correction helps when the task is generation/style OR when a *grounded external verifier* exists (tests, env reward, a second adversarial agent, retrieved evidence); it hurts when a model judges its own deductive reasoning with no anchor.
 
-## 2. Vision/multimodal grounding to verify agent claims
+## 2. Vision/multimodal grounding to verify agent claims ^2
 
 - **Chen et al., "MLLM-as-a-Judge" (Feb 2024, ICML 2024 oral).** GPT-4V and peers judge well in *pairwise comparison* but diverge sharply from humans on absolute *scoring* and *batch ranking*, with position/egocentric bias and hallucinated judgments — explicitly "not yet fully reliable evaluators." *Takeaway: a VLM ranks two renders against each other far more reliably than it scores one — prefer A/B over scalar self-scoring.* https://arxiv.org/abs/2402.04788
 - **Chen, Du et al., "MJ-Bench" (Jul 2024, NeurIPS 2025).** Multimodal judges give more accurate/stable feedback on a worded Likert scale than on raw numeric scales; no single judge dominates all axes. *Takeaway: if a VLM must grade your output, ask for a worded rubric verdict ("clearly off / slightly off / matched"), not a 0–10 number.* https://arxiv.org/abs/2407.04842
@@ -34,7 +39,7 @@ A note on the through-line: every credible system below pairs a **generator** wi
 
 **Load-bearing caveat:** As of 2024–2026, VLM/MLLM judges are *not reliable standalone graders.* Strongest at pairwise comparison and worded rubrics; weakest at absolute numeric scoring, fine geometry, near-miss discrimination, and pinpointing the divergence instant. This validates your "examine frames, not just metrics" practice — but as *predicted-vs-rendered comparison at the critical instant*, with a hard check underneath, not VLM quality scoring.
 
-## 3. Test-time compute / verification scaling ("perturb, don't repeat")
+## 3. Test-time compute / verification scaling ("perturb, don't repeat") ^3
 
 - **Lightman et al. (OpenAI), "Let's Verify Step by Step" (May 2023).** A Process Reward Model (scores each reasoning step) beats an Outcome RM and majority voting as a best-of-N verifier — selected the correct MATH solution 78% of the time, lead over ORM *widening* as N grows; released PRM800K. *Takeaway: a verifier that checks the reasoning, not just the answer, is a better selector and scales better with sample count.* https://arxiv.org/abs/2305.20050
 - **Snell et al. (Berkeley/DeepMind), "Scaling LLM Test-Time Compute Optimally" (Aug 2024).** Optimal compute allocation is *difficulty-dependent* — easy prompts favor sequential refinement, hard ones favor parallel search + verifier; "compute-optimal" allocation was ~4× more efficient than naive best-of-N, letting a small model match a 14× larger one at equal FLOPs. *Takeaway: allocate test-time compute adaptively (sequential vs. parallel by difficulty); verifier-guided search is the lever.* https://arxiv.org/abs/2408.03314
@@ -44,16 +49,16 @@ A note on the through-line: every credible system below pairs a **generator** wi
 
 **Synthesis for your "perturb" thread:** coverage (raise the ceiling via diverse attempts) and selection (a verifier picks the winner) are *separate problems*; diversity is the active ingredient in coverage; and the frontier is better verifiers (process > outcome, generative > scalar), not just more samples.
 
-## 4. Robotics-specific autonomous experimentation / self-improving loops
+## 4. Robotics-specific autonomous experimentation / self-improving loops ^4
 
 - **Wang et al. (NVIDIA), "Voyager" (May 2023).** Closed loop in Minecraft: automatic curriculum (GPT-4 proposes the next task) + an embedding-indexed skill library + iterative code regeneration — with a **separate GPT-4 instance as a self-verification critic** that confirms task completion *before a skill is committed*. 3.3× more unique items, milestones 6–8× faster, no gradient updates. *Takeaway: a skill is retained only after an independent critic confirms success — the analog of your distance/force-gated `caught=True`, not the controller's own claim.* https://arxiv.org/abs/2305.16291
-- **Ma et al. (NVIDIA), "Eureka" (Oct 2023, ICLR 2024).** Writes RL reward code, improves it by in-context evolutionary search with *reward reflection* — feeding back *per-component numeric trajectories* (each reward term's value over training) so the LLM sees which terms are dead/dominating. Beat human-expert rewards on 83% of 29 tasks. *Takeaway: reflection works because feedback is decomposed per-term evidence, not a scalar score — your §23 finding ("scalar metrics hide failure modes") in another lab's words.* https://arxiv.org/abs/2310.12931
+- **Ma et al. (NVIDIA), "Eureka" (Oct 2023, ICLR 2024).** Writes RL reward code, improves it by in-context evolutionary search with *reward reflection* — feeding back *per-component numeric trajectories* (each reward term's value over training) so the LLM sees which terms are dead/dominating. Beat human-expert rewards on 83% of 29 tasks. *Takeaway: reflection works because feedback is decomposed per-term evidence, not a scalar score — your [[iteration_findings#^23|§23]] finding ("scalar metrics hide failure modes") in another lab's words.* https://arxiv.org/abs/2310.12931
 - **Ma, Liang et al., "DrEureka" (Jun 2024).** LLM designs both reward and the domain-randomization distribution, using a *Reward-Aware Physics Prior*: stress-test the policy across swept physics params to find the range where performance survives, then constrain DR sampling to those grounded bounds. Zero-shot transfer to Go1 quadruped, LEAP hand, yoga-ball balancing. *Takeaway: domain randomization works best when its ranges are empirically grounded to where the policy actually degrades — a principled answer to your sim2real parking-lot item.* https://arxiv.org/html/2406.01967
 - **Google, "Towards an AI Co-Scientist" (Feb 2025).** Multi-agent loop: Generation → *Reflection* (virtual peer-reviewer, tool-checked) → *Ranking* via an **Elo idea-tournament** of self-play debate → Evolution → Meta-review; self-improvement via test-time compute (more iterations → higher Elo → higher accuracy). Three predictions wet-lab validated. *Takeaway: the verifier is a tournament of independent critics, and the only trusted signal is external (physical validation), not self-confidence.* https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/
 - **Sakana AI, "The AI Scientist" (Aug 2024) + v2 (2025).** End-to-end idea→code→experiment→paper loop with an *automated LLM peer-reviewer* as the regression gate. Independent evaluation (arXiv 2502.14297) found the self-review correlates only weakly with real reviewers — the internal verifier is the weak link. *Takeaway: an automated gate is only as trustworthy as it is independently calibrated; a generator grading its own work drifts — argue for an external held-out check.* https://arxiv.org/html/2502.14297v2
 - **Sim-to-real / offline-DR literature (2024–2026).** Consistent principle: train under randomized sim params, but *evaluate on held-out / adversarial settings never trained on* to measure the reality gap; DR functions as an adversarial held-out test set. *Takeaway: the robotics-standard way to detect "my sim metric lies" is a held-out adversarial parameter grid — exactly your `--grid-pos` / `--noise` discipline (intercepts the ball was NOT aimed at).* https://arxiv.org/html/2506.10133v1
 
-## 5. Supervisor / orchestrator checklist patterns & encoding human review into gates
+## 5. Supervisor / orchestrator checklist patterns & encoding human review into gates ^5
 
 - **Anthropic, "How we built our multi-agent research system" (Jun 2025).** A lead agent decomposes the query, writes a plan to memory, spawns 3–5 parallel subagents each with explicit *objective, output format, tool guidance, and boundaries* (vague delegation → duplication/gaps), then synthesizes and decides whether more work is needed. The eval gate is **end-state, not step-by-step**: an LLM judge outputs 0.0–1.0 + pass/fail across factual/citation accuracy, completeness, source quality, tool efficiency — because agents take varied valid paths. Humans kept in the loop for edge cases evals miss. *Takeaway: gate on the final outcome with a rubric judge, give subagents crisply scoped contracts, reserve humans for edge cases.* https://www.anthropic.com/engineering/multi-agent-research-system
 - **Hamel Husain, "Your AI Product Needs Evals" + "Creating a LLM-as-a-Judge" (2024).** Three-tier gate run as CI: (1) cheap deterministic assertions on every commit, (2) human + LLM-judge whose *agreement with human labels is continuously measured* before you trust it, (3) A/B post-launch — all **binary pass/fail**, not vague 1–5 scores. *Takeaway: "evals as CI" — cheap binary assertions on every change, and trust an LLM judge only after validating it against hand labels.* https://hamel.dev/blog/posts/evals/
@@ -68,7 +73,7 @@ A note on the through-line: every credible system below pairs a **generator** wi
 ## What this implies for your loop (the synthesis across all five)
 
 1. **Keep generation and verification structurally separate** (Anthropic evaluator-optimizer; Voyager's critic; co-scientist's Elo tournament). A controller that reports its own `caught=True` is the generator grading itself — Huang et al. and the Sakana evaluation both show that drifts.
-2. **The verifier must be grounded and falsifiable, not a scalar or a free-form VLM blessing.** Process/decomposed evidence beats outcome scalars (Lightman, Eureka reward reflection, your own §23). Where vision is the only check, use *predicted-vs-rendered frame comparison at the contact instant* (targeted keyframes) and worded rubric verdicts — not VLM quality scores, which are unreliable exactly on near-misses and fine contact geometry.
+2. **The verifier must be grounded and falsifiable, not a scalar or a free-form VLM blessing.** Process/decomposed evidence beats outcome scalars (Lightman, Eureka reward reflection, your own [[iteration_findings#^23|§23]]). Where vision is the only check, use *predicted-vs-rendered frame comparison at the contact instant* (targeted keyframes) and worded rubric verdicts — not VLM quality scores, which are unreliable exactly on near-misses and fine contact geometry.
 3. **The held-out adversarial grid IS the convergence test.** DrEureka's RAPP and the offline-DR literature say robustness counts only on parameter regimes outside training — your `--grid-pos` / `--noise` envelopes are already the right instrument; the autonomy win is wiring them as an automatic *regression gate* rather than a human-eyeballed one.
 4. **"Perturb the method, don't repeat it" is verified theory.** Diversity (self-consistency, best-of-N coverage) raises the ceiling; a verifier converts it to accuracy. For your case: when a run diverges, resample with *distinct* controller/choreography variants under the adversarial grid, then let the grounded verifier select — don't rerun the identical config.
 5. **Encode your human review heuristics as a layered cascade with a tripwire and end-state gate.** Cheap deterministic asserts (closest-approach distance, peak constraint force, ∫ω-dt overshoot) → a rubric judge on the *final* caught/lifted state → a circuit-breaker that escalates to human video review only on low confidence. That is exactly the human-in-the-loop role you're trying to shrink — and the literature says keep a thin one for the edge cases evals miss.

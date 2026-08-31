@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Forward/inverse kinematics & tracking vs. sweeping
 
 ## What it is
@@ -54,7 +59,7 @@ elbow at 0 and used the shoulder as a single rod (`arm_catch_solo`,
   EE *to* where the ball *is* isn't enough if the ball blows through; the EE
   must move *with* the ball (match velocity) for the gripper to have time to
   close. Position-only IK tracking caught the easy cases and missed the fast
-  ones. (This is the same lesson as latency compensation, §05, one layer up:
+  ones. (This is the same lesson as latency compensation, [[05-latency-compensation|§05]], one layer up:
   aim where the target *will be*.)
 - **Redundancy resolution / branch choice matters.** We always pick the
   elbow-forward branch and cap the fold; the other branch is reachable but

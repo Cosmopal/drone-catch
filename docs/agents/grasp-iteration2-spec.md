@@ -1,3 +1,8 @@
+---
+tags:
+  - agent-loop
+---
+
 # Grasp study, iteration 2 — worker + reviewer loop spec (DRAFT for review)
 
 > **⚠️ GOAL 1 REOPENED (mechanism-fidelity defect).** The "Yale" hand scored in the
@@ -9,39 +14,39 @@
 > whiffletree, and Yale's co-tuned geometry; it was only ever tested on a sphere.
 > Its docstring mislabels it "Faithful." So the "Yale ties the rigid close" verdict
 > is **unreliable** — it may reflect a poor model, not the mechanism. Goal 1 is
-> reopened: build a **faithful** pseudo-rigid-body Yale-style hand (§2A), prove it is
+> reopened: build a **faithful** pseudo-rigid-body Yale-style hand ([[#^2|§2]]A), prove it is
 > real before scoring, redo the fixed-vs-Yale re-score, and re-gate. Do **not**
 > re-close Goal 1 until the reviewer re-approves against the new mechanism-fidelity
-> detector (§3, D9) with regressions still green. The soft/compliant/fixed Goal-1
+> detector ([[#^3|§3]], D9) with regressions still green. The soft/compliant/fixed Goal-1
 > results already approved stand; only the Yale arm of the comparison is invalidated.
 
 > Seeds a fresh `/goal`-driven session. The session **lead** reads this, spawns a
 > **worker** teammate and an independent **reviewer** teammate, and coordinates
-> them until the `/goal` condition (§5) is met. Builds on iteration 1; read
-> `docs/agents/grasp-experiment-reflection.md` first (what went wrong and why),
+> them until the `/goal` condition ([[#^5|§5]]) is met. Builds on iteration 1; read
+> [[grasp-experiment-reflection|docs/agents/grasp-experiment-reflection.md]] first (what went wrong and why),
 > and the iteration-1 outputs on worktree branch `worktree-agent-a276c1c3e2d9858e9`
-> (the trustworthy harness `tests/cage_harness.py`, `iteration_findings §25-27`).
+> (the trustworthy harness `tests/cage_harness.py`, iteration_findings [[iteration_findings#^25|§25]]-[[iteration_findings#^27|27]]).
 
-## 0. Framing (from project memory — keep these honest)
+## 0. Framing (from project memory — keep these honest) ^0
 - **Engineering, not science.** The goal is to *characterize the practical limits*
   of robust caging and *apply known grasping principles* (caging/form-closure,
   Yale-style underactuation, Fin-Ray compliance), **not** invent a novel
   algorithm. Success = a trustworthy, frame-grounded characterization + the best
   known-principle close, with limits stated.
-- **General detectors, not a failure map.** The reviewer's rubric (§3) is a set of
+- **General detectors, not a failure map.** The reviewer's rubric ([[#^3|§3]]) is a set of
   *domain-general* checks ("does the result look as good as the number says?",
   "was it convergence-checked?"), not a list of specific pre-enumerated failures.
   Add a **ratchet**: once a failure class is found, it becomes a standing check;
   checks only tighten.
 
-## 1. The goal (operationalized)
+## 1. The goal (operationalized) ^1
 Characterize, with trustworthy + frame-grounded evidence, how robustly the
 catcher's caging gripper can **trap AND well-seat** a ball under cm-scale
 position uncertainty — and deliver the best close strategy among known principles,
 with its limits. "Well-seat" is first-class: a ball trapped by one off-center
 finger is **not** a success even if it survives a disturbance battery.
 
-## 2. The worker's task + deliverables (each exists to satisfy a §3 detector)
+## 2. The worker's task + deliverables (each exists to satisfy a §3 detector) ^2
 1. **Add a continuous hold-QUALITY metric** to `cage_harness.py` (the binary
    "caged" over-credits precarious holds — iteration-1's core miss): report
    **escape-margin** (min disturbance accel over all directions, not pass/fail at
@@ -67,13 +72,13 @@ finger is **not** a success even if it survives a disturbance battery.
    approach angle × catch pose vs incoming trajectory, quality metric applied at
    capture. Static harness answers "is the cage good?"; dynamic answers "can the
    catch deliver into it?" — so failures stay attributable. (Dynamic full-TV catch
-   is gated by the §20 tracking instability; use the scoop catch if needed and
+   is gated by the [[iteration_findings#^20|§20]] tracking instability; use the scoop catch if needed and
    say so.)
 7. **An explicit "what I did NOT test" list** in the findings.
 8. **Regression unchanged** + everything additive/opt-in.
 
 ## 2A. REOPENING — faithful Yale hand + redo of the fixed-vs-Yale Goal-1 arm
-This supersedes the Yale portion of §2.2. Everything additive/opt-in on the worktree
+This supersedes the Yale portion of [[#^2|§2]].2. Everything additive/opt-in on the worktree
 branch; be explicit that the model is a **discretized approximation with a stated
 ceiling** (not the real compliant hand).
 
@@ -93,9 +98,9 @@ sim compliant/underactuated hands:
   **physical floating balance-bar (whiffletree) link** coupled by point/prismatic
   constraints so force equalizes mechanically.
 - **Honest-negative is a valid outcome.** Constant-tension/torque tendons on these
-  ~3–4 g fingers are exactly what §25 found numerically ill-conditioned (Coulomb-like
+  ~3–4 g fingers are exactly what [[iteration_findings#^25|§25]] found numerically ill-conditioned (Coulomb-like
   joint thresholds, frozen distal joints, body flips) — which is *why* the prior author
-  retreated to the contact-reading model. It may now be viable under the §26 converged
+  retreated to the contact-reading model. It may now be viable under the [[iteration_findings#^26|§26]] converged
   numerics (compliant pads + 1/960 substep); it may not.
 - **A negative requires a DIAGNOSIS, not just "it didn't converge" (user criterion).**
   Before any honest-negative, classify the cause with evidence:
@@ -115,7 +120,7 @@ sim compliant/underactuated hands:
 
 **Two hard constraints (state them, honor them):**
 - (i) **Fixed-base harness ONLY.** The extra flexure joints are unstable on the
-  floating drone (see §15 finger-on-floating-base instability). Do not put this hand
+  floating drone (see [[iteration_findings#^15|§15]] finger-on-floating-base instability). Do not put this hand
   on the drone.
 - (ii) **Shape-adaptability is OUT OF SCOPE**, and PyBullet is the wrong tool for it
   (no continuous compliance, no native tendons — that is a MuJoCo project). **Test the
@@ -137,11 +142,11 @@ sim compliant/underactuated hands:
 - **Headline question (the real redemption test):** does the fixed-vs-Yale verdict
   change now that the hand is faithfully modeled?
 - **Re-gate:** the reviewer must re-approve the redone Goal 1 against the
-  mechanism-fidelity detector (§3 D9), and the regression gates (`arm_catch_solo
+  mechanism-fidelity detector ([[#^3|§3]] D9), and the regression gates (`arm_catch_solo
   --grid` 12/12, `elbow_catch_solo` caught=True held=True) must still pass. Goal 1
   does not close until that approval exists.
 
-## 3. The reviewer's rubric (independent, multimodal, adversarial — domain-general detectors)
+## 3. The reviewer's rubric (independent, multimodal, adversarial — domain-general detectors) ^3
 The reviewer judges **only from the worker's outputs** (rendered frames + claims +
 committed numbers); it does not re-run experiments to rationalize. For every
 reported finding it applies these *general* detectors and must **cite the specific
@@ -172,7 +177,7 @@ frame(s)** for each concern:
   physical tendon/whiffletree/flexure hand). A "faithful" claim must be backed by
   frames of the actual mechanism doing the thing (continuous flexure conformance;
   self-distribution from the *physical* coupling, not from reading contacts).
-- **Provenance ratchet** *(standing — added after §28)* — every quantitative figure
+- **Provenance ratchet** *(standing — added after [[iteration_findings#^28|§28]])* — every quantitative figure
   in the findings must trace to a committed log AND reconcile with the other committed
   logs; no orphaned or contradictory number.
 - **Ratchet** — maintain a running checklist; any new failure class found becomes a
@@ -182,16 +187,16 @@ The reviewer outputs, each milestone: `REVIEWER VERDICT: APPROVED` **or**
 and which detector it fails. It only APPROVES the *final* findings when all
 detectors pass.
 
-## 4. Team structure
+## 4. Team structure ^4
 - **Lead (the session)** — owns the `/goal`, spawns the two teammates, relays the
   reviewer's flags to the human, does NOT mark work done itself.
-- **Worker teammate** — §2. Renders legible frames; never self-approves.
-- **Reviewer teammate** — §3. Independent (no part in producing results), reads
+- **Worker teammate** — [[#^2|§2]]. Renders legible frames; never self-approves.
+- **Reviewer teammate** — [[#^3|§3]]. Independent (no part in producing results), reads
   frames, gatekeeps. The human audits the reviewer's flags, not the raw videos.
 - Worktree-isolated; additive; conda `robots`.
 
-## 5. The `/goal` completion condition (what the human types)
-Kept crisp + demonstrable (the reviewer's rubble of detail lives in §3, so the
+## 5. The `/goal` completion condition (what the human types) ^5
+Kept crisp + demonstrable (the reviewer's rubble of detail lives in [[#^3|§3]], so the
 condition only checks the reviewer's verdict + the regression):
 
 ```
@@ -204,11 +209,11 @@ findings, AND the transcript shows `arm_catch_solo.py --grid` printing 12/12 and
 alone for status, `/goal clear` to stop. Optionally add a `TaskCompleted` hook so
 the worker cannot close a task without the reviewer's APPROVED.)
 
-## 6. Open questions for the human before launch
+## 6. Open questions for the human before launch ^6
 1. **This session or a fresh one?** (Lead recommends fresh, seeded by this doc.)
-2. **Scope of v1:** do §2.1–2.4 (quality metric + re-score + convergence + frames)
-   first and gate, *then* §2.5–2.6 (adaptive + dynamic) as a second goal? Or all in
+2. **Scope of v1:** do [[#^2|§2]].1–2.4 (quality metric + re-score + convergence + frames)
+   first and gate, *then* [[#^2|§2]].5–2.6 (adaptive + dynamic) as a second goal? Or all in
    one `/goal`? (Lead recommends the two-stage gate — smaller, auditable.)
 3. **Hooks now or later?** (Lead: start without; add `TaskCompleted` only if the
    worker tries to self-approve.)
-4. Anything to add to the reviewer rubric (§3) that *you* would check?
+4. Anything to add to the reviewer rubric ([[#^3|§3]]) that *you* would check?

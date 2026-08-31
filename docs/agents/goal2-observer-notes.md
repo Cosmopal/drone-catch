@@ -51,9 +51,9 @@ checklist substitutes for model capability at the coordination layer.
 act.** Nudge #4 (video evidence missing) enforced a preference that ALREADY
 existed as durable project memory ("render test videos midway",
 "examine-frames-not-just-metrics", both from iteration 1) — yet the loop spec's
-§3 principles compiled only the citation half ("no metric without its frame"),
+[[grasp-goal2-loop-spec#^3|§3]] principles compiled only the citation half ("no metric without its frame"),
 not retention or medium. The human had to re-supply knowledge the system
-already held. Implication for the self-learning design (Part I §6): the
+already held. Implication for the self-learning design (Part I [[loop-engineering-analysis#^6|§6]]): the
 consolidation pass must not only WRITE memories but check each standing
 memory/preference has an executable rendering in any new loop spec — a
 "compile-coverage" step. Watch for further instances of stored-but-uncompiled

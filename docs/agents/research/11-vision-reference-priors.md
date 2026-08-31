@@ -1,3 +1,8 @@
+---
+tags:
+  - research-digest
+---
+
 # 11-vision-reference-priors — raw research digest
 
 > Unedited final digest from a research subagent spawned by the meta-analysis
@@ -14,7 +19,7 @@
 
 # Digest: Should the agent loop carry a "vision" (reference expectation) of correct behavior?
 
-Context anchored in `docs/agents/loop-engineering-analysis.md` §II.1 (the dt-artifact fooled agent, orchestrator, AND human — the human's "gaps too large" prior was wrong and the bug confirmed it), §II.2 (human-inputs catalog: the load-bearing human faculty was *doubting a passing result*), Part IV.1 (general detectors, not pre-enumerated failure maps).
+Context anchored in [[loop-engineering-analysis|docs/agents/loop-engineering-analysis.md]] §II.1 (the dt-artifact fooled agent, orchestrator, AND human — the human's "gaps too large" prior was wrong and the bug confirmed it), §II.2 (human-inputs catalog: the load-bearing human faculty was *doubting a passing result*), Part IV.1 (general detectors, not pre-enumerated failure maps).
 
 Note on dates: several sources below are 2025–2026 arXiv postings surfaced by search; IDs and claims are as reported by the search/fetch results.
 

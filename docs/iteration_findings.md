@@ -1,6 +1,11 @@
+---
+tags:
+  - findings
+---
+
 # Iteration findings: throw-and-catch tuning
 
-Companion to `docs/throw_planning.md`. That doc explains *how* to plan a throw;
+Companion to [[throw_planning|docs/throw_planning.md]]. That doc explains *how* to plan a throw;
 this one is the meta-level engineering log of what surprised us, what we
 measured, and what we decided to defer. Audience is future-us (and any new
 collaborator) trying to push the sim further.
@@ -12,7 +17,7 @@ with the cascade controller in `src/controller.py` and the planner in
 
 ---
 
-## 1. The Lee SO(3) attitude controller has a near-singularity at large angles
+## 1. The Lee SO(3) attitude controller has a near-singularity at large angles ^1
 
 The geometric controller's vee-mapped error magnitude is roughly
 `|e_R| = 0.5 * |sin(angle_to_R_des)|`. That's mathematically obvious in
@@ -45,7 +50,7 @@ Workarounds, ranked by effort:
 3. **Switch to a quaternion-error formulation.** The principled fix; on the
    deferred list. Worth doing once the workaround stops being enough.
 
-## 2. Pre-flip windup choreography
+## 2. Pre-flip windup choreography ^2
 
 The pre-flip is implemented in the throw-windup loop in `src/main.py`. In the
 last ~100 ms of windup, we switch the drone's target to `home_pos` with
@@ -65,7 +70,7 @@ Trade-off:
 We took the trade. The throw is still energetic enough; the evade is what
 made the sim look broken.
 
-## 3. The cascade delivers far less brake than its theoretical max
+## 3. The cascade delivers far less brake than its theoretical max ^3
 
 On paper, a quad at 90° tilt with full thrust gets about
 `g * tan(90°) → ∞` in the limit, but bounded by available thrust we'd quote
@@ -90,7 +95,7 @@ between the theoretical ceiling and the observed floor. Bump it back up
 toward 21.8 once the controller gets a real trajectory tracker that
 pre-flips along the entire windup arc, not just the last 100 ms.
 
-## 4. The underactuated quad has asymmetric x/z response
+## 4. The underactuated quad has asymmetric x/z response ^4
 
 Position gains live in `src/controller.py`: `kp_z = 12`, `kp_x = 6`. Vertical
 is twice horizontal. The reason is structural, not arbitrary:
@@ -114,7 +119,7 @@ Candidate fixes (deferred):
 - A proper trajectory tracker with position+velocity feedforward that knows
   about the asymmetry and biases the z target down to compensate.
 
-## 5. Two-mode catcher: predict-landing OR direct pursuit
+## 5. Two-mode catcher: predict-landing OR direct pursuit ^5
 
 The original catcher always chased `predict_landing(target_z=HOVER_Z)` —
 the XY where the ball would cross the catch height. Two failure modes:
@@ -137,7 +142,7 @@ Predict-landing is still the right behavior for the long approach (gives
 the catcher a stable lookahead), but pursuit is the right behavior for the
 final tens of cm.
 
-## 6. The min_tz vertical-thrust floor
+## 6. The min_tz vertical-thrust floor ^6
 
 The cascade in `src/controller.py` enforces a floor
 `min_tz = 0.5 * total_mass * g` on the vertical component of the desired
@@ -155,7 +160,7 @@ aggressively. The implementation: if `max_tilt_deg >= 90°`, the floor is
 dropped. So bumping `max_tilt_deg` for the evade implicitly removes the
 floor in the same call. One knob, two effects, intentionally coupled.
 
-## 7. Empirical beats theoretical, every time
+## 7. Empirical beats theoretical, every time ^7
 
 The biggest meta-lesson. Several paper estimates were off by integer
 multiples once we measured them:
@@ -175,7 +180,7 @@ trusting them in the planner. `scripts/check_run.py` was the high-leverage
 tool that surfaced these — once it existed, every change came with a
 measurement instead of a prediction.
 
-## 8. Process: visualization markers as the debugging substrate
+## 8. Process: visualization markers as the debugging substrate ^8
 
 Before we added persistent markers, debugging looked like: print numbers,
 read terminal, build a mental model of the geometry, hope it's right. After
@@ -199,7 +204,7 @@ pins the planner's intent for that phase. Cost is ~5 lines of PyBullet
 debug-draw; payoff is "I can see the bug" instead of "I think I see the
 bug."
 
-## 9. Process: diagnostic scripts unlock fast iteration
+## 9. Process: diagnostic scripts unlock fast iteration ^9
 
 Two scripts ended up earning their keep:
 
@@ -215,7 +220,7 @@ Together they shortened the change-measure-decide loop enough that we tried
 ~10 variations of the pre-flip timing in an afternoon. Without them we'd
 have tried two and called it done.
 
-## 10. What we deferred and why
+## 10. What we deferred and why ^10
 
 Not all known issues are fixed; some are mitigated and tracked. The
 authoritative list lives in `CLAUDE.md`'s deferred-work section. Highlights
@@ -239,7 +244,7 @@ relevant to this iteration:
   The throw planner is now general enough to support this — the work is
   symmetrizing the demo phase machine.
 
-## 11. Compliant capture: stop velocity-matching, start impulse-spreading
+## 11. Compliant capture: stop velocity-matching, start impulse-spreading ^11
 
 The rigid constraint snap forced a rel-vel gate (≤1.5 m/s) on the catch
 trigger, and the velocity-matched arm sweep alone couldn't hit it: at the
@@ -284,7 +289,7 @@ Lessons earned along the way:
   west wall and it never arrives. If a test's "closest approach" is ~5 m,
   check the spawn geometry before the controller.
 
-## 12. Noise + positioning: the catch is information-and-stiffness limited, not arm-limited
+## 12. Noise + positioning: the catch is information-and-stiffness limited, not arm-limited ^12
 
 Extended `arm_catch_solo` (M5b) with the question "does compliant capture
 survive realism?": stereo-class sensing noise + 50 ms latency (the demo's
@@ -329,9 +334,9 @@ The elbow stays in the parking lot: it becomes relevant for in-plane
 terminal correction when tolerances tighten (3-finger gripper contact
 geometry), not for making the current catch robust.
 
-## 13. Finger (caging-gripper) catch: feasibility probe — mechanism works, dynamic rendezvous doesn't (yet)
+## 13. Finger (caging-gripper) catch: feasibility probe — mechanism works, dynamic rendezvous doesn't (yet) ^13
 
-The force-limited constraint ("foam stick", §11–12) is a *behavioral* stand-in
+The force-limited constraint ("foam stick", [[#^11|§11]]–[[#^12|12]]) is a *behavioral* stand-in
 for a real gripper: it can snap to a ball 15 cm away at any relative velocity.
 To test whether a physically honest catch — fingers caging the ball, held by
 friction, no constraint — is feasible, we built a 3-finger gripper
@@ -348,7 +353,7 @@ What broke, in order, and why:
 1. **Finger motors excite the attitude yaw singularity.** With the arm
    extended horizontally (catch pose) and the gripper open, a stiff or
    velocity-driven finger servo injects a dynamic disturbance that drives the
-   body's yaw toward ±90–180°, straight into the Lee SO(3) singularity (§1) —
+   body's yaw toward ±90–180°, straight into the Lee SO(3) singularity ([[#^1|§1]]) —
    the drone flips and flies away (180 cm error). Diagnosis was decisive:
    freezing the fingers kinematically → 2 cm error, 0° yaw; motorizing them →
    180 cm, 179° yaw. Fix: **gentle pure position control** on the fingers
@@ -397,7 +402,7 @@ servo the EE to a *point* (and track it for a window) instead of sweeping a
 1-DOF arc through it — turning a knife-edge timing problem into a tracking
 problem. That moves parking-lot item "unlock the elbow" from nice-to-have to
 the critical path for a contact catch. The constraint-based compliant capture
-(§11–12) remains the working catch for the demo; the finger gripper is a
+([[#^11|§11]]–[[#^12|12]]) remains the working catch for the demo; the finger gripper is a
 validated *mechanism* waiting on 2-DOF terminal guidance.
 
 Reusable infrastructure landed regardless: the URDF gripper generator, the
@@ -405,9 +410,9 @@ Reusable infrastructure landed regardless: the URDF gripper generator, the
 `set_finger_dynamics`), model-derived mass, and the position + yaw integrators
 (all default-off, so existing tests are unaffected — re-verified).
 
-## 14. Unlocking the elbow: 2-DOF tracking turns the catch from tangency into rendezvous (M7)
+## 14. Unlocking the elbow: 2-DOF tracking turns the catch from tangency into rendezvous (M7) ^14
 
-§13 ended with the 1-DOF finger catch stuck at a ~7–10 cm rendezvous miss:
+[[#^13|§13]] ended with the 1-DOF finger catch stuck at a ~7–10 cm rendezvous miss:
 one shoulder joint sweeps the cup through an *arc*, and landing that arc on
 the ball at the exact intercept instant is a knife-edge. Unlocking the elbow
 gives the end-effector 2 planar DOF — so instead of sweeping through the ball,
@@ -426,7 +431,7 @@ shoulder sits ~0.32 m *above* the intercept (arm hangs into the ball's path);
 each tick, IK the desired cup position (ball + small ballistic lead) to
 (shoulder, elbow) and command both via `hold_arm`; body holds the x-station
 and tracks the ball's y (the arm is planar — can't move laterally); fingers
-cage as in §13.
+cage as in [[#^13|§13]].
 
 **Result: it works.** Nominal (4.6 m/s arrival): the cup tracks to **0.9–1.3
 cm** of the ball (vs 7–10 cm for the 1-DOF sweep), 3 fingers cage, held
@@ -447,7 +452,7 @@ rendezvous-precision wall into a solved tracking problem at the design point.
   wrap in time. Needs the cup to **velocity-match** (track the ball's velocity,
   not just position) at contact, plus possibly a faster finger close.
 
-So M7 validates the elbow as the right unlock and clears the §13 blocker at
+So M7 validates the elbow as the right unlock and clears the [[#^13|§13]] blocker at
 the design point; making it hold across the adversarial envelope is a
 tracking-control problem (velocity-matched IK tracking + capture timing),
 not a kinematics or mechanism one. Open items: extend the arm-reaction FF and
@@ -456,9 +461,9 @@ approximate with the elbow bent — the body integrators have been absorbing
 the residual), and add lateral (y) approaches once a singularity-free
 attitude controller exists.
 
-## 15. Caging gripper that actually cages: 3-joint long-proximal fingers (M8)
+## 15. Caging gripper that actually cages: 3-joint long-proximal fingers (M8) ^15
 
-§13 left the finger gripper *containing* a ball in an upright cup but not
+[[#^13|§13]] left the finger gripper *containing* a ball in an upright cup but not
 *caging* it — a screenshot review exposed that the 2-segment fingers, with a
 mount ring (2.5 cm) smaller than the ball radius (3.0 cm), folded back over
 the wrist instead of enclosing. The honest gate is the **inversion test**:
@@ -488,7 +493,7 @@ Productionized into the real catcher (M8):
   **pin the fingers kinematically while OPEN** (`resetJointState` each step →
   1.2 cm hover) and only motorize to close. Pin-open is now the default in
   `_apply_gripper`; the catch test also bumps solver iterations. The old yaw
-  singularity (§13) does not recur with this.
+  singularity ([[#^13|§13]]) does not recur with this.
 - Validated on the drone: hover stable, 4 fingers close on a ball at the cup,
   **held through a 30 cm lift** (static-ball).
 
@@ -503,7 +508,7 @@ the single critical-path item for a retained physical catch. The pin-open
 (tight station-keeping) and firm-grip-after-cage + gentle-lift pieces are in
 place; they're necessary but not sufficient without velocity matching.
 
-## 16. Pre-positioning lands the first retained physical catch (M8b)
+## 16. Pre-positioning lands the first retained physical catch (M8b) ^16
 
 The M8 catch tracked the cup to ~2.7 cm and caged the ball with 4 fingers but
 did NOT retain it. Diagnosis (per a video review):
@@ -553,7 +558,7 @@ removed firm-grip was the main ejector. **"Arm fully down" is the wrong
 default** — the principled start pose is the IK pre-position that puts the cup
 at the intercept (arm angled), not straight down (cup straight below body).
 
-## 17. Why the snap is intrinsic, and the cage catch is noise-fragile (M8c)
+## 17. Why the snap is intrinsic, and the cage catch is noise-fragile (M8c) ^17
 
 Two review questions: the arm still *snaps* into place, and does it survive
 sensing noise?
@@ -586,7 +591,7 @@ catch that holds cleanly on ground truth **fails 0/3 under noise** — min
 cup-to-ball blows out to ~22 cm because the chase tracks the jittery
 *estimate* of the ball's instantaneous 3-D position, and the descent flag
 (est_v_z<0) flickers, oscillating track/prepos. Contrast the constraint-based
-**compliant capture (§12): 96/96 under the same noise.** The difference is the
+**compliant capture ([[#^12|§12]]): 96/96 under the same noise.** The difference is the
 catch *radius*: the soft constraint snaps anything within 15 cm, forgiving the
 estimate error; the finger cage needs the ball seated at the cup CENTER
 (~1–3 cm), which sensing noise destroys. **The hardware-honest gripper is far
@@ -623,7 +628,7 @@ or (b) velocity-matched tracking where the cup is already descending WITH the
 ball so contact has ~zero relative velocity and no graze. The current 3-finger
 caging hand is an active scooper; that's the trade for its form-closure grip.
 
-## 18. Velocity-matched tracking: infrastructure built, but it doesn't beat the scoop yet (M8d)
+## 18. Velocity-matched tracking: infrastructure built, but it doesn't beat the scoop yet (M8d) ^18
 
 Chose option 2 (velocity-matched tracking) over a passive basket, to keep the
 arm multi-purpose. Built the foundation:
@@ -655,7 +660,7 @@ bolt-on. That's the real next step. The committed catch remains the SCOOP
 version (§17b): nominal caught + held, with the snap, noise-fragile. The
 Jacobian/velocity infrastructure is in place for the trajectory controller.
 
-## 19. The catch runs near full extension — the solver under-models the movement (M8e)
+## 19. The catch runs near full extension — the solver under-models the movement (M8e) ^19
 
 Human-catch review: position the arm partly FOLDED, let the joints ABSORB the
 ball's momentum, and sweep so the arm trajectory OVERLAPS the ball's (redirect
@@ -681,7 +686,7 @@ Tried the fixes; each hit the same wall:
 **Root cause (the user's intuition, made precise): the arm operates too close
 to full extension because it is barely long enough for this catch geometry.**
 That single fact causes all three symptoms — the Jacobian singularity that
-swamps velocity matching (§18), the lack of fold that blocks compliance, and
+swamps velocity matching ([[#^18|§18]]), the lack of fold that blocks compliance, and
 the scoop (the only way to reach the fast ball at the boundary). The clean
 fixes are *geometric*, not control tweaks:
 1. **Longer arm links** (e.g. 0.25+0.25 = 0.50 m reach) so the same catch is
@@ -691,13 +696,13 @@ fixes are *geometric*, not control tweaks:
    reaches a shorter distance into the ball's path) rather than straight down
    to a far intercept.
 Either makes the folded + compliant + velocity-matched (trajectory-overlap)
-catch geometrically feasible. The Jacobian/velocity-FF (§18) and the
+catch geometrically feasible. The Jacobian/velocity-FF ([[#^18|§18]]) and the
 back-drivable `hold_arm(torque_cap=)` are the control pieces, waiting on the
 geometry. The committed catch stays the scoop (nominal caught+held).
 
-## 20. Diagonal velocity-matched catch: built the human-inspired geometry; body won't hold the station (M9, WIP)
+## 20. Diagonal velocity-matched catch: built the human-inspired geometry; body won't hold the station (M9, WIP) ^20
 
-The user corrected my "arm too short" framing (§19): the drone CAN position
+The user corrected my "arm too short" framing ([[#^19|§19]]): the drone CAN position
 better, and the right placement is the one the throw-side `arm_catch_solo`
 already used — **station the body up-and-forward of the intercept so the arm
 reaches FOLDED, back-and-down, and its swing is TANGENT to the ball's path**
@@ -709,7 +714,7 @@ reaches FOLDED, back-and-down, and its swing is TANGENT to the ball's path**
 - Diagonal placement: shoulder R_FOLD (0.355 m) from the intercept,
   perpendicular to the arrival velocity. The arm is then FOLDED (~74%, elbow
   ~1.3 rad) at the tangent — well-conditioned Jacobian, so velocity matching
-  (§18) isn't swamped, and room for the joints to give (§19 compliance).
+  ([[#^18|§18]]) isn't swamped, and room for the joints to give ([[#^19|§19]] compliance).
 
 Built it (`tests/elbow_catch_diagonal.py`): diagonal station, fold pre-pose,
 track the tangent point with Jacobian velocity feedforward sweeping the cup
@@ -727,7 +732,7 @@ the forward-and-tilted hold, then the tangent catch + absorb should follow.
 The committed working catch stays the SCOOP (`elbow_catch_solo.py`, nominal
 caught+held); the diagonal version is the WIP toward the smooth folded catch.
 
-## 21b. Startup ceiling-launch: a feedforward firing on the arm's init snap
+## 21b. Startup ceiling-launch: a feedforward firing on the arm's init snap ^21b
 
 User asked why the catcher rockets ~1 m up at t=0. A/B isolated it cleanly:
 `arm_translational_ff_z` ON → peak z-error **+1.01 m**; OFF → **+0.01 m**.
@@ -753,17 +758,17 @@ feedforward cancels (§21) — feedback tuning can't, it only moves the phase.
 Finger-cam (user request) confirmed the capture-side failure: the ball sits at
 the cage RIM, off-center, and the closing fingers on the near side *paddle it
 out* rather than wrapping it (the cup must seat the ball past the fingertips —
-§09 sweet spot). So there are two independent gaps to a retained catch: body
+[[09-grasping-caging-and-actuator-disturbance|§09]] sweet spot). So there are two independent gaps to a retained catch: body
 station-keeping (COM FF) AND cup-centering at contact.
 
-## 22. Design study: a thrust-vectoring drone to kill the underactuation (decision, not yet built)
+## 22. Design study: a thrust-vectoring drone to kill the underactuation (decision, not yet built) ^22
 
 The user asked whether an **over-actuated** drone (rotors with tilt DoF) would
 fix the root cause behind most of our pain: a fixed quad is underactuated
 (4 inputs, 6 DoF), so it *must* pitch the whole body to translate — which is
-exactly what fights the arm (§20 station-keeping), forces the cascade, and
+exactly what fights the arm ([[#^20|§20]] station-keeping), forces the cascade, and
 gives the Lee 180° singularity. Conclusion: yes, and it's worth doing. Full
-reasoning + the transferable concepts are in `concepts/12`. The decisions we
+reasoning + the transferable concepts are in [[12-overactuation-thrust-vectoring-allocation|concepts/12]]. The decisions we
 landed on (so future-us doesn't re-derive them):
 
 - **Mechanism**: one tilt servo per rotor → 8 control inputs vs 6 DoF →
@@ -798,11 +803,11 @@ backed by the `y=0`-crossing geometry above.
 **Important caveat:** PyBullet has no propwash model, so *none* of the wash
 analysis is testable in the current sim (a tilted rotor has zero effect on the
 ball). The wash reasoning is a hardware/sim2real design argument. A minimal
-propwash-cone disturbance (§concepts/12) would make it testable and let us
+propwash-cone disturbance (§[[12-overactuation-thrust-vectoring-allocation|concepts/12]]) would make it testable and let us
 validate null-space wash-steering. Nothing is implemented yet — this section is
 the decision record so the URDF + allocation work starts from the right place.
 
-## 23. Methodology: scalar metrics hide failure MODES in a physics sim — you have to LOOK
+## 23. Methodology: scalar metrics hide failure MODES in a physics sim — you have to LOOK ^23
 
 The most consequential M9 bugs were diagnosed by the USER visually examining
 video frames, not from the metrics the work was being steered on. Two rounds:
@@ -833,19 +838,19 @@ human's at-a-glance motion perception still caught modes the agent missed. So
 for physical-sim work, keep a human (or a deliberate frame-by-frame pass) in the
 verification loop, and don't let the numbers be the only eyes.
 
-## 24. Compliant/underactuated close flips the drone — passive compliance wins on a flying base
+## 24. Compliant/underactuated close flips the drone — passive compliance wins on a flying base ^24
 
-Per the grasping literature (Yale OpenHand / SDM hand, concepts/13): adaptation
+Per the grasping literature (Yale OpenHand / SDM hand, [[13-adaptive-underactuated-grasping|concepts/13]]): adaptation
 to object position belongs in the MECHANISM, not the controller. Implemented it
 — `close_gripper(compliant=True)`: constant inward torque per joint + damping,
 no target pose, so fingers conform on contact instead of servoing to a fixed
 shape that shoves an off-center ball out.
 
 **Result: it pitched the body to ~90° (flipped).** The sustained finger torques
-react on the airframe (§09/§15 actuator-disturbance) — a position-PD close
+react on the airframe ([[09-grasping-caging-and-actuator-disturbance|§09]]/[[#^15|§15]] actuator-disturbance) — a position-PD close
 reaches its target and stops applying torque; a *constant*-torque tendon never
 does. A real Yale hand sits on a fixed arm that absorbs the reaction; a drone
-has nothing to absorb it. Fixed-base isolation (the §09 discipline) was
+has nothing to absorb it. Fixed-base isolation (the [[09-grasping-caging-and-actuator-disturbance|§09]] discipline) was
 inconclusive — the throwaway harness couldn't reliably seat the ball, of a piece
 with ~10 grasp experiments this session that gave noisy/contradictory results.
 
@@ -860,9 +865,9 @@ needs a *reliable* test harness (deterministic ball seating, a real caged metric
 via contact normals) + a systematic study — not more quick experiments. The
 validated fallback remains the soft-constraint compliant capture (96/96).
 
-## 25. Caging robustness under position uncertainty: a trustworthy harness says the current close already wins (and compliance/FF do not help)
+## 25. Caging robustness under position uncertainty: a trustworthy harness says the current close already wins (and compliance/FF do not help) ^25
 
-> **⚠️ RETRACTED IN PART — read §26 first.** The off-center conclusions below
+> **⚠️ RETRACTED IN PART — read [[#^26|§26]] first.** The off-center conclusions below
 > ("gap is the failure mode," the strategy ranking, "compliance doesn't help /
 > soft fails") were a **timestep + rigid-contact numerical artifact**. At
 > converged numerics (compliant contact pads + 1/960) the close robustly cages to
@@ -870,7 +875,7 @@ validated fallback remains the soft-constraint compliant capture (96/96).
 > scaffolding, the self-validated extremes, the tendon-ill-conditioning, and the
 > Phase-2 FF result stand; the off-center *rankings* do not.
 
-§24 ended by demanding a *reliable* harness for the robust-enclosure-under-
+[[#^24|§24]] ended by demanding a *reliable* harness for the robust-enclosure-under-
 uncertainty sub-problem, because ~10 quick grasp experiments gave noisy /
 contradictory results (the "caged" signal was distance + fingers-touching, and
 the ball seating was non-deterministic). Built one (`tests/cage_harness.py`) and
@@ -911,7 +916,7 @@ strategy {fixed, compliant, soft} x fingers {4,6,8} x ready {splayed, curled}:
   is biased against an aggressive under-tuck; a *dynamic* catch (ball entering the
   cup with downward momentum) would seat it. So the compliance question is *not
   won* on the static metric but is plausibly under-credited by it — the fair test
-  is the moving catch. See §25 detail below.
+  is the moving catch. See [[#^25|§25]] detail below.
 - **More fingers (6,8) trade gap-coverage for finger-direction robustness** with
   no net gain *at the un-retuned close pose* (the cage pose (0.5,1.0,1.3) is
   tuned for 4). Closing the gaps properly needs a close-pose re-optimisation per
@@ -936,7 +941,7 @@ on the *dynamic* catch where gravity/incoming-momentum seats the ball.
 massless 3-link finger chain in PyBullet — a Coulomb-friction-like joint
 threshold (small torques produce zero motion until ~1 N.m), sign-flips, and
 frozen distal joints. It neither reproduces the cage shape nor gives repeatable
-results, and on a floating base it flips the body (the §24 flip). Force-limited
+results, and on a floating base it flips the body (the [[#^24|§24]] flip). Force-limited
 *position* control toward the cage pose is the robust, behaviourally-faithful
 stand-in for yield-on-contact compliance.
 
@@ -949,7 +954,7 @@ and the measurement says why: in the arm-straight-down catch pose the symmetric
 finger ring's motor torques **sum to ~0** (the FF predicts ~0), while the *actual*
 body disturbance during a close (~0.35 rad/s of pitch in one step) comes from the
 **asymmetric finger-link inertial + contact reactions**, which a motor-torque-sum
-model can't see. This matches §09's geometry note (near-zero net by symmetry in
+model can't see. This matches [[09-grasping-caging-and-actuator-disturbance|§09]]'s geometry note (near-zero net by symmetry in
 the down pose). The constant-torque close still flips the body (numerics, above)
 and the FF can't rescue a numerical instability. The Phase-1 *winning* close
 (rigid position) needs no FF: on the level-holding thrust-vectoring drone it holds
@@ -960,16 +965,16 @@ tests re-verified unchanged).
 **Honest gap remaining:** a full end-to-end *retained* catch on the TV drone was
 NOT achieved — but the blocker is the pre-existing TV arm-tracking station-keeping
 instability (rapid per-tick IK arm slews drive the TV body up into the ceiling;
-the repo's TV catch is WIP, §20), not the close strategy. The winning close +
+the repo's TV catch is WIP, [[#^20|§20]]), not the close strategy. The winning close +
 sub-5-deg body pitch on the TV drone are confirmed; the underactuated scoop
 (`elbow_catch_solo`) remains the validated retained catch.
 
-## 26. CORRECTION: the §25 off-center findings were a timestep + rigid-contact ARTIFACT (the harness wasn't trustworthy where it mattered)
+## 26. CORRECTION: the §25 off-center findings were a timestep + rigid-contact ARTIFACT (the harness wasn't trustworthy where it mattered) ^26
 
 While investigating a video-smoothness question (sampling the close at a finer
-rate), I ran the harness at a finer simulation timestep — and the central §25
+rate), I ran the harness at a finer simulation timestep — and the central [[#^25|§25]]
 finding evaporated. This is the most important entry in this file: **the metric
-that §25 trusted was numerically untrustworthy precisely in the off-center band
+that [[#^25|§25]] trusted was numerically untrustworthy precisely in the off-center band
 it was used to study.**
 
 **What broke.** A 65 g rigid ball held by light (~3-4 g/segment, inertia
@@ -1011,10 +1016,10 @@ to inspect the fragility).
   rigid-contact artifact too) and ALL fail past the ~4.5 cm geometric limit. No
   strategy extends the capture radius.
 
-**So nearly every §25 off-center conclusion is RETRACTED:** "gap is the failure
+**So nearly every [[#^25|§25]] off-center conclusion is RETRACTED:** "gap is the failure
 mode," the strategy ranking, "compliance doesn't help / soft fails," "splayed vs
-curled," and the §26-in-§25 underactuation nuance were all reading numerical
-noise. What SURVIVES from §25: the harness scaffolding and the *self-validated
+curled," and the [[#^26|§26]]-in-[[#^25|§25]] underactuation nuance were all reading numerical
+noise. What SURVIVES from [[#^25|§25]]: the harness scaffolding and the *self-validated
 extremes* (centered cages; far-outside escapes); the constant-torque "tendon"
 close is genuinely ill-conditioned (separate issue); and the Phase-2 finger-
 reaction-FF result (it lives on the floating drone, a different sim, and is
@@ -1025,12 +1030,12 @@ harness can still be *untrustworthy* if the self-validation only covers the easy
 extremes while the regime you actually study sits on an ill-conditioned knife
 edge. Vary the **timestep** (and contact model) as a convergence check on any
 contact-rich result before believing it — determinism is not convergence. This is
-the §23 "scalar metrics hide failure modes — you have to LOOK" lesson, one level
+the [[#^23|§23]] "scalar metrics hide failure modes — you have to LOOK" lesson, one level
 deeper: you also have to check the numerics converge in the regime of interest.
 
-## 27. A FAITHFUL Yale-OpenHand underactuated hand: the coupling is real, but in sim it does not beat the rigid close
+## 27. A FAITHFUL Yale-OpenHand underactuated hand: the coupling is real, but in sim it does not beat the rigid close ^27
 
-The `under` strategy (§25/§26) was a per-joint deep-curl stand-in — it had no
+The `under` strategy ([[#^25|§25]]/[[#^26|§26]]) was a per-joint deep-curl stand-in — it had no
 COUPLING, the defining feature of a Yale hand. Built the real mechanism
 (`src/yale_hand.py`), a numerically-stable POSITION-based tendon:
 - **inter-finger whiffletree**: one actuator displacement = the MEAN of the
@@ -1052,7 +1057,7 @@ flexions come out UNEQUAL for an off-center ball and ~equal for a centered one:
   less). The whiffletree differential is real, driven by the live contact.
 
 **Static harness (corrected numerics): Yale LOSES to the rigid close.** Centered
-0.62 vs 1.00; every off-center cell 0.00. This is the §26 anti-tuck bias made
+0.62 vs 1.00; every off-center cell 0.00. This is the [[#^26|§26]] anti-tuck bias made
 concrete: gravity-OFF, a free off-center ball is pushed away by the first
 contacting finger before sustained contact can cap it, so the differential never
 engages and the ball ejects. The static metric is the wrong test for this hand —
@@ -1083,9 +1088,9 @@ the benefit is for hardware we don't model" outcome. The model + the
 external-gripper hook are committed (opt-in, default off) for the day there is a
 hardware testbed or a richer uncertainty model to exercise them.
 
-## 28. Hold-QUALITY metrics (iteration 2): the binary "caged" tied the strategies; quality separates them — but only where convergence allows
+## 28. Hold-QUALITY metrics (iteration 2): the binary "caged" tied the strategies; quality separates them — but only where convergence allows ^28
 
-§25–27 scored caging with a BINARY form-closure battery ("survives 26 directions
+[[#^25|§25]]–[[#^27|27]] scored caging with a BINARY form-closure battery ("survives 26 directions
 at 2.5 g → caged"). That metric over-credits precarious holds: a ball pinned by
 one off-center finger scores the same as a deep symmetric wrap (the iteration-1
 miss). Iteration 2 adds CONTINUOUS hold-QUALITY metrics to `tests/cage_harness.py`
@@ -1115,7 +1120,7 @@ gate caught our own most-exciting result as a knife-edge before it shipped.**
 A caged ball saturates the 10 g search cap in every direction; a missed ball
 collapses to ~0.16 g. So escape-margin robustly CONFIRMS binary caging but does
 NOT finely grade precariousness within the caged band. The GRADED quality signals
-are centering-err + symmetry + contact-count + pull-in. (This matches §26: at
+are centering-err + symmetry + contact-count + pull-in. (This matches [[#^26|§26]]: at
 converged numerics everything within ~4 cm cages.)
 
 ### FIXED close — the convergence-backed baseline
@@ -1168,7 +1173,7 @@ the paired-delta bands from `followup.out`:**
   direction-specific.
 - SUBTLE NULL — n6-2.5 cm-finger: paired delta −1.45..+2.17 → OVERLAPS 0. (A
   single NOMINAL-timestep render can LOOK like a soft win at n6, but it does not
-  survive the perturbation sweep — the exact §26 trap, and why the paired/perturbed
+  survive the perturbation sweep — the exact [[#^26|§26]] trap, and why the paired/perturbed
   delta, not one rendered run, decides the verb.)
 
 **But the advantage is convergent only in a narrow regime** (the whole point of
@@ -1185,7 +1190,7 @@ at the SAME offset/dir/n/perturbation, 8 perturbations each):
 Soft's pull-in SIGN is itself timestep-unstable except at n4-3.5 cm-finger
 (n4-1.5 cm-finger sign −2.51..+0.46 = NOT stable; n6, n8 NOT stable), and soft's
 ESCAPE-MARGIN is a knife-edge nearly everywhere (soft-4-2.5 cm-finger
-CONVERGED=NO: EM swings 2.5/10/7.97 g across substep+seed — **exactly the §26
+CONVERGED=NO: EM swings 2.5/10/7.97 g across substep+seed — **exactly the [[#^26|§26]]
 artifact, caught by the gate this time instead of shipped**). The n4-1.5 cm
 sign-instability is reported as an OBSERVATION, not a theory: at a small offset the
 re-centering distance is within the timestep/seed noise, so no stable sign appears
@@ -1208,7 +1213,7 @@ tendon hand (the first finger to contact an off-center free ball shoves it out
 before the whiffletree differential can cap and engage; centered, first contacts
 are symmetric so it stays). The regime that WOULD let Yale show its benefit —
 gravity-ON / momentum-seated (ball pressed INTO the cup) / constrained object /
-sensing-shape uncertainty — is deferred to the Goal-2 dynamic test (and §27's
+sensing-shape uncertainty — is deferred to the Goal-2 dynamic test (and [[#^27|§27]]'s
 dynamic result already had Yale TIE the rigid close there). Do not conclude
 against Yale on this sim.
 
@@ -1231,7 +1236,7 @@ the per-variation table + an EM-convergence verdict + a pull-in SIGN verdict;
 `--paired` runs the soft-vs-fixed PAIRED delta per perturbation (same seed → same
 jitter → fair pairing) and rules CONVERGENT-POSITIVE / OVERLAPS-0; `--boundary`
 scans the caged→escaped cliff across substeps and flags any timestep-unstable
-offset (the §26 band). `--migration` is the causal roll-vs-snap trace;
+offset (the [[#^26|§26]] band). `--migration` is the causal roll-vs-snap trace;
 `--quality-frames` renders the 3-angle (diag/under/side) × 3-moment
 (close/seated/post-disturbance) HUD triptychs. Canonical run logs live in
 `docs/cage_frames/iter2/logs/` (trust the `*.out` stdout, not the tee'd `*.txt`).
@@ -1242,7 +1247,7 @@ working).** Scanning the caged→escaped cliff across substeps {2,4,8}
 boundary). The other four are NOT: fixed-gap flips at 4.0/4.3/4.5 cm, soft-gap at
 4.0/4.3 cm, soft-finger at 4.0/4.8/5.0 cm, yale-finger at 4.3/4.5 cm. So for 4 of
 5 strategies the caged/escaped verdict in the **4–5 cm band flips with the
-timestep** — exactly the §26 artifact zone. We therefore **refuse to certify a
+timestep** — exactly the [[#^26|§26]] artifact zone. We therefore **refuse to certify a
 numeric capture-radius/boundary for those strategies** and report only "the
 harness flags this band as untrustworthy." The instrument detecting and declining
 its own ill-conditioned region IS the finding — it is the convergence detector
@@ -1262,16 +1267,16 @@ does not — exactly the iteration-1 gap this work closes.
 - **Non-spherical / deformable objects, real sensing/shape uncertainty** — the
   uncertainty adaptive hands exist to absorb; this sim injects only clean offsets.
 - **On-drone (floating-base) quality** — this is the fixed-base harness; the
-  finger-reaction on a flying base is §25/concepts-09, not re-tested here.
+  finger-reaction on a flying base is [[#^25|§25]]/concepts-09, not re-tested here.
 - **Ready-pose × finger-count interactions at quality resolution**, and
   compliant-strategy convergence beyond spot cells (compliant tracked between
   fixed and soft on the grid; not exhaustively convergence-gated).
 - **The escape-margin cap (10 g)** hides how robust the very-robust holds are —
   fine for grading precariousness (the point), not for ranking rock-solid holds.
 
-## 29. FAITHFUL Yale (PRB) re-score: §28's "Yale ejects" was a STAND-IN artifact — the faithful hand CAGES *and* re-centers (finger direction)
+## 29. FAITHFUL Yale (PRB) re-score: §28's "Yale ejects" was a STAND-IN artifact — the faithful hand CAGES *and* re-centers (finger direction) ^29
 
-**Why Goal 1 was reopened.** §28's fixed-vs-Yale verdict used the CONTACT-READING
+**Why Goal 1 was reopened.** [[#^28|§28]]'s fixed-vs-Yale verdict used the CONTACT-READING
 stand-in (`src/yale_hand.py` — its close law reads `getContactPoints` to *script*
 the redistribution), which fails the D9 mechanism gate: it is not a mechanism, it
 is a puppet. A **faithful pseudo-rigid-body hand** (`src/yale_prb.py`) was built to
@@ -1280,7 +1285,7 @@ distal-weighted tendon**, ONE actuator, **zero `getContactPoints` in the close
 law** (a finger stalls because the ball is physically in its way; the others keep
 closing under the same tension → self-distribution is EMERGENT). It is inertia-
 ×50-regularized (the near-massless 3-4 g fingers are otherwise a stiff-ODE wall,
-§25); that regularization is proven **scale-invariant** (spread identical at ×30/
+[[#^25|§25]]); that regularization is proven **scale-invariant** (spread identical at ×30/
 ×50/×100, `logs/prb_convergence.txt`) so it conditions the ODE without faking the
 result. This hand passed the D9 gate and was re-scored on the SAME 96-cell quality
 grid as the `prb` strategy (harness `--strategy prb`; additive, existing scores
@@ -1288,7 +1293,7 @@ untouched). Canonical logs: `docs/cage_frames/iter2/logs/prb_quality_grid.txt`,
 `prb_converge_all.txt`, `prb_paired.txt`, `prb_boundary.txt`.
 
 ### THE HEADLINE — does the verdict change? YES, it reverses (in the finger direction).
-§28 (stand-in): *"Yale convergently EJECTS the off-center free ball"* (pull-in
+[[#^28|§28]] (stand-in): *"Yale convergently EJECTS the off-center free ball"* (pull-in
 −34..−103 cm, 0 contact fingers, score 0). **That "Yale ejects/loses" was a model
 artifact of the puppet.** The faithful PRB hand does the opposite: it **cages the
 off-center ball as robustly as the rigid fixed close** (4 contact fingers,
@@ -1326,7 +1331,7 @@ edge.** `prb_paired.txt` prb-soft: n4-finger 2.5 cm **+0.01..+1.54**, 3.5 cm
 distinguishable ("sign positive, magnitude not separable from soft"). So prb does
 NOT re-center *more* than soft. The distinction is trustworthiness, not magnitude:
 soft's own re-centering claim was gated to a narrow corner because soft's escape-
-margin is a knife-edge (§28: CONVERGED=NO, EM 2.5/10/7.97 g across timestep+seed),
+margin is a knife-edge ([[#^28|§28]]: CONVERGED=NO, EM 2.5/10/7.97 g across timestep+seed),
 whereas **prb's escape-margin is a stable ≥10 g at every perturbation of every
 finger-direction cell** (`prb_converge_all.txt`) and its re-center holds across
 n4 AND n6 (soft's was n4-only). Same re-centering behavior, but earned on solid
@@ -1353,9 +1358,9 @@ numerics instead of a flip-prone one.
 ### Boundary — a second, independent robustness win over §28
 `prb_boundary.txt`: the faithful hand cages to **≥5.0 cm (the scan edge) in BOTH
 finger and gap directions**, and the caged verdict is **timestep-STABLE across
-1/480–1/1920** (converged) in both. This is the regime §28 flagged as
+1/480–1/1920** (converged) in both. This is the regime [[#^28|§28]] flagged as
 UNTRUSTWORTHY for fixed/soft/yale — their 4–5 cm caged/escaped verdict FLIPPED with
-the substep (the §26 artifact band). The PRB hand's force-limited compliant close
+the substep (the [[#^26|§26]] artifact band). The PRB hand's force-limited compliant close
 removes that band: no timestep-fragile boundary in the scanned range. Frame
 `cageQ_prb_n4_finger_50mm_seated_diag.png` confirms a real 4-finger cage at the
 5.0 cm extreme (escape-margin dropped to 6.09 g — precarious but held@2.5 g — and
@@ -1371,10 +1376,10 @@ greater than fixed) in a specific envelope — **finger-direction approaches, ri
 density n4–n6, offsets 1.5–3.5 cm** — and is HONESTLY ABSENT in the gap direction
 and at n8 (cages, doesn't re-center). It ties the passive soft flexure on
 re-centering magnitude but on cleaner numerics. And its caged boundary is timestep-
-stable to ≥5 cm in both directions, escaping the §26 artifact band that fixed/soft
-still sit in. The §28 "ejects" number stands as a correct statement ABOUT THE
-STAND-IN, now explicitly labeled an artifact of the puppet; no §28 number is
+stable to ≥5 cm in both directions, escaping the [[#^26|§26]] artifact band that fixed/soft
+still sit in. The [[#^28|§28]] "ejects" number stands as a correct statement ABOUT THE
+STAND-IN, now explicitly labeled an artifact of the puppet; no [[#^28|§28]] number is
 altered — this section adds the faithful-hand arm. **Still deferred (unchanged
 scope):** gravity-on / momentum-seated / on-drone quality; the finger-vs-gap
-coverage gap is the same one the rigid close has (a pose-optimization lever, §25
+coverage gap is the same one the rigid close has (a pose-optimization lever, [[#^25|§25]]
 open item), now shown to bound the adaptive hand's re-centering too.

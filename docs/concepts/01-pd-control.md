@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # PD control, natural frequency, damping
 
 ## What it is

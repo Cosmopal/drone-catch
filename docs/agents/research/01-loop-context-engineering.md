@@ -1,8 +1,13 @@
+---
+tags:
+  - research-digest
+---
+
 # Research digest: Loop/context engineering & long-horizon agent reliability (2024-26 literature)
 
 > Raw output of research subagent `a1e7017aadfb3d057` (session d155edbe, 2026-07-04),
 > spawned for the loop-engineering meta-analysis. Unedited final message;
-> synthesis and corrections live in `../loop-engineering-analysis.md`.
+> synthesis and corrections live in ../[[loop-engineering-analysis|loop-engineering-analysis.md]].
 > Full transcript: `transcripts/01-loop-context-engineering.jsonl`.
 
 I have enough across 16+ distinct primary sources. Here's the digest.
@@ -13,7 +18,7 @@ I have enough across 16+ distinct primary sources. Here's the digest.
 
 Scope note: prioritized primary sources (Anthropic, OpenAI, Cognition, Manus, named papers, named practitioners). Each entry = source → specific point → takeaway.
 
-## 1. "Loop engineering" / "context engineering" — who coined them, what they mean
+## 1. "Loop engineering" / "context engineering" — who coined them, what they mean ^1
 
 **Anthropic Engineering — "Effective context engineering for AI agents" (Sept 29, 2025)**
 Frames context engineering as the successor to prompt engineering: "the set of strategies for curating and maintaining the optimal set of tokens during LLM inference." Core stance: treat context as "a finite resource with diminishing marginal returns," and cites "context rot" — recall accuracy falls as token count rises. Names four concrete techniques: **compaction** (summarize-and-reinitialize near the limit), **structured note-taking / agentic memory** (persist notes outside the window), **sub-agent architectures** (isolated clean context per specialist), **just-in-time retrieval** (load via lightweight identifiers at runtime, not upfront).
@@ -35,7 +40,7 @@ Defines an agent as software that "runs tools in a loop to achieve a goal"; a co
 Practitioner/vendor discourse crystallizing "loop engineering" and "harness engineering" as named disciplines downstream of Willison's framing (prompt → context → harness/loop engineering progression).
 → Takeaway: Confirms the terms are now in common practitioner vocabulary, not just one blog.
 
-## 2. Patterns for long-horizon reliability
+## 2. Patterns for long-horizon reliability ^2
 
 **Anthropic — "Building Effective Agents" (Dec 2024)** + anthropic-cookbook patterns
 Foundational taxonomy distinguishing **workflows** (predefined paths) from **agents** (LLM directs its own process). Named patterns: prompt chaining, routing, parallelization, orchestrator-workers, and **evaluator-optimizer** (one LLM generates, another evaluates/gives feedback in a loop — use "when we have clear evaluation criteria and iterative refinement provides measurable value"). Core doctrine: "Start with the simplest pattern that works"; only add complexity when you can measure improvement.
@@ -65,7 +70,7 @@ Seven building blocks: evals, RAG, fine-tuning, caching, **guardrails**, defensi
 From helping 30+ companies: error analysis on real traces is the highest-leverage activity; LLM-as-judge must itself be validated against human labels. Recent work extends to agentic workflows and "evals skills" for coding agents (error analysis, synthetic data, judge prompts).
 → Takeaway: The practitioner authority on evals — the ground-truth signal that long loops otherwise lack.
 
-## 3. Why autonomous loops fail to converge on their own
+## 3. Why autonomous loops fail to converge on their own ^3
 
 **Zhu et al. — "Where LLM Agents Fail and How They Can Learn From Failures" (arXiv 2509.25370, Sept 29, 2025)**
 **AgentErrorTaxonomy** across five dimensions: memory, reflection, planning, action, system. Core finding: "a single root-cause error propagates through subsequent decisions" — and *more sophisticated architectures amplify* cascade vulnerability. Their AgentDebug framework recovers up to **26% relative** task-success improvement via targeted corrective feedback.

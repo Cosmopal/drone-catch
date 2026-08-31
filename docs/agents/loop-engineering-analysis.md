@@ -1,3 +1,8 @@
+---
+tags:
+  - agent-loop
+---
+
 # Loop-engineering analysis: what the grasp-study experiment teaches about autonomous AI loops
 
 > A meta-analysis written for the experiment's stated goal — *learn how to make AI
@@ -920,7 +925,7 @@ number as ground truth, and every fix is external to the loop's own consistency.
 > set stays distilled rather than append-only, whether the loop should carry a
 > "vision," and what the field published since July. Grounded in three fresh
 > research digests (`research/09–11`). The design is now LIVE: the Goal-2 grasp
-> loop (`grasp-goal2-loop-spec.md`) runs under it, and is itself the observation
+> loop ([[grasp-goal2-loop-spec|grasp-goal2-loop-spec.md]]) runs under it, and is itself the observation
 > experiment for this part's claims.
 
 ## VII.1 Roll-forward (July → August 2026): the field moved toward the thesis
@@ -929,7 +934,7 @@ Nothing overturned Parts I–VI; several speculative recommendations got vendor-
 paper-validated (digest 09):
 - **Scheduled reflection/consolidation shipped as a product** — Anthropic
   "Dreaming" (May 2026): between-session passes that read transcripts + memory,
-  merge duplicates, *replace stale entries* (§6.4, productized; Harvey reports
+  merge duplicates, *replace stale entries* ([[#^6|§6]].4, productized; Harvey reports
   ~6× task-completion improvement). Same release, "Outcomes": fresh-context
   rubric graders (+up to 10 pp) — generator/verifier separation validated.
 - **"Loop engineering" became mainstream vocabulary** (Osmani's formalization,
@@ -939,7 +944,7 @@ paper-validated (digest 09):
   underperform CoT-SC at up to 10× cost) — earn-your-complexity, measured.
 - **Cognition softened "Don't Build Multi-Agents"** (Apr 2026): "writes stay
   single-threaded; additional agents contribute intelligence, not actions" —
-  §7's reconciliation, conceded by the original skeptic. Their fresh-context
+  [[#^7|§7]]'s reconciliation, conceded by the original skeptic. Their fresh-context
   review agent (~2 bugs/PR, 58% severe) is the fresh-context-verifier argument
   in production.
 - **The supersession gap got measured** ("Supersede," Jun 2026: stale-fact
@@ -947,7 +952,7 @@ paper-validated (digest 09):
   buffers or models) — IV.3's first-class supersedable memory, now with numbers.
 - **Corrections applied above**: METR doubling is ~7 months with ±2× horizon
   error bars (Part V edited); thinking modes partially mitigate self-conditioning
-  (Part V edited); the ratchet gained a retirement mechanism (§5 amendment).
+  (Part V edited); the ratchet gained a retirement mechanism ([[#^5|§5]] amendment).
 
 ## VII.2 How specialized should a loop be? The three-layer compiler answer
 
@@ -998,12 +1003,12 @@ reflections) are the modern rendering, and ExpeL adds the missing *empirical*
 lifecycle (upvote/downvote insights against new experience — but drops the
 episode links, so a downvote can't be traced; keep both halves).
 
-The consolidation pass (§6.4) is therefore specified as:
+The consolidation pass ([[#^6|§6]].4) is therefore specified as:
 1. **Merge** near-duplicate gates into a canonical principle, `derived_from:`
    links to the merged gates and their motivating episodes (archive, never
    delete — the CBR consensus: rules carry the generality, cases remain the
    evidence and the exception-handlers).
-2. **Propagate staleness** — when an episode is superseded (§25→§26), every
+2. **Propagate staleness** — when an episode is superseded ([[iteration_findings#^25|§25]]→[[iteration_findings#^26|§26]]), every
    principle justified *only* by it is flagged for review. This is what the
    `justified_by:` field buys; the wikilink graph is already 90% of it.
 3. **Score empirically** — per-gate: fires/run, catches (fires that changed a
@@ -1033,7 +1038,7 @@ ejection one iteration early; and the human's own wrong prior ("gaps too
 large"), had it been on the record as a *prediction*, would have been auditable
 when the dt-artifact spuriously confirmed it.
 
-Adopted form (live in the Goal-2 loop spec §0.3), three components:
+Adopted form (live in the Goal-2 loop spec [[#^0|§0]].3), three components:
 1. **Pre-registered qualitative prediction** before each experiment: expected
    behavior + literature anchor with citation + falsifier + confidence tag
    (literature-backed / analogy / guess). Enforceable as a pipeline step — the
@@ -1064,7 +1069,7 @@ only visible as motion.
 
 ## VII.5 The loop, now live — and what observing it tests
 
-The Goal-2 grasp loop (`grasp-goal2-loop-spec.md`) instantiates all of this:
+The Goal-2 grasp loop ([[grasp-goal2-loop-spec|grasp-goal2-loop-spec.md]]) instantiates all of this:
 - **Verifier ≠ critic ≠ reviewer** (three separate faculties that iteration-2's
   single "reviewer" had fused): verifier grounded (re-runs under perturbation —
   D3/D5), critic enumerative (untested axes, falsifiability — D4/D6), reviewer

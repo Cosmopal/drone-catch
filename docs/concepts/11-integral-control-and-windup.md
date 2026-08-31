@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Integral control and windup (the "I" in PID)
 
 ## What it is
@@ -6,7 +11,7 @@ A **proportional** (P) controller commands force proportional to the *current*
 error: `u = kp·e`. Against a **constant** disturbance (gravity on an offset
 mass, steady wind), P alone leaves a **standing error** — it balances when
 `kp·e = disturbance`, i.e. `e = disturbance/kp ≠ 0`. Bigger kp shrinks the
-offset but never zeroes it (and eventually oscillates, §01).
+offset but never zeroes it (and eventually oscillates, [[01-pd-control|§01]]).
 
 The **integral** term accumulates the error over time and commands force
 proportional to that running sum: `u += kI·∫e dt`. As long as *any* error
@@ -25,7 +30,7 @@ accumulator to limit this.
 `CascadeController.kI` (attitude integral, default `[0.05, 0.05, 0]`) and
 `kI_pos` (position integral, default off; the finger-gripper catcher turns it
 on), with `pos_integral_clamp` bounding the windup. The yaw integral `kI[2]`
-cancels the gripper's steady yaw torque (§09); the position integral cancels
+cancels the gripper's steady yaw torque ([[09-grasping-caging-and-actuator-disturbance|§09]]); the position integral cancels
 the gripper COM's hover sag.
 
 ## What we learned here

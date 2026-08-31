@@ -1,13 +1,18 @@
+---
+tags:
+  - agent-loop
+---
+
 # Grasp iteration-2, Goal 2 — gated-loop spec (loop design v2)
 
-> The first loop designed *from* the meta-analysis (`loop-engineering-analysis.md`)
+> The first loop designed *from* the meta-analysis ([[loop-engineering-analysis|loop-engineering-analysis.md]])
 > rather than before it. It resumes the grasp work (Goal 2 of
-> `grasp-iteration2-spec.md` §2.5–2.7, on branch `grasp-iter2`) AND serves as the
+> [[grasp-iteration2-spec|grasp-iteration2-spec.md]] [[grasp-iteration2-spec#^2|§2]].5–2.7, on branch `grasp-iter2`) AND serves as the
 > observed test case for the loop design itself — we run it, watch where it needs
 > human input, and score the design against the §II.3 metric (human-nudges-to-truth).
 > Launched 2026-08-31 from the meta-analysis session.
 
-## 0. What changed vs. the iteration-2 loop (design deltas, each with a reason)
+## 0. What changed vs. the iteration-2 loop (design deltas, each with a reason) ^0
 
 1. **Verifier and critic are now SEPARATE roles** (they were fused in the single
    "reviewer"). The reviewer conflated two different faculties:
@@ -27,11 +32,11 @@
    grounded.
 2. **Two-tier ratchet — principles in context, checks in code.** (Addresses the
    context-bloat concern.) The always-loaded layer is a SMALL fixed set of general
-   principles (§3 below, ~8 lines). Every specific human/loop catch is ratcheted as
+   principles ([[#^3|§3]] below, ~8 lines). Every specific human/loop catch is ratcheted as
    an **executable check in the repo** (a harness flag, a test, an assert), indexed
    by one line in the validity ledger — NOT as accumulating prompt text. Context
    cost stays O(principles + index); the specifics cost tokens only when a gate
-   fires. Periodic distillation (§6) merges specific checks back into the general
+   fires. Periodic distillation ([[#^6|§6]]) merges specific checks back into the general
    principles, with provenance links kept so a principle's merit can be re-audited
    against the episodes that motivated it.
 3. **Pre-registration block ("vision", defeasible).** Before each experiment the
@@ -60,12 +65,12 @@
    STOPS; the lead routes its output through verifier → reviewer → critic before
    the next milestone starts. A failed gate routes BACK (revise), never forward.
 
-## 1. Roles
+## 1. Roles ^1
 
 | Role | Who | Reads | Produces | Must NOT |
 |---|---|---|---|---|
 | Lead | the orchestrating session | everything | routing decisions, human escalations | mark work done itself; relay-without-checking |
-| Worker | sub-agent in worktree `.claude/worktrees/grasp-iter2` (branch `grasp-iter2`, conda `robots`) | spec + iteration_findings §26–29 + concepts/13 | code, runs, logs, frames, pre-registrations, claims | self-approve; touch main; report a number without a frame + committed log |
+| Worker | sub-agent in worktree `.claude/worktrees/grasp-iter2` (branch `grasp-iter2`, conda `robots`) | spec + iteration_findings [[iteration_findings#^26::§26]]–[[iteration_findings#^29::29]] + [[13-adaptive-underactuated-grasping::concepts/13]] | code, runs, logs, frames, pre-registrations, claims | self-approve; touch main; report a number without a frame + committed log |
 | Verifier | fresh-context sub-agent, grounded | worker's claims + repo | executed perturbation tables, ablation results, CONFIRMED/NOT-CONFIRMED per claim | trust the worker's runs; re-run identical configs |
 | Reviewer | fresh-context sub-agent, perceptual | frames + claims + logs only | APPROVED / REVISE with per-detector, per-frame citations | re-run experiments to rationalize; approve without frame coverage |
 | Critic | fresh-context sub-agent, adversarial | final claims + spec | untested-axes list, falsifiability challenges, cheapest-break proposals | run experiments; soften findings |
@@ -75,25 +80,25 @@ own claims loses the ability to doubt them). If any role runs as a separate Clau
 Code session rather than a sub-agent, coordination uses native session messaging;
 the lead's job is unchanged.
 
-## 2. Milestones (Goal 2 per iteration-2 spec §2.5–2.7)
+## 2. Milestones (Goal 2 per iteration-2 spec §2.5–2.7) ^2
 
 - **M-A (setup + pre-registration):** confirm regression gates green on the
   worktree (`arm_catch_solo --grid` 12/12; `elbow_catch_solo --headless`
   caught=True held=True); write the pre-registration for adaptive re-centering
   (predictions + falsifiers + literature anchor). Gate: lead sanity-check only.
-- **M-B (adaptive re-centering, §2.5):** a close that senses/adjusts for an
+- **M-B (adaptive re-centering, [[#^2|§2]].5):** a close that senses/adjusts for an
   off-center ball (or exploits the PRB hand's passive re-centering actively),
   measured on the quality metrics (escape-margin, centeredness, #contacts,
   symmetry) vs the rigid close, per offset × direction, convergence-checked,
   frames beside every number. Gate: verifier → reviewer.
-- **M-C (dynamic layered test, §2.6):** SEPARATE from the static study — ball
+- **M-C (dynamic layered test, [[#^2|§2]].6):** SEPARATE from the static study — ball
   velocity × approach angle × catch pose vs trajectory, quality at capture;
   gravity-on / momentum-seated regime (the faithful hand's fair regime). Static
   and dynamic claims never conflated (D7). Gate: verifier → reviewer.
-- **M-D (close-out, §2.7):** explicit not-tested list; findings doc; validity-
-  ledger updates. Gate: critic → reviewer final APPROVED → distillation pass (§6).
+- **M-D (close-out, [[#^2|§2]].7):** explicit not-tested list; findings doc; validity-
+  ledger updates. Gate: critic → reviewer final APPROVED → distillation pass ([[#^6|§6]]).
 
-## 3. The always-loaded principle set (the ONLY prompt-text layer; everything else is code or on-demand)
+## 3. The always-loaded principle set (the ONLY prompt-text layer; everything else is code or on-demand) ^3
 
 1. Determinism ≠ convergence — no contact verdict counts without perturbation
    invariance (dt × contact model × seed).
@@ -110,7 +115,7 @@ the lead's job is unchanged.
 adds *executable* checks, and distillation folds them back into this list only if
 they generalize.)
 
-## 4. Escalation to the human (thin, and every escalation is logged as data)
+## 4. Escalation to the human (thin, and every escalation is logged as data) ^4
 
 Hard-stop and escalate when: a gate fails twice on the same claim; the verifier
 and worker disagree on a converged result; a pre-registered expectation is
@@ -121,17 +126,17 @@ Each human message received is logged with what faculty it supplied — that log
 the experiment's primary metric (human-nudges-to-truth, target: fewer than
 iteration 2's count for equivalent scope).
 
-## 5. Observability
+## 5. Observability ^5
 
 Worker commits after every milestone (additive, worktree branch only). The lead
-keeps a run log (`docs/agents/goal2-run-log.md`) recording: milestone starts/ends,
+keeps a run log ([[goal2-run-log|docs/agents/goal2-run-log.md]]) recording: milestone starts/ends,
 gate verdicts, escalations, human messages + faculty, pre-registration outcomes
 (predicted vs observed). This is the raw material for the loop's own analysis.
 
-## 6. Distillation pass (at M-D close)
+## 6. Distillation pass (at M-D close) ^6
 
 A consolidation step reads the run log + any new ratcheted checks and:
-- merges redundant specific checks; promotes a check to the §3 principle list ONLY
+- merges redundant specific checks; promotes a check to the [[#^3|§3]] principle list ONLY
   if it fired in ≥2 distinct contexts or is clearly domain-general;
 - annotates every principle/check with `derived_from:` episode links (findings §,
   run-log entries) so merit is debuggable later;

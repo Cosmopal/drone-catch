@@ -1,8 +1,13 @@
+---
+tags:
+  - research-digest
+---
+
 # Research digest: Token-efficient agent memory beyond vanilla RAG
 
 > Raw output of research subagent `adc8af3df5879cfe9` (session d155edbe, 2026-07-04),
 > spawned for the loop-engineering meta-analysis. Unedited final message;
-> synthesis and corrections live in `../loop-engineering-analysis.md`.
+> synthesis and corrections live in ../[[loop-engineering-analysis|loop-engineering-analysis.md]].
 > Full transcript: `transcripts/04-agent-memory-architectures.jsonl`.
 
 I have strong primary-source coverage across all eight topics. Compiling the digest now.
@@ -15,7 +20,7 @@ A structured digest for designing a knowledge-accrual system for a long-running 
 
 ---
 
-## 1. Vanilla RAG — and why it breaks for agentic/procedural/causal knowledge
+## 1. Vanilla RAG — and why it breaks for agentic/procedural/causal knowledge ^1
 
 **Mechanism.** Embed a corpus into chunks → store vectors → at query time embed the query, retrieve top-k by cosine similarity, stuff the chunks into context. One-shot, stateless, document-centric.
 
@@ -32,7 +37,7 @@ Sources: [When Retrieval Succeeds and Fails (arXiv 2510.09106)](https://arxiv.or
 
 ---
 
-## 2. Agentic / just-in-time retrieval (retrieval-as-a-tool)
+## 2. Agentic / just-in-time retrieval (retrieval-as-a-tool) ^2
 
 **Source.** Anthropic Engineering, **"Effective context engineering for AI agents"** (Sep 29, 2025, alongside Claude Sonnet 4.5).
 
@@ -47,7 +52,7 @@ Source: [anthropic.com/engineering/effective-context-engineering-for-ai-agents](
 
 ---
 
-## 2b. Claude memory tool + context management (the productized version)
+## 2b. Claude memory tool + context management (the productized version) ^2b
 
 **Source.** Anthropic, **"Managing context on the Claude Developer Platform"** + **Memory tool docs** (`context-management-2025-06-27` beta; memory tool now GA on Messages API), 2025.
 
@@ -61,7 +66,7 @@ Sources: [anthropic.com/news/context-management](https://anthropic.com/news/cont
 
 ---
 
-## 3. Hierarchical / OS-style paging memory — MemGPT / Letta
+## 3. Hierarchical / OS-style paging memory — MemGPT / Letta ^3
 
 **Source.** Packer, Wooders, Lin, Fang, Patil, Gonzalez et al., **"MemGPT: Towards LLMs as Operating Systems"** (arXiv 2310.08560, Oct 2023). Productized as **Letta**.
 
@@ -75,7 +80,7 @@ Source: [arXiv:2310.08560](https://arxiv.org/abs/2310.08560) · [letta.com](http
 
 ---
 
-## 4. Dedicated memory layers (extract → consolidate → update → retrieve)
+## 4. Dedicated memory layers (extract → consolidate → update → retrieve) ^4
 
 ### Mem0
 **Source.** **"Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory"** (arXiv 2504.19413, Apr 2025).
@@ -100,13 +105,13 @@ Source: [arXiv:2501.13956](https://arxiv.org/html/2501.13956v1) · [Graphiti / N
 
 ---
 
-## 5. Knowledge-graph retrieval — Microsoft GraphRAG
+## 5. Knowledge-graph retrieval — Microsoft GraphRAG ^5
 
 **Source.** Edge, Trinh, Cheng, Bradley, Chao, Mody, Truitt, Metropolitansky, Ness, Larson (Microsoft), **"From Local to Global: A Graph RAG Approach to Query-Focused Summarization"** (arXiv 2404.16130, Apr 2024).
 
 **Mechanism.** Two-stage index: (1) LLM extracts an **entity knowledge graph** from source docs; (2) detect entity **communities** and **pre-generate community summaries**. At query time, two modes: **Local query** (precise fact lookup over a subgraph) and **Global query** (map-reduce over community summaries → partial answers → final synthesis). Hierarchy is explicit (entities → communities → corpus).
 
-**Strengths.** Wins exactly where vanilla RAG fails — **global sensemaking** over a whole corpus, **multi-hop** traversal, and **contradiction surfacing** (conflicting edges become visible). Strong on million-token corpora. **Weaknesses.** Expensive index build (LLM over the whole corpus); index must be rebuilt/maintained as knowledge grows. Lightweight alternative: **wikilink-style graphs** (manual `[[links]]` between notes) get much of the relational benefit at near-zero infra cost — a natural fit for a docs/ corpus.
+**Strengths.** Wins exactly where vanilla RAG fails — **global sensemaking** over a whole corpus, **multi-hop** traversal, and **contradiction surfacing** (conflicting edges become visible). Strong on million-token corpora. **Weaknesses.** Expensive index build (LLM over the whole corpus); index must be rebuilt/maintained as knowledge grows. Lightweight alternative: **wikilink-style graphs** (manual [[links]] between notes) get much of the relational benefit at near-zero infra cost — a natural fit for a docs/ corpus.
 
 **Token efficiency:** Pre-computed community summaries mean a global question costs a few summary reads instead of scanning the corpus — front-load tokens at index time to save them at query time.
 
@@ -114,13 +119,13 @@ Source: [arXiv:2404.16130](https://arxiv.org/abs/2404.16130) · [graphrag.com](h
 
 ---
 
-## 6. Reflection / consolidation at WRITE time — Generative Agents
+## 6. Reflection / consolidation at WRITE time — Generative Agents ^6
 
 **Source.** Park, O'Brien, Cai, Morris, Liang, Bernstein (Stanford/Google), **"Generative Agents: Interactive Simulacra of Human Behavior"** (arXiv 2304.03442, Apr 2023).
 
 **Mechanism.** A **memory stream** of natural-language observations, each with a timestamp, last-accessed time, and an LLM-assigned **importance score (1–10)**. Retrieval = weighted sum of **recency** (exponential decay), **importance**, and **relevance** (embedding similarity). Critically, **reflection**: periodically (triggered when summed importance of recent events crosses a threshold) the agent **synthesizes raw episodes into higher-level insights**, which are written back as new, higher-importance memories the agent can later retrieve.
 
-**Strengths.** The canonical "**consolidate raw episodes into reusable insights at write time**" pattern — directly relevant to turning experiment logs into transferable lessons (your `iteration_findings.md` → `docs/concepts/` flow is essentially this). Importance+recency scoring beats pure similarity for "what matters now." **Weaknesses.** Reflection costs LLM calls; importance scores are noisy; the raw stream still grows unboundedly underneath.
+**Strengths.** The canonical "**consolidate raw episodes into reusable insights at write time**" pattern — directly relevant to turning experiment logs into transferable lessons (your [[iteration_findings|iteration_findings.md]] → `docs/concepts/` flow is essentially this). Importance+recency scoring beats pure similarity for "what matters now." **Weaknesses.** Reflection costs LLM calls; importance scores are noisy; the raw stream still grows unboundedly underneath.
 
 **Token efficiency:** Reflection compresses many episodes into one high-value insight, so future retrieval pulls the *lesson* (cheap) instead of replaying the *episodes* (expensive).
 
@@ -128,7 +133,7 @@ Source: [arXiv:2304.03442](https://ar5iv.labs.arxiv.org/html/2304.03442)
 
 ---
 
-## 7. Procedural memory / "skills" — store compiled procedures, don't re-reason
+## 7. Procedural memory / "skills" — store compiled procedures, don't re-reason ^7
 
 ### Voyager (skill library)
 **Source.** Wang, Xie, Jiang, Mandlekar, Xiao, Zhu, Fan, Anandkumar (NVIDIA/Caltech), **"Voyager: An Open-Ended Embodied Agent with LLMs"** (arXiv 2305.16291, NeurIPS 2023).
@@ -140,13 +145,13 @@ Source: [arXiv:2305.16291](https://arxiv.org/abs/2305.16291)
 ### Anthropic Agent Skills
 **Source.** Anthropic Engineering, **"Equipping agents for the real world with Agent Skills"** (Dec 18, 2025; published as an open standard).
 **Mechanism.** A **skill = a folder** with a `SKILL.md` (instructions) plus scripts/resources, **discovered and loaded dynamically** only when relevant (progressive disclosure: the agent reads the skill name/description first, loads the body on demand). Captures **procedural knowledge** as portable, composable files. Adopted across VS Code, GitHub, Cursor, Goose, Amp.
-**Strengths.** Hardware-honest version of Voyager for *real* agents; composable, shareable, filesystem-native (fits the just-in-time model in §2). **Weaknesses.** Discipline needed to keep skills atomic and discoverable.
+**Strengths.** Hardware-honest version of Voyager for *real* agents; composable, shareable, filesystem-native (fits the just-in-time model in [[#^2|§2]]). **Weaknesses.** Discipline needed to keep skills atomic and discoverable.
 **Token efficiency:** Only the *triggered* skill's body enters context — the rest cost only their one-line descriptions.
 Source: [anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
 
 ---
 
-## 8. Cognitive-architecture framing — CoALA
+## 8. Cognitive-architecture framing — CoALA ^8
 
 **Source.** Sumers, Yao, Narasimhan, Griffiths (Princeton), **"Cognitive Architectures for Language Agents"** (arXiv 2309.02427, Sep 2023).
 
@@ -177,7 +182,7 @@ Vanilla RAG is a single point in a much larger design space. CoALA's lesson is t
 Three cross-cutting principles that beat naive RAG on tokens:
 1. **Do work at write time, not read time.** Mem0's consolidation, Generative Agents' reflection, GraphRAG's community summaries, Voyager's skill verification all front-load LLM effort so retrieval is cheap and high-signal. Plain RAG does zero write-time work and pays for it on every query.
 2. **Retrieve structure, not chunks.** Links (A-MEM), graph neighborhoods (GraphRAG/Zep), whole files (just-in-time) and time-scoped facts (Zep) preserve the relationships chunking destroys — fewer, more relevant tokens.
-3. **Just-in-time + curated index is the strongest default for a coding/robotics agent.** You already have a filesystem, a `CLAUDE.md` index, and `docs/concepts/`. The Anthropic context-engineering pattern (lightweight identifiers → load on demand) plus Skills for procedures plus reflection-style consolidation of `iteration_findings.md` into linked concept notes gives most of the benefit of the heavyweight memory layers with near-zero new infrastructure — and reportedly ~84% token savings in extended workflows. Reach for a temporal KG (Zep) or consolidation layer (Mem0) only once contradiction/staleness across many sessions becomes the actual bottleneck.
+3. **Just-in-time + curated index is the strongest default for a coding/robotics agent.** You already have a filesystem, a `CLAUDE.md` index, and `docs/concepts/`. The Anthropic context-engineering pattern (lightweight identifiers → load on demand) plus Skills for procedures plus reflection-style consolidation of [[iteration_findings|iteration_findings.md]] into linked concept notes gives most of the benefit of the heavyweight memory layers with near-zero new infrastructure — and reportedly ~84% token savings in extended workflows. Reach for a temporal KG (Zep) or consolidation layer (Mem0) only once contradiction/staleness across many sessions becomes the actual bottleneck.
 
 **Concrete recommendation for your agent:** layer three stores — (a) **semantic/procedural = files + Skills**, navigated just-in-time over a curated index (cheapest, structure-preserving); (b) **episodic = an append log** (experiment runs) that a **reflection pass periodically distills** into linked concept notes (Generative-Agents pattern, your existing `docs/concepts/` discipline made automatic); (c) add a **lightweight wikilink graph or A-MEM-style linking** between concept notes for the multi-hop/causal queries ("which controller layer fixes which failure mode"). Defer Mem0/Zep/MemGPT until cross-session contradiction or window pressure forces it.
 
@@ -197,4 +202,4 @@ Three cross-cutting principles that beat naive RAG on tokens:
 
 ---
 
-I did not write any file — this digest is returned inline as requested. 16 primary/strong sources cited, organized to the eight requested sections plus a decision-table synthesis. The most actionable finding for your project: the just-in-time-files + Skills + reflection-into-linked-concept-notes stack maps cleanly onto infrastructure you already have (`CLAUDE.md`, `docs/concepts/`, `iteration_findings.md`), and defers the heavyweight memory-layer services until cross-session contradiction or window pressure actually demands them.
+I did not write any file — this digest is returned inline as requested. 16 primary/strong sources cited, organized to the eight requested sections plus a decision-table synthesis. The most actionable finding for your project: the just-in-time-files + Skills + reflection-into-linked-concept-notes stack maps cleanly onto infrastructure you already have (`CLAUDE.md`, `docs/concepts/`, [[iteration_findings|iteration_findings.md]]), and defers the heavyweight memory-layer services until cross-session contradiction or window pressure actually demands them.

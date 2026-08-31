@@ -1,3 +1,8 @@
+---
+tags:
+  - historical
+---
+
 # Planning a drone-to-drone throw
 
 How to pick a release state for the thrower drone, and how to plan a windup
@@ -11,7 +16,7 @@ The throw choreography lives in `src/main.py`. The planner that picks
 
 ---
 
-## 1. Problem framing
+## 1. Problem framing ^1
 
 Two drones hover in an indoor room. One holds a small dense ball, throws it,
 the other catches. Inputs to the planning problem:
@@ -52,7 +57,7 @@ simplified take.
 
 ---
 
-## 2. The ballistic part (the easy half)
+## 2. The ballistic part (the easy half) ^2
 
 Assume a **symmetric throw**: `release_z = catcher_z = HOVER_Z`. The ball
 returns to its release height with the same speed magnitude — by energy
@@ -101,7 +106,7 @@ catching.
 
 ---
 
-## 3. The drone trajectory part (the harder half)
+## 3. The drone trajectory part (the harder half) ^3
 
 The cascade controller is Lee-style geometric attitude on SO(3) (see
 `src/controller.py`):
@@ -142,7 +147,7 @@ hence the `T/m ≈ 14–15 m/s²` numbers in the table (vs. `T_max/m ≈ 21.8`).
 
 ---
 
-## 4. The matched-t single ramp (the connective insight)
+## 4. The matched-t single ramp (the connective insight) ^4
 
 We want the drone, starting from rest at `backup_pos`, to arrive at
 `release_pos` with velocity `release_vel`. The simplest feasible plan is a
@@ -185,7 +190,7 @@ the controller has to produce, then convert to thrust/tilt via section 3.
 
 ---
 
-## 5. Free variables for the planner
+## 5. Free variables for the planner ^5
 
 A specific throw is fully determined by surprisingly few choices. Pick:
 
@@ -211,7 +216,7 @@ throw line and `release_z = HOVER_Z`).
 
 ---
 
-## 6. Hard constraints
+## 6. Hard constraints ^6
 
 A candidate must satisfy all of these or it's discarded:
 
@@ -237,7 +242,7 @@ rejection.
 
 ---
 
-## 7. Soft objectives (the multi-objective part)
+## 7. Soft objectives (the multi-objective part) ^7
 
 Among feasible candidates we want to *prefer* certain ones. Four
 objectives, none dominant:
@@ -256,7 +261,7 @@ single best throw; there's a Pareto frontier.
 
 ---
 
-## 8. Optimisation approach
+## 8. Optimisation approach ^8
 
 For an interactive sandbox, **grid search + Pareto filter** is the right
 hammer:
@@ -293,7 +298,7 @@ We'll start with random and scalarise once we have data.
 
 ---
 
-## 9. Pareto frontier — concept and algorithm
+## 9. Pareto frontier — concept and algorithm ^9
 
 **Definition.** Candidate A *dominates* B iff A is no worse than B on
 every objective and strictly better on at least one. A candidate is
@@ -316,7 +321,7 @@ For thousands, sort by one objective and sweep. We're not there yet.
 
 ---
 
-## 10. Multi-phase considerations (deferred)
+## 10. Multi-phase considerations (deferred) ^10
 
 The throw is phase 2 of a three-phase choreography:
 
@@ -338,7 +343,7 @@ before the wall").
 
 ---
 
-## 11. Open questions / future work
+## 11. Open questions / future work ^11
 
 - **Asymmetric throws** (`release_z ≠ catcher_z`). Frees one more
   parameter; useful when thrower and catcher hover at different heights,

@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Grasping, caging, and actuator-induced disturbance
 
 ## What it is
@@ -26,7 +31,7 @@ whole aircraft.
 `assets/make_gripper_urdf.py` (gripper geometry), the `Drone` finger API in
 `src/drone.py` (`open_gripper` / `close_gripper` / `fingers_touching` /
 `set_finger_dynamics`), and `tests/finger_catch_solo.py` (the catch probe).
-See `docs/iteration_findings.md` §13 for the full build narrative.
+See [[iteration_findings|docs/iteration_findings.md]] [[iteration_findings#^13|§13]] for the full build narrative.
 
 ## What we learned here
 
@@ -50,7 +55,7 @@ See `docs/iteration_findings.md` §13 for the full build narrative.
   +1.0 / −0.47 / −0.53 → **net +0.24 N·m of body yaw**; the same arm pointing
   straight down gives −0.03 N·m (≈10× less). That steady yaw torque, on the
   weakly-gained yaw channel with no integral, drives the body toward the Lee
-  SO(3) singularity (§1) and crashes it. It is *not* the closing motion —
+  SO(3) singularity ([[iteration_findings#^1|§1]]) and crashes it. It is *not* the closing motion —
   freezing the fingers kinematically (zero motor torque) is rock-stable;
   motorizing them produces the yaw. Fixes: gentle position control + a yaw
   integral. (PyBullet trap: its explicit joint-motor PD goes numerically
@@ -59,7 +64,7 @@ See `docs/iteration_findings.md` §13 for the full build narrative.
 - **Persistent disturbances need integrators, not just stiffer P.** The
   gripper's mass offset (→ position sag) and residual yaw torque (→ steady
   yaw) are constant biases; a PD leaves a standing error against them
-  (offset = F/(m·kp), §1). Integral action is what drives a *constant*
+  (offset = F/(m·kp), [[iteration_findings#^1|§1]]). Integral action is what drives a *constant*
   disturbance to zero. We added position and yaw integrals (default-off) for
   exactly this.
 

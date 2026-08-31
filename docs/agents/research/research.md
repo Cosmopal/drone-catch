@@ -1,3 +1,8 @@
+---
+tags:
+  - research-digest
+---
+
 # Raw research record — loop-engineering meta-analysis (2026-07-04)
 
 Primary record behind ../[[loop-engineering-analysis|loop-engineering-analysis.md]]. Eight research subagents
@@ -27,7 +32,7 @@ the doc's Part VII — the full-mission generalization questions:
 
 | # | Digest | What it covers | Feeds |
 |---|---|---|---|
-| 09 | rollforward-aug2026 | May–Aug 2026 literature roll-forward: METR corrections, Dreaming/Outcomes, GEPA, auto-scaffold-design counter-evidence, supersession measured, Cognition's softened multi-agent stance | Part VII.1, edits to Part V + §5 |
+| 09 | rollforward-aug2026 | May–Aug 2026 literature roll-forward: METR corrections, Dreaming/Outcomes, GEPA, auto-scaffold-design counter-evidence, supersession measured, Cognition's softened multi-agent stance | Part VII.1, edits to Part V + [[iteration_findings#^5::§5]] |
 | 10 | generic-vs-specialized-loops | ratchet overfitting; scaffold transfer (ADAS/GEPA/ExpeL/Voyager/METR); TMS/reflection-tree distillation with provenance; checks in code vs context; layered check hierarchies | Part VII.2–VII.3 |
 | 11 | vision-reference-priors | expectation-based monitoring; pre-registration for agents; literature-derived priors; anchoring-bias evidence; VLM reference-clip limits | Part VII.4 |
 

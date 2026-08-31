@@ -1,12 +1,17 @@
+---
+tags:
+  - historical
+---
+
 # 2-link Arm v1 — current state and open issues
 
 **Status as of commit `5fb28cd` (WIP).** This doc captures where the arm work
 stands, what's built and verified, what's broken, and what to investigate
 next session. Companion to:
 
-- [`throw_planning.md`](throw_planning.md) — planner math (still applies; the
+- [[throw_planning|throw_planning.md]] — planner math (still applies; the
   arm changes how `release_vel` is delivered, not what it should be)
-- [`iteration_findings.md`](iteration_findings.md) — engineering log of the
+- [[iteration_findings|iteration_findings.md]] — engineering log of the
   pre-arm tuning loop
 - The plan file at `~/.claude/plans/next-up-is-the-quiet-dusk.md` — the
   design we set out to build

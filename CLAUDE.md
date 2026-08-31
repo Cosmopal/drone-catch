@@ -212,3 +212,25 @@ No formal test suite. Verification path:
 - **Known-failing as of 2026-06**: `arm_hover_spin` and `arm_cruise_spin` FAIL (sweep-window drift ~14 cm + post-sweep ringing). Predates the compliant-capture work (verified by A/B-neutralizing the new torque-cap path — identical failure); likely broken by M3/M4-era tuning or the arena resize. Needs a bisect-style look at thresholds vs. behavior.
 - Full demo: `python src/main.py --headless --duration 22 --runs-dir runs/m4` then check for `caught ball` and `picked up cube` log lines.
 - Multi-cam video at `runs/m4/run_*.mp4` — eyeball the four views.
+
+## Obsidian notes sync
+
+`docs/**/*.md` (excluding `docs/agents/research/transcripts/`, which is raw JSONL logs) is mirrored into the user's Obsidian vault at `Dev Sync/drone-catch/` (Windows path `C:\Users\Palash\iCloudDrive\Documents\Dev Sync\drone-catch`; git-bash path `/c/Users/Palash/iCloudDrive/Documents/Dev Sync/drone-catch`). One-way, repo → vault; the vault copy is not edited back.
+
+- `tools/sync_docs_to_obsidian.sh` does the copy (and deletes vault notes whose repo source no longer exists).
+- A `post-commit` hook (source of truth: `tools/hooks/post-commit`, installed into `.git/hooks/post-commit` — hooks aren't version-controlled, so reinstall after a fresh clone) runs it automatically after any commit that touches `docs/`.
+- If the user asks (at any point in a session) to "sync notes"/"sync docs to Obsidian", just run `tools/sync_docs_to_obsidian.sh` directly — no need to wait for a commit.
+
+### Tags + graph color groups
+
+Every `docs/**/*.md` file (except transcripts) carries a single-tag YAML frontmatter block, one of: `concept` (`docs/concepts/*.md`), `findings` (`iteration_findings.md`), `research-digest` (`docs/agents/research/*.md`), `agent-loop` (other `docs/agents/*.md`), `design-study` (`thrust_vectoring_*.md`), `historical` (`throw_planning.md`, `arm_v1_status.md`). Tag a new doc with whichever of these it fits when creating it — pick the closest existing category rather than inventing a new one unless a whole new doc class shows up. The vault's Graph View color groups (`.obsidian/graph.json` in the vault, `colorGroups`, one `tag:#X` query per category) render these as distinct colors; if a 7th category is ever needed, add a matching color group there too.
+
+### Cross-reference links (Obsidian `[[wikilinks]]`)
+
+`docs/**/*.md` cross-references use real Obsidian syntax: `[[note-name]]` for whole-file links, `[[note-name#^N|§N]]` for a link into numbered section N of a doc (every `## N. Title` heading carries a stable `^N` block-id suffix, so links survive title rewording — don't strip these block-ids when editing a heading). `§NN` (zero-padded, 01–13) means a `docs/concepts/NN-*.md` file; `§N` (not zero-padded) means a numbered section — usually in `iteration_findings.md`, but self-referencing within a doc that has its own `## N.` headings (e.g. `grasp-experiment-reflection.md`, `loop-engineering-analysis.md`) takes priority — check which doc actually owns that heading number before adding a new `§N` reference.
+
+**Inside a Markdown table row**, use `[[target::alias]]` (double-colon, not pipe) instead — a literal `|` inside a table cell breaks the table in every renderer except Obsidian's. `tools/sync_docs_to_obsidian.sh` rewrites `::` → `|` only in the vault copy, so the repo's own `.md` files (read on GitHub, in editors, by Claude) keep working tables, and the vault gets fully clickable links. Never write a literal `|`-separated wikilink inside a table cell in the repo copy.
+
+**Prefer writing these links yourself, inline, when authoring a new doc** — you know which document a bare `§N` actually refers to; a retrofitting tool has to guess from context and can get it wrong (it did, once — see `tools/link_and_tag_docs.py`'s docstring). Tag the doc and link it correctly as you write it, per the conventions above.
+
+`tools/link_and_tag_docs.py` exists as a safety net, not the primary mechanism: it retrofits tags/block-ids/links onto docs that landed without them (e.g. from a session or sub-agent that didn't pick up this CLAUDE.md, or from before this convention existed). It's idempotent — safe to re-run over the whole `docs/` tree any time, including repeatedly as an in-progress doc (like a running log) grows, since it never re-touches already-linked text or already-tagged files. Run it (`python tools/link_and_tag_docs.py`) whenever new/orphaned docs are noticed in the graph, then re-run `tools/sync_docs_to_obsidian.sh`. Its docstring documents the one known failure mode: resolving a bare `§N` to "which doc owns heading N" is a heuristic (last file named on that line → current doc's own numbering → `iteration_findings.md`), so a line that references another doc's section by number without naming that doc *on the same line* can still resolve wrong — spot-check its diff on new docs that have their own numbered `## N.` headings.

@@ -1,8 +1,13 @@
+---
+tags:
+  - research-digest
+---
+
 # Research digest: Adversarial spot-verification of 18 load-bearing citations from digests 01-04
 
 > Raw output of research subagent `a67c13b1afdd7b3d6` (session d155edbe, 2026-07-04),
 > spawned for the loop-engineering meta-analysis. Unedited final message;
-> synthesis and corrections live in `../loop-engineering-analysis.md`.
+> synthesis and corrections live in ../[[loop-engineering-analysis|loop-engineering-analysis.md]].
 > Full transcript: `transcripts/06-citation-verification.jsonl`.
 
 Verification complete — all 18 claims checked against primary sources. Overall: the subagents were largely accurate. One wrong arXiv ID, one mis-attributed statistic, and two baseline/framing slippages. The suspicious late-2025 arXiv IDs (2509.25370, 2502.12110, 2504.19413) are all real.

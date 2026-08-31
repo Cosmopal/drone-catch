@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Syncs docs/ notes to the Obsidian vault after a commit that touches docs/.
+# This file is the source of truth; install with:
+#   cp tools/hooks/post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit
+# (.git/hooks/ is not version-controlled by git, so it must be installed manually per clone.)
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if git diff --name-only HEAD~1 HEAD -- docs/ 2>/dev/null | grep -q .; then
+  "$REPO_ROOT/tools/sync_docs_to_obsidian.sh"
+fi

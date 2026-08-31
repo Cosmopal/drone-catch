@@ -1,8 +1,13 @@
+---
+tags:
+  - research-digest
+---
+
 # Research digest: Self-driving laboratories: A-Lab failure precedent + SDL best practices
 
 > Raw output of research subagent `a23305db476c4f32d` (session d155edbe, 2026-07-04),
 > spawned for the loop-engineering meta-analysis. Unedited final message;
-> synthesis and corrections live in `../loop-engineering-analysis.md`.
+> synthesis and corrections live in ../[[loop-engineering-analysis|loop-engineering-analysis.md]].
 > Full transcript: `transcripts/07-self-driving-labs.jsonl`.
 
 All five research angles completed before the stop, so coverage is actually complete. Here is the compiled digest.
@@ -15,7 +20,7 @@ All five research angles completed before the stop, so coverage is actually comp
 
 ---
 
-## 1. Flagship systems
+## 1. Flagship systems ^1
 
 **Coscientist — Boiko, MacKnight, Kline, Gomes (Carnegie Mellon), *Nature* 624, 570–578, Dec 2023.**
 GPT-4 agent wired to internet search, docs retrieval, Python execution, and robotic liquid-handler APIs; demonstrated across six tasks including real-hardware reaction optimization of Pd-catalyzed cross-couplings (Suzuki, Sonogashira). Validation lever was controlled ablations (GPT-4 vs GPT-3.5, with/without prior documentation). [pubmed.ncbi.nlm.nih.gov/38123806](https://pubmed.ncbi.nlm.nih.gov/38123806/)
@@ -23,7 +28,7 @@ GPT-4 agent wired to internet search, docs retrieval, Python execution, and robo
 
 **Berkeley A-Lab — Szymanski, Ceder et al. (UC Berkeley / LBNL), *Nature* 624, 86–91, Nov 2023.**
 Fully robotic solid-state synthesis; targets from ab-initio stability data (Materials Project + GNoME), automated XRD + ML Rietveld readout, active learning proposes recipe fixes on failure. Claimed **41 novel compounds from 58 targets in 17 days**. [nature.com/articles/s41586-023-06734-w](https://www.nature.com/articles/s41586-023-06734-w)
-*Takeaway:* the canonical instrument-lies case — the sensor was fine; the automated *interpreter* produced confident wrong phase IDs and a scalar success metric laundered the error into a headline (see §2).
+*Takeaway:* the canonical instrument-lies case — the sensor was fine; the automated *interpreter* produced confident wrong phase IDs and a scalar success metric laundered the error into a headline (see [[#^2|§2]]).
 
 **Emerald Cloud Lab — Frezza & Kleinbaum; cloud service launched 2014.**
 Remote-execution "lab-as-a-service": 200+ instrument models, every run auto-captured with full metadata to **ALCOA+** data-integrity standards (ECL Constellation). CMU built the first university cloud lab on it (2021); peer platform Strateos (ex-Transcriptic). [emeraldcloudlab.com/how-it-works](https://www.emeraldcloudlab.com/how-it-works/)
@@ -35,7 +40,7 @@ Adam ran the full loop autonomously — hypothesis → designed experiment → r
 
 ---
 
-## 2. THE CRITIQUES (the core of this digest)
+## 2. THE CRITIQUES (the core of this digest) ^2
 
 **Robert Palgrave (UCL) — initial public critique, Nov/Dec 2023; *Nature* news d41586-023-03956-w.**
 Reanalyzing the paper's own XRD data, argued the automated Rietveld refinements were "very bad, very beginner, completely novice human level" — poor fits, mis-assigned phases, several "novel" products actually mixtures or already-known compounds. [chemistryworld.com/.../4018791.article](https://www.chemistryworld.com/news/new-analysis-raises-doubts-over-autonomous-labs-materials-discoveries/4018791.article)
@@ -65,7 +70,7 @@ Authors **manually re-did the Rietveld refinements**. Revised: **36 of 57 target
 
 ---
 
-## 3. Lessons / best practices the SDL community has converged on
+## 3. Lessons / best practices the SDL community has converged on ^3
 
 **Seifrid et al. (Aspuru-Guzik group, U. Toronto) — "Autonomous Chemical Experiments: Challenges and Perspectives," *Acc. Chem. Res.*, Aug 2022.**
 Notes automated ID of unknown compounds is hard and unexpected side products are common; they use forward-reaction prediction *plus* explicit search for expected products, and stage measurements rather than trusting one automated readout. [pmc.ncbi.nlm.nih.gov/articles/PMC9454899](https://pmc.ncbi.nlm.nih.gov/articles/PMC9454899/)
@@ -89,7 +94,7 @@ SDL workflows typically run open-loop assuming flawless execution; manipulation 
 
 ---
 
-## 4. Design principles for closed-loop autonomous experimentation
+## 4. Design principles for closed-loop autonomous experimentation ^4
 
 **ARES — Nikolaev, Hooper, Rao et al. (AFRL/Lockheed), *npj Computational Materials*, Oct 2016.** First closed-loop materials SDL (CVD nanotube growth, in-situ Raman objective, RF surrogate + GA). Intrinsic measurement variability 20–30%; convergence declared when scatter reached that noise floor; on-target rate 8%→68%; humans kept the objective. [nature.com/articles/npjcompumats201631](https://www.nature.com/articles/npjcompumats201631)
 *Takeaway:* characterize instrument noise floor first — "converged" is only meaningful as scatter ≈ noise floor; keep the objective under human control.
@@ -117,7 +122,7 @@ SDL workflows typically run open-loop assuming flawless execution; manipulation 
 
 ---
 
-## 5. "The instrument can lie" / systematic-error handling
+## 5. "The instrument can lie" / systematic-error handling ^5
 
 **Cheetham & Seshadri — "Artificial Intelligence Driving Materials Discovery?," *Chemistry of Materials* 36, 3490–3495 (Apr 2024).** Reviewing DeepMind's GNoME (2.2M predicted crystals, ~400k "stable"): "scant evidence for compounds that fulfill the trifecta of novelty, credibility, and utility"; outputs are "chemical compounds rather than materials." [pubs.acs.org/doi/10.1021/acs.chemmater.4c00643](https://pubs.acs.org/doi/10.1021/acs.chemmater.4c00643)
 *Takeaway:* a self-consistent computational pipeline can emit hundreds of thousands of "validated" results that are neither new nor real — internal metrics (formation energy, stability) are not truth; you need an outside expert-judgment gate.

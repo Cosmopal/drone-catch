@@ -1,8 +1,13 @@
+---
+tags:
+  - research-digest
+---
+
 # Research digest: World models for robotics/control + METR long-horizon agent measurement
 
 > Raw output of research subagent `aba33050494e20b90` (session d155edbe, 2026-07-04),
 > spawned for the loop-engineering meta-analysis. Unedited final message;
-> synthesis and corrections live in `../loop-engineering-analysis.md`.
+> synthesis and corrections live in ../[[loop-engineering-analysis|loop-engineering-analysis.md]].
 > Full transcript: `transcripts/08-world-models-metr-horizons.jsonl`.
 
 # Research Digest: World Models for Robotics + Long-Horizon Agents & Oversight

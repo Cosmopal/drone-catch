@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Compliance, impedance, and impulse
 
 ## What it is

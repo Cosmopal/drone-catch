@@ -1,7 +1,12 @@
+---
+tags:
+  - design-study
+---
+
 # Thrust-vectoring platform — validation results
 
-Built per `docs/thrust_vectoring_drone_buildspec.md` (concept: `concepts/12`,
-decision: `iteration_findings §22`, parking-lot #11). The over-actuated
+Built per [[thrust_vectoring_drone_buildspec|docs/thrust_vectoring_drone_buildspec.md]] (concept: [[12-overactuation-thrust-vectoring-allocation|concepts/12]],
+decision: iteration_findings [[iteration_findings#^22|§22]], parking-lot #11). The over-actuated
 `ThrustVectoringDrone` (radial tilt servo per rotor → 8 inputs vs 6 DoF) is
 validated against the underactuated `Drone` baseline. Both run the **same real
 caging gripper** (the TV variant loads the radial-tilt URDF), arm in the catch
@@ -45,8 +50,8 @@ level (0.3°) while translating; the underactuated drone pitches to 60°.** A
 60°-pitched body points the planar 2R arm's cup 60° off-axis — the catch fails
 regardless of where the body's x-coordinate is. So full actuation does not buy
 *faster* repositioning; it buys **repositioning with the gripper presentation
-intact**, which is exactly the pitch-to-translate coupling §22 set out to kill
-(the §20 station-keeping fight, the tilt-cap-vs-maneuver tension).
+intact**, which is exactly the pitch-to-translate coupling [[iteration_findings#^22|§22]] set out to kill
+(the [[iteration_findings#^20|§20]] station-keeping fight, the tilt-cap-vs-maneuver tension).
 
 ## Allocator (the one genuinely new piece)
 
@@ -82,8 +87,8 @@ under a large lateral demand and launched the body. Priority-clamping fixed it.
 
 1. **The design doc's "hinge axis along the arm" is a slip.** A hinge literally
    along the arm (radial axis) tips thrust *tangentially* (pure yaw) — the option
-   §22 rejects. The load-bearing property (radial force ⇒ zero yaw torque, U2)
-   needs a **tangential** hinge axis. Every other claim in concepts/12 ("nods
+   [[iteration_findings#^22|§22]] rejects. The load-bearing property (radial force ⇒ zero yaw torque, U2)
+   needs a **tangential** hinge axis. Every other claim in [[12-overactuation-thrust-vectoring-allocation|concepts/12]] ("nods
    toward/away from hub", "horizontal thrust along the arm", wash plane through
    center `x+y=0`) is consistent with that. The URDF hinges tangentially;
    documented in `make_tv_gripper_urdf.py`.
@@ -133,7 +138,7 @@ pitches over while the right (TV) translates flat.
 ## Scope honored
 
 No catch attempt, no perception/IK/finger logic, **no propwash model** (the wash
-claim is explicitly out of scope — PyBullet can't test it; §22). Additive only:
+claim is explicitly out of scope — PyBullet can't test it; [[iteration_findings#^22|§22]]). Additive only:
 new URDF generator + URDF, new `ThrustVectoringDrone` module, the
 `make_solo_drone(thrust_vectoring=…)` flag, and this test. The underactuated
 `Drone`/`CascadeController`, the throw, and the catch tests are untouched —

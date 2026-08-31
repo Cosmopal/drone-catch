@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Adaptive & underactuated grasping (and why a flying base changes the answer)
 
 ## What it is
@@ -48,7 +53,7 @@ Two findings, the second is the important one:
 2. **Active underactuation (constant finger torque) DESTABILIZES a floating
    base.** On the drone, the compliant close pitched the body to ~90° (it
    flipped) — the sustained finger torques react on the airframe (Newton's
-   third law, the §09/§15 actuator-disturbance problem) and a position-PD close
+   third law, the [[09-grasping-caging-and-actuator-disturbance|§09]]/[[iteration_findings#^15|§15]] actuator-disturbance problem) and a position-PD close
    that reaches its target and stops applying torque doesn't have this; a
    *constant*-torque tendon never stops. A real Yale hand lives on a fixed arm
    that absorbs this reaction; a drone has nothing to absorb it.
@@ -70,14 +75,14 @@ finger-reaction must be fed forward/countered like the arm-reaction FF.
   disturbance — it can flip a flying platform. Prefer *passive* compliance
   where you can; it has no reaction.
 - **Test the gripper on a fixed base before coupling it to the moving system**
-  (§09) — it separates "is the grasp mechanism right" from "does the platform
+  ([[09-grasping-caging-and-actuator-disturbance|§09]]) — it separates "is the grasp mechanism right" from "does the platform
   survive the grasp." (We re-learned this the hard way.)
 
 ## Update — a trustworthy harness, and the correction that mattered
 
 A deterministic fixed-base harness with a real form-closure metric (26-direction,
 2.5 g disturbance battery; `tests/cage_harness.py`) was built to test these
-claims. **Important correction (iteration_findings §26):** the first round used
+claims. **Important correction (iteration_findings [[iteration_findings#^26|§26]]):** the first round used
 RIGID contact at a 1/240 timestep, which made the OFF-CENTER verdict a
 timestep-fragile artifact (light ~3-4 g RIGID fingers vs a 65 g rigid ball at the
 capture boundary — a stiff mass-ratio contact; the 3-4 g finger mass is realistic
@@ -135,7 +140,7 @@ The original (rigid-contact) bullets are kept below for the record but are
   body it disturbs pitch < 2.5 deg.
 
 - **A FAITHFUL Yale hand (the COUPLING) was then built** (`src/yale_hand.py`,
-  iteration_findings §27): a position-based tendon with the inter-finger
+  iteration_findings [[iteration_findings#^27|§27]]): a position-based tendon with the inter-finger
   whiffletree (one actuator = mean of finger travels; an early-contacting finger
   caps and feeds the rest) + intra-finger wrap-and-tuck + compliant joints. The
   self-distribution is **verified** (off-center -> per-finger angles differ
@@ -155,7 +160,7 @@ rather than overclaiming the mechanism.
 
 Binary "caged" (survives a disturbance battery) over-credits precarious holds — a
 ball pinned by one off-center finger scores like a deep symmetric wrap. Iteration 2
-adds CONTINUOUS quality metrics (iteration_findings §28): **escape-margin** (min
+adds CONTINUOUS quality metrics (iteration_findings [[iteration_findings#^28|§28]]): **escape-margin** (min
 dislodging accel over all directions), **pull-in** (injected offset − residual
 centering error — how much the close DRAGGED the ball to center), **rattle**
 (residual motion under a sub-dislodging pulse), centering-err, #contact-fingers,
@@ -178,11 +183,11 @@ and azimuthal **contact symmetry**. Transferable lessons:
   n=6/8 and in the gap direction. The honest verb is finger-count-dependent, not
   blanket. **Overlapping bands do not earn a comparative — pair-and-perturb.**
 - **Determinism ≠ convergence, again.** Soft's escape-margin is a knife-edge
-  (CONVERGED=NO: EM 2.5/10/7.97 g across timestep+seed) — the same §26 artifact,
+  (CONVERGED=NO: EM 2.5/10/7.97 g across timestep+seed) — the same [[iteration_findings#^26|§26]] artifact,
   caught by the gate this time. Only the pull-in SIGN (and only in the narrow
   convergent corner) is a trustworthy number.
 - **The mechanism-fidelity trap (the one that bit us — see the iteration-2 redo
-  below).** The §28 "Yale convergently EJECTS the off-center ball" result was run
+  below).** The [[iteration_findings#^28|§28]] "Yale convergently EJECTS the off-center ball" result was run
   on a **contact-reading STAND-IN** (`yale_hand.py` scripts the redistribution from
   `getContactPoints`) — not a mechanism, a puppet, and it fails the faithfulness
   test (does a finger stall because the *ball* is in its way, or because software
@@ -197,9 +202,9 @@ and azimuthal **contact symmetry**. Transferable lessons:
 
 ## Update — a FAITHFUL Yale hand reverses the verdict (iteration 2, Goal-1 redo)
 
-The §28 fixed-vs-Yale result above used a stand-in; Goal 1 was reopened to redo it
+The [[iteration_findings#^28|§28]] fixed-vs-Yale result above used a stand-in; Goal 1 was reopened to redo it
 with a **faithful pseudo-rigid-body (PRB) mechanism** (`src/yale_prb.py`,
-iteration_findings **§29**): flexure joints as torsional return springs + a
+iteration_findings **[[iteration_findings#^29|§29]]**): flexure joints as torsional return springs + a
 **constant-tension, distal-weighted tendon**, one actuator, and — the test of
 faithfulness — **zero `getContactPoints` in the close law** (a finger stalls
 because the ball is physically in its way; the rest keep closing under the same
@@ -219,7 +224,7 @@ tension, so self-distribution EMERGES). What changed:
   rigid close has, now shown to bound the adaptive hand's re-centering too.
 - **A robustness win the binary missed:** the faithful hand's compliant close cages
   to ≥5 cm in *both* directions with a **timestep-STABLE** boundary — it escapes
-  the §26 artifact band (4-5 cm caged/escaped verdict that flips with the substep)
+  the [[iteration_findings#^26|§26]] artifact band (4-5 cm caged/escaped verdict that flips with the substep)
   that the rigid fixed/soft closes still sit in.
 - **Numerical honesty of the fix:** the near-massless fingers need inertia
   regularization (×50) to be integrable; that scaling is proven **scale-invariant**

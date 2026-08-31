@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Sensor latency & compensation
 
 ## What it is

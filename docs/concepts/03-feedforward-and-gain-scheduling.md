@@ -1,3 +1,8 @@
+---
+tags:
+  - concept
+---
+
 # Feedforward & gain scheduling
 
 ## What it is
