@@ -124,3 +124,75 @@ def actuate(body_id, finger_joints, pull, cfg: PRBConfig):
                    + cfg.weights[k] * pull)
             tau = float(np.clip(tau, -cap, cap))
             p.setJointMotorControl2(body_id, j, p.TORQUE_CONTROL, force=tau)
+
+
+# ---------------------------------------------------------------------------
+# M-B: adaptive re-centering candidates (spec §2.5, goal2-prereg-MB.md).
+# Both additive/opt-in; `actuate` above (the passive baseline) is unchanged.
+# ---------------------------------------------------------------------------
+
+def pulse_fraction(progress: float) -> float:
+    """Deterministic tendon-TENSION SCHEDULE (0..1 fraction of pull_max) for
+    `prb_pulse`: close -> partial release -> re-close, 2 cycles, ending fully
+    closed at progress=1.0. Function of `progress` alone -- ZERO contact
+    reading, same as the passive `actuate` ramp; only the SCHEDULE differs
+    (a ramp vs a scripted pulse train). Piecewise-linear:
+      [0.00,0.35] ramp   0.0 -> 1.0   (cycle 1 close)
+      [0.35,0.45] release 1.0 -> 0.4  (cycle 1 release)
+      [0.45,0.70] ramp   0.4 -> 1.0   (cycle 2 close)
+      [0.70,0.80] release 1.0 -> 0.4  (cycle 2 release)
+      [0.80,1.00] ramp   0.4 -> 1.0   (final close, held at 1.0 for scoring)
+    """
+    knots = [(0.00, 0.0), (0.35, 1.0), (0.45, 0.4), (0.70, 1.0),
+             (0.80, 0.4), (1.00, 1.0)]
+    progress = min(1.0, max(0.0, progress))
+    for (t0, v0), (t1, v1) in zip(knots, knots[1:]):
+        if t0 <= progress <= t1:
+            local = 0.0 if t1 == t0 else (progress - t0) / (t1 - t0)
+            return v0 + (v1 - v0) * local
+    return 1.0
+
+
+def actuate_pulse(body_id, finger_joints, progress, cfg: PRBConfig):
+    """`prb_pulse`: mechanism-honest ACTIVE use of the faithful hand -- a
+    scripted tension schedule (see `pulse_fraction`), same per-joint torque
+    law as `actuate` (spring + distal-weighted tendon, no contact reading).
+    The re-close after each release lets the constant-tension tendon
+    re-equalize from the ball's CURRENT rest position each cycle."""
+    pull = pulse_fraction(progress) * cfg.pull_max
+    actuate(body_id, finger_joints, pull, cfg)
+
+
+def actuate_active(body_id, finger_joints, ball_id, progress, cfg: PRBConfig,
+                   bias_gain: float = 0.6):
+    """`prb_active`: SENSOR-BASED close (spec-labeled sensor-based, NOT the
+    faithful passive mechanism). Reads per-finger contact booleans (stand-in
+    for commodity finger contact switches) + joint flexion (stand-in for
+    joint encoders) to estimate which finger(s) are loaded by the ball (the
+    "flexion deficit" vs the mean), then biases EXTRA tendon tension toward
+    those blocked fingers. This is the OPPOSITE of what the passive mechanism
+    does on its own (passive equalization lets a blocked finger stall at LOW
+    flex while free fingers close MORE) -- active pushes harder specifically
+    where the ball already is, an explicit re-centering push rather than an
+    emergent one."""
+    pull = min(1.0, progress / 0.7) * cfg.pull_max
+    contacts = p.getContactPoints(bodyA=body_id, bodyB=ball_id) if ball_id is not None else []
+    touched = set()
+    for c in contacts:
+        link_a = c[3]
+        for fid, segs in enumerate(finger_joints):
+            if link_a in segs:
+                touched.add(fid)
+    flex = finger_flexions(body_id, finger_joints, cfg)
+    mean_flex = sum(flex) / len(flex)
+    cap = cfg.joint_effort_cap
+    for fid, segs in enumerate(finger_joints):
+        deficit = max(0.0, mean_flex - flex[fid])   # positive = stalled/blocked
+        bias = (1.0 + bias_gain * min(1.0, deficit / 0.3)) if fid in touched else 1.0
+        for k, j in enumerate(segs):
+            th, thd = p.getJointState(body_id, j)[:2]
+            tau = (-cfg.k_spring[k] * (th - cfg.rest_pose[k])
+                   - cfg.c_damp[k] * thd
+                   + cfg.weights[k] * pull * bias)
+            tau = float(np.clip(tau, -cap, cap))
+            p.setJointMotorControl2(body_id, j, p.TORQUE_CONTROL, force=tau)

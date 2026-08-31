@@ -56,6 +56,10 @@ import make_gripper_variants as variants         # noqa: E402
 DT = 1.0 / 240.0
 G = 9.81
 PRB_INERTIA_OVERRIDE = None    # set by --prb-inertia to sweep the PRB inertia scale
+SOLVER_ITERS = 150             # set by --solver-iters (M-B requirement: the §2.3
+                                # convergence battery swept substep/contact/seed but
+                                # never solver iterations -- the axis that produced
+                                # non-monotonic scatter on the dynamic gate in M-A)
 
 # ---- fixed-base catch pose (arm straight down, fingers below the EE) ----
 BASE_POS = (0.0, 0.0, 1.0)
@@ -135,7 +139,7 @@ BALL_FRICTION = 1.4
 def setup_physics():
     """Solver + finer timestep + zero gravity — the validated numerics."""
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    p.setPhysicsEngineParameter(numSolverIterations=150, fixedTimeStep=SIM_DT)
+    p.setPhysicsEngineParameter(numSolverIterations=SOLVER_ITERS, fixedTimeStep=SIM_DT)
     p.setGravity(0, 0, 0)
 
 
@@ -215,9 +219,10 @@ class FixedGripper:
                 p.changeDynamics(self.body, j, jointDamping=0.0)
                 p.setJointMotorControl2(self.body, j, p.VELOCITY_CONTROL,
                                         force=0.0)
-        elif strategy == "prb":
-            # faithful PRB Yale: regularize the near-massless-finger inertia
-            # (stated ceiling) + free the motors so pure torque governs the joints.
+        elif strategy in ("prb", "prb_pulse", "prb_active"):
+            # faithful PRB Yale (+ M-B adaptive variants, same mechanism):
+            # regularize the near-massless-finger inertia (stated ceiling) +
+            # free the motors so pure torque governs the joints.
             yale_prb.regularize_inertia(self.body, self.finger_links,
                                         self.prb_cfg.inertia_scale)
             yale_prb.prep(self.body, self.finger_joints)
@@ -236,6 +241,19 @@ class FixedGripper:
         if strategy == "prb":
             pull = min(1.0, progress / 0.7) * self.prb_cfg.pull_max
             yale_prb.actuate(self.body, self.finger_joints, pull, self.prb_cfg)
+            return
+        if strategy == "prb_pulse":
+            # M-B: mechanism-honest ACTIVE use of the faithful hand -- a
+            # scripted tension schedule (close/release/re-close), zero
+            # contact reading (goal2-prereg-MB.md).
+            yale_prb.actuate_pulse(self.body, self.finger_joints, progress,
+                                   self.prb_cfg)
+            return
+        if strategy == "prb_active":
+            # M-B: SENSOR-BASED close -- reads contact booleans + flexion to
+            # bias tension toward blocked fingers (goal2-prereg-MB.md).
+            yale_prb.actuate_active(self.body, self.finger_joints, ball_id,
+                                    progress, self.prb_cfg)
             return
         if strategy == "yale":
             d_act = min(1.0, progress / 0.6) * self.yale_cfg.d_max
@@ -702,9 +720,12 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
     substep (timestep), (b) the contact-model stiffness/damping, and (c) the seed
     (sub-mm ball-placement jitter), and confirm the quality metric CONVERGES /
     is stable. A quality number without this table does not count (iteration-1's
-    determinism-mistaken-for-convergence artifact, §26). Prints a table."""
-    global SUBSTEP, SIM_DT, CONTACT_STIFFNESS, CONTACT_DAMPING
-    base_ss, base_k, base_c = SUBSTEP, CONTACT_STIFFNESS, CONTACT_DAMPING
+    determinism-mistaken-for-convergence artifact, §26). ALSO sweeps (d)
+    numSolverIterations -- the axis the §2.3 battery never covered before M-B
+    (the axis that produced non-monotonic scatter on the M-A dynamic gate).
+    Prints a table."""
+    global SUBSTEP, SIM_DT, CONTACT_STIFFNESS, CONTACT_DAMPING, SOLVER_ITERS
+    base_ss, base_k, base_c, base_iters = SUBSTEP, CONTACT_STIFFNESS, CONTACT_DAMPING, SOLVER_ITERS
     print(f"=== §2.3 convergence: {strategy} n={n_fingers} "
           f"off={offset_m*100:.1f}cm dir={direction} ===")
     print(f"{'variation':>22} | {'EM(g)':>7} {'PI(cm)':>7} {'RT(cm)':>7} "
@@ -736,17 +757,26 @@ def converge_cell(strategy, n_fingers, offset_m, direction, ready="splayed"):
     # (c) seed (sub-mm ball jitter)
     for sd in (1, 2, 3):
         results[f"seed {sd} (+jitter)"] = one(f"seed {sd} (+jitter)", seed=sd)
+    # (d) solver iterations (M-B: closes the M-A blocking gap)
+    for it in (50, 100, 200, 300):
+        SOLVER_ITERS = it
+        results[f"solver_iters {it}"] = one(f"solver_iters {it}")
+    SOLVER_ITERS = base_iters
 
     # convergence verdict: substep 4 vs 8 agreement + seed spread
     em = [results[k]["escape_margin_g"] for k in results]
     em4 = results[f"substep 4 (1/960)"]["escape_margin_g"]
     em8 = results[f"substep 8 (1/1920)"]["escape_margin_g"]
     seed_em = [results[f"seed {s} (+jitter)"]["escape_margin_g"] for s in (1, 2, 3)]
+    iters_em = [results[f"solver_iters {it}"]["escape_margin_g"] for it in (50, 100, 200, 300)]
     print(f"\n  substep 4 vs 8 escape-margin: {em4:.2f}g vs {em8:.2f}g "
           f"(|d|={abs(em4-em8):.2f}g)")
     print(f"  seed spread (jitter) escape-margin: "
           f"{min(seed_em):.2f}..{max(seed_em):.2f}g (range {max(seed_em)-min(seed_em):.2f}g)")
-    conv = abs(em4 - em8) <= 1.0 and (max(seed_em) - min(seed_em)) <= 1.5
+    print(f"  solver_iters spread (50..300) escape-margin: "
+          f"{min(iters_em):.2f}..{max(iters_em):.2f}g (range {max(iters_em)-min(iters_em):.2f}g)")
+    conv = (abs(em4 - em8) <= 1.0 and (max(seed_em) - min(seed_em)) <= 1.5
+           and (max(iters_em) - min(iters_em)) <= 1.5)
     print(f"  CONVERGED: {'YES' if conv else 'NO — knife-edge, do not trust'}")
     # pull-in SIGN convergence — the magnitude/EM can be a knife-edge while the
     # DIRECTION of re-centering is robust (the honest soft claim, lead steer #4).
@@ -771,8 +801,8 @@ def paired_converge(strat_a, strat_b, n_fingers, offset_m, direction,
     overlapping B's, so test the delta per-perturbation (same substep/contact/seed
     for both -> the seed jitter is identical, a fair pairing) and report whether
     the delta stays > 0 across ALL perturbations."""
-    global SUBSTEP, SIM_DT, CONTACT_STIFFNESS, CONTACT_DAMPING
-    base_ss, base_k, base_c = SUBSTEP, CONTACT_STIFFNESS, CONTACT_DAMPING
+    global SUBSTEP, SIM_DT, CONTACT_STIFFNESS, CONTACT_DAMPING, SOLVER_ITERS
+    base_ss, base_k, base_c, base_iters = SUBSTEP, CONTACT_STIFFNESS, CONTACT_DAMPING, SOLVER_ITERS
     print(f"=== §2.3 PAIRED delta ({strat_a}-{strat_b}) n={n_fingers} "
           f"off={offset_m*100:.1f}cm dir={direction} ===")
     print(f"{'variation':>22} | {strat_a[:5]+' PI':>9} {strat_b[:5]+' PI':>9} "
@@ -798,6 +828,10 @@ def paired_converge(strat_a, strat_b, n_fingers, offset_m, direction,
     CONTACT_STIFFNESS, CONTACT_DAMPING = base_k, base_c
     for sd in (1, 2, 3):
         deltas.append(pair(f"seed {sd} (+jitter)", seed=sd))
+    for it in (50, 100, 200, 300):
+        SOLVER_ITERS = it
+        deltas.append(pair(f"solver_iters {it}"))
+    SOLVER_ITERS = base_iters
 
     dmin, dmax = min(deltas), max(deltas)
     if dmin > 0.3:
@@ -1232,9 +1266,9 @@ def render_video(strategy, n_fingers, offset_m, direction, ready, out_dir,
                      + ("  [pinned]" if pin else ""),
                      f"CLOSE   fingers touching: {nf}",
                      f"centering-err: {cerr*100:.2f}cm  (injected {offset_m*100:.1f}cm)"]
-            if strategy in ("yale", "prb"):
+            if strategy in ("yale", "prb", "prb_pulse", "prb_active"):
                 fl = (yale_prb.finger_flexions(g.body, g.finger_joints, g.prb_cfg)
-                      if strategy == "prb"
+                      if strategy in ("prb", "prb_pulse", "prb_active")
                       else yale_hand.finger_flexions(g.body, g.finger_joints,
                                                      g.yale_cfg))
                 lines.append("finger flex: " + " ".join(f"{x:+.1f}" for x in fl))
@@ -1332,7 +1366,7 @@ def main():
     ap.add_argument("--video", action="store_true")
     ap.add_argument("--strategy", default="fixed",
                     choices=["fixed", "compliant", "soft", "under", "yale",
-                             "tendon", "prb"])
+                             "tendon", "prb", "prb_pulse", "prb_active"])
     ap.add_argument("--n", type=int, default=4)
     ap.add_argument("--offset", type=float, default=0.0)
     ap.add_argument("--dir", default="finger", choices=["finger", "gap", "outside"])
@@ -1348,6 +1382,9 @@ def main():
     ap.add_argument("--substep", type=int, default=None,
                     help="override sim sub-steps/240Hz tick (default 4=1/960); "
                          "use to inspect the off-center timestep-fragility (§26)")
+    ap.add_argument("--solver-iters", type=int, default=None,
+                    help="override numSolverIterations (default 150); M-B "
+                         "convergence axis per the M-A blocking gap")
     ap.add_argument("--strats", default=None,
                     help="with --quality-grid: comma list of strategies to score "
                          "(default fixed,compliant,soft,yale). Additive.")
@@ -1366,6 +1403,9 @@ def main():
         global SUBSTEP, SIM_DT
         SUBSTEP = args.substep
         SIM_DT = DT / SUBSTEP
+    if args.solver_iters is not None:
+        global SOLVER_ITERS
+        SOLVER_ITERS = args.solver_iters
     if args.self_test:
         return self_test()
     if args.grid:
