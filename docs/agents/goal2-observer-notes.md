@@ -251,6 +251,39 @@ LEAD (provenance ratchet primary; D8/D1 secondary). Nudges still 4.**
   what the meta-analysis itself asserts. H5 evidence is real but bounded to
   artifact-backed claims; the diffuse-claim case remains untested.
 
+**2026-08-31 — consolidation input (lead): FINDING vs DESIGN-PREFERENCE
+tagging — D6 applied one layer up.** For artifact-less claims, the analogue of
+artifact-grounding: the claim must name what would count as evidence and where
+it would come from, or be tagged a PREFERENCE, not a FINDING. Worked example
+from this run: "gates read primary artifacts, not the lead's summary" was a
+preference until the chimera episode gave it a falsifier and a case that
+could have gone the other way — same sentence, different epistemic status,
+and the change was the arrival of a refutation-capable episode.
+- Practical gap it exposes: [[grasp-goal2-loop-spec|the loop spec]]'s §3
+  principles, D1–D9, and the §0 deltas all sit at equal weight; several are
+  preferences no episode has ever been able to refute. Consolidation step:
+  tag each as finding (+ episode) or preference (+ promotion condition). This
+  also gives §6's demotion machinery real teeth: "survived N runs untested"
+  currently scores identically to "earned" — it shouldn't.
+- **Observer addition — this is the §6.1 calibration log arriving bottom-up.**
+  The original design proposed a claim+confidence+falsifier log top-down
+  ([[loop-engineering-analysis#^6|§6]], the starred calibration row); the run
+  just re-derived it from an operational need with a sharper trigger
+  (untested-vs-earned distinguishability). Independent re-derivation is the
+  best validation a design element in the PREFERENCE tier can get short of an
+  episode.
+- **On the hard version** (testing "the ratchet should compile to three
+  layers" without running many loops): partially answerable. The three-layer
+  claim IS grounded in episodes — other people's: ADAS/GEPA/Voyager/METR
+  published runs ([[10-generic-vs-specialized-loops|digest 10]]) are its
+  evidence base, with our own future runs as the falsifier-in-waiting. So the
+  taxonomy generalizes: a design claim's "artifact" is a citable episode from
+  ANY project, and its finding-status is inherited provisionally from
+  literature until a local episode confirms or refutes. What has no answer —
+  the lead is right — is design claims with neither local nor literature
+  episodes; those are preferences, full stop, and should be the cheapest to
+  reverse.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
