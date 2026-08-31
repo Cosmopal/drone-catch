@@ -1,0 +1,5 @@
+{"iters": 50, "escape_margin_g": 10.0, "pull_in_cm": 2.252976258449317, "score": 1.0, "n_contact_fingers": 4, "symmetry": 0.6001424891201625}
+{"iters": 100, "escape_margin_g": 10.0, "pull_in_cm": 2.2296824517666547, "score": 1.0, "n_contact_fingers": 4, "symmetry": 0.6002983105669195}
+{"iters": 150, "escape_margin_g": 10.0, "pull_in_cm": 2.2418336395820497, "score": 1.0, "n_contact_fingers": 4, "symmetry": 0.6003877259824744}
+{"iters": 200, "escape_margin_g": 10.0, "pull_in_cm": 2.2528331117609537, "score": 1.0, "n_contact_fingers": 4, "symmetry": 0.6004318682191776}
+{"iters": 300, "escape_margin_g": 10.0, "pull_in_cm": 2.2429593790104314, "score": 1.0, "n_contact_fingers": 4, "symmetry": 0.6002285858203711}
