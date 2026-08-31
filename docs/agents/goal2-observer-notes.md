@@ -442,6 +442,46 @@ observer error, fifth framework-flattering direction, and the first caught by
 the human performing exactly the deliberate-sampling duty the lead said H7
 scoring required.
 
+**2026-08-31 — M-B mid-milestone report (gate catches #5, #6; possible
+headline reversal in flight; nudges still 4 for gate purposes).**
+- **Catch #5 (verifier)**: driver fidelity HELD under attack (committed
+  `paired_converge` reproduces its ledger on a null cell) — but the "13-
+  perturbation set" is 12 + a baseline duplicate (consequence-free for
+  min/max verdicts; every "13" statement wrong). And the verifier RETRACTED
+  ITS OWN HEADLINE when the lead sent it back for seeds ("wrong to state at
+  single-seed confidence") — second self-dissolution by a grounded role under
+  a check it was asked to run.
+- **Catch #6 (reviewer)**: a cited artifact was 48 bytes, undecodable; the
+  worker had described that cell as "video only — a rendering-budget call"
+  without opening it. The run's recurring class in a fourth costume
+  (asserting a property of an unopened thing). Author-self-audit catches
+  remain ZERO across all layers. **Worker's fix is a new positive datum: it
+  decoded ALL SIX videos, reasoning that checking only the caught instance
+  would repeat the error on the other five — responding to the CLASS,
+  unprompted.** Lead verified by decoding, not by file size.
+- **Possible reversal (held at seed-only, correctly)**: verifier ran a cell
+  the worker never sampled (n4-finger-4.5cm); sensing-free `prb_pulse` beats
+  sensor-based `prb_active` there (+1.198..+1.574, 4 seeds) and beats its own
+  5.0cm cell. If it survives the full battery: M-B's conclusion flips from
+  "adaptive re-centering helps" to "a blind scripted re-close helps and
+  sensing buys nothing" — which would DELETE A SENSOR from the hardware
+  story. High stakes; lead refusing convergent status until the battery.
+- **NEW ERROR SHAPE (lead's find): selection effect in a NULL result.** The
+  worker's headline was partly an artifact of which cells it sampled — the
+  rival strategy's best cell sat outside the set. Not scope inflation (claim
+  wider than evidence) but a claim CORRECTLY scoped to evidence that was
+  itself non-randomly chosen. Note for consolidation: this is arguably the
+  SECOND local episode of sample-generation bias — the first was the lead's
+  own H7 audit-selection self-flag (audits sample flattering-checkable
+  claims). Two different contexts (experiment cell choice; audit target
+  choice). Whether that meets the promotion bar for a "was the evidence set
+  chosen independently of the claim?" detector is for the lead/consolidation
+  to adjudicate — NOT promoted here (the observer has been burned on exactly
+  this move; posing it as a question this time).
+- H3 protocol confirmed: worker reports zero prereg violations; lead diffs
+  predicted-vs-observed AFTER blind gate scoring and will report whether any
+  violation triggered investigation-before-acceptance.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
