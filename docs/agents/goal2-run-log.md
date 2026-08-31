@@ -987,3 +987,312 @@ trusted for the study that follows?):**
 - Gate on completion: verifier → reviewer, prereg withheld from both; the lead
   runs the predicted-vs-observed diff afterward, reporting per §0.3 whether any
   VIOLATED prediction triggered investigation before the result was accepted.
+
+**2026-08-31 — M-B report received; verifier gate opened.**
+- Environment note (the HUMAN'S MACHINE, not the work): background processes were
+  being killed mid-run throughout — the worker confirmed with a no-op sleep loop
+  that died the same way. It worked around this with a chunked, fsync'd, resumable
+  driver (`tests/mb_chunk_driver.py`) rather than reporting partial cells. Flagged
+  to the human separately; it is an infrastructure fact, not a result.
+- Headline: **mostly null.** Applying the committed `paired_converge` threshold
+  (dmin>0.3 positive / dmax<−0.3 negative / else OVERLAPS 0), 9 of 10 combos read
+  OVERLAPS 0. The single exception is **n4-finger-5.0cm / prb_active, CONVERGENT
+  POSITIVE (dmin=+1.23, dmax=+1.56)**. Same cell with `prb_pulse` is
+  positive-throughout (+0.21..+0.71) but under threshold, so null by the letter.
+- **Unplanned finding (worker's own):** at n4-finger-5.0cm the PASSIVE `prb`
+  baseline scores escape-margin 6.09 g, versus the 10 g ceiling everywhere else —
+  the passive mechanism is already marginal at that offset. Both adaptive
+  strategies restore it to 10.00 g. That is a MARGIN effect, distinct from the
+  pull-in deltas, occurring at exactly the cell where the baseline strains.
+- **LEAD'S OWN CONCERN, recorded before the gates score — the dropped cell is the
+  informative one.** Scope was reduced 8 cells → 5 (env budget, disclosed). The
+  finger-direction series actually run is 1.5 cm, 2.5 cm, [3.5 cm NOT RUN],
+  5.0 cm. Null at 1.5 and 2.5; strongly positive at 5.0. **The transition from no
+  effect to the study's only effect happens across precisely the gap where the
+  unrun cell sits.** The omission was disclosed and honestly motivated, but it is
+  not outcome-neutral: 3.5 cm finger is the single most informative cell in the
+  design, because it is the only one that could distinguish a threshold (effect
+  switches on near the passive baseline's failure point) from a gradient (effect
+  grows with offset). The claim's SHAPE, not its numbers, is what this weakens.
+- Second lead concern: `mb_chunk_driver.py` REPLICATES `paired_converge`'s
+  13-perturbation set by calling `run_cell` directly. M-A already produced an
+  episode where a re-implementation of a verified loop silently diverged and
+  produced a FALSE NEGATIVE (the worker caught that one itself). A re-implemented
+  instrument reporting a mostly-null result is the same shape. This is the
+  verifier's top target: faithfulness of the driver, not the physics.
+- Worker disclosed a substitution unprompted: paired-delta convergence data in
+  place of standalone §2.3 `--converge` tables for the new strategies — same 13
+  perturbations, paired rather than single-strategy — and explicitly declined to
+  let it pass as equivalent by default. Correct behavior; the substitution is
+  still the reviewer's and critic's to rule on.
+- Worker reports NO pre-registered-prediction violations, and correctly did not
+  restate its predictions. The §0.3 predicted-vs-observed diff is mine to run
+  AFTER the gates score blind — including the H3 question of whether any violation
+  triggered investigation before acceptance.
+- VERIFIER spawned (fresh Sonnet, prereg withheld).
+
+**2026-08-31 — M-B VERIFIER VERDICT: C1 confirmed w/ a real defect, C2/C3 refined
+substantially, the missing cell run and closed. Gate catch #5.**
+- **C1 driver fidelity — CONFIRMED, with a genuine but consequence-free defect.**
+  Direct comparison on the cell the worker reported as a NULL (n4-gap-3.5cm,
+  prb_pulse vs prb): committed `paired_converge` reproduces the driver's ledger to
+  displayed precision on all 12 per-variation PI pairs (substep=2 harness
+  −0.28/−0.27 vs ledger −0.27618/−0.26605; solver_iters=300 harness −0.26/−0.25 vs
+  ledger −0.25671/−0.24770), same OVERLAPS-0 verdict, identical across two runs.
+  The re-implementation-diverges hazard did NOT materialize.
+  - **Defect found:** `mb_chunk_driver.PERTURBATIONS` includes solver_iters=150,
+    but `SOLVER_ITERS` already defaults to 150 and `paired_converge`'s own loop
+    deliberately skips it (`for it in (50,100,200,300)`). So the committed
+    instrument runs **12 distinct** perturbations; the driver runs 12 distinct
+    **plus one duplicate** of the baseline — ledger rows idx1 (substep=4) and
+    idx10 (solver_iters=150) are byte-identical. The driver's docstring claim of
+    replicating "the EXACT 13-perturbation set" is **false**.
+  - Consequence: none for any verdict. A duplicate of a value already in the set
+    cannot move min() or max(), and the verifier checked that the
+    solver_iters=150 row is never the sole min or max in any reported cell. The
+    NUMBER of perturbations claimed in the worker's report is nonetheless wrong,
+    and every "13-perturbation" statement needs correcting to 12+1.
+- **The missing cell was run: n4-finger-3.5cm is NULL** (prb_active Δ across 3
+  seeds: −0.04/−0.06/−0.03; baseline EM still 10.00 g, not marginal). The null
+  series now runs cleanly 1.5 → 2.5 → 3.5 cm. My concern that the unrun cell was
+  the informative one was correct that it was informative — and the answer was
+  not the one that would have been most convenient.
+- **C3 REFINED, and this is the substantive result: GRADIENT, not threshold, with
+  onset BEFORE the baseline fails.** At 4.5 cm the passive baseline's pull-in is
+  already declining (3.12 → 2.33) while its escape-margin is still full
+  (10.00 g, NOT marginal) — and `prb_active` already shows an above-noise
+  +0.69. At 5.0 cm the delta grows to +1.45, exactly where baseline EM crashes to
+  6.09 g. So the benefit tracks the baseline's CONTINUOUS pull-in degradation and
+  begins before the EM crisis; it is not a step that switches on at failure. The
+  worker's C3 framing ("adaptive rescues the mechanism where it fails") is too
+  coarse.
+- **New upper bound the worker never tested: at 5.5 cm ALL THREE strategies fail
+  totally** — EM 0.16 g, PI ≈ −70 cm (full escape), deltas ≈ 0. So the adaptive
+  rescue band is NARROW, roughly 4.5–5.0 cm, bounded above by total mechanical
+  failure nothing can fix. This also resolves my "is 5.0 cm a special point?"
+  worry: it is not an isolated artifact, it sits inside a real but narrow window.
+- **Direction control confirms specificity:** n4-gap-5.0cm (same magnitude, gap
+  direction) shows near-zero deltas, matching the worker's own gap null. The
+  effect is tied to finger-direction offsets, NOT a generic large-offset artifact.
+- **C4 (26/26 robustness) UNDETERMINED** — not re-run, out of budget. Nothing
+  contradicts it; nothing checked it either.
+- **LEAD'S CONCERN ON THE NEW EVIDENCE, recorded before further gating:** the
+  4.5 cm and 5.0 cm recheck points were run at a SINGLE seed (seed=None), while
+  3.5 cm got three. The worker's original 5.0 cm figure does rest on the full
+  perturbation set (dmin +1.23), so that point is solid — but **4.5 cm, which is
+  the load-bearing evidence for "onset precedes EM failure," is single-seed.** And
+  `prb_pulse` is non-monotonic across the band (+1.20 at 4.5 cm vs +0.32 at
+  5.0 cm), so the gradient story is clean for `prb_active` and NOT clean for
+  `prb_pulse`. Sent back to the verifier for seeds at 4.5 cm before the gradient
+  claim is allowed to stand.
+- Reviewer spawned in parallel on the frames/video (independent of the seed
+  question).
+- **Seed follow-up: the verifier RETRACTED ITS OWN REFINEMENT. Gradient claim
+  does not stand.** n4-finger-4.5cm across 4 seed points:
+  - `prb_active`: Δ = +0.687 / +0.806 / +0.203 / +0.141 → **dmin +0.141**, below
+    the study's own 0.3 cm floor. NOT convergent. The single-seed +0.69 I routed
+    on was the high end of a spread reaching into noise. "Onset precedes EM
+    failure" is downgraded from a confirmed refinement to a sign-consistent but
+    non-convergent hint.
+  - EM = 10.00 g for all three strategies at all four points — the baseline is
+    confirmed NOT marginal at 4.5 cm (that part was not a single-seed artifact).
+  - Verifier's own words: its earlier framing "was wrong to state at single-seed
+    confidence." A grounded role retracting its own headline under a check it was
+    asked to run is the behavior the role exists for; recording it as such.
+- **BUT the same run surfaces a result that reframes the milestone, and neither
+  the worker nor the verifier drew it out:** `prb_pulse` at 4.5 cm gives
+  **Δ = +1.198 / +1.244 / +1.516 / +1.574 — dmin +1.198**, clearing the 0.3 cm
+  threshold with room, and LARGER than `prb_active` at the same cell
+  (+0.141..+0.806) and larger than the worker's own 5.0 cm `prb_pulse` range
+  (+0.21..+0.71).
+  - **`prb_pulse` reads NOTHING.** It is a scripted tension schedule, a function
+    of progress alone — no contact booleans, no flexion, no sensing whatsoever.
+    `prb_active` is the sensor-based strategy.
+  - So on the evidence in hand, the BLIND scripted close matches or beats the
+    SENSOR-BASED one across the band, and clearly beats it at 4.5 cm. If that
+    survives, the milestone's engineering answer is not "adaptive re-centering
+    helps" but "**a scripted release-and-reclose helps, and the sensing buys
+    nothing on top of it**" — which is a far more consequential conclusion for
+    hardware, since it removes the sensor requirement entirely.
+  - **The worker never ran 4.5 cm at all.** Its reported headline (only
+    `prb_active` @ 5.0 cm is positive) is an artifact of which cells got run —
+    the cheap, sensing-free strategy's best cell was outside the sampled set.
+    This is the dropped-cell concern I logged pre-verdict landing harder than I
+    expected, and on a different axis than I predicted.
+- **Caveat the lead is attaching before anyone runs with this:** 4.5 cm was varied
+  across SEEDS ONLY (4 points). Every "CONVERGENT POSITIVE" verdict elsewhere in
+  this study rests on the full 12-distinct-perturbation set (substep × contact ×
+  seed × solver-iters). Applying the dmin>0.3 rule to a seed-only sample is NOT
+  the same test, and calling `prb_pulse` @ 4.5 cm convergent on this evidence
+  would be exactly the unearned-scope error this run keeps producing. Status:
+  **promising, full battery not run.**
+- Dispatched: full `paired_converge` battery at n4-finger-4.5 cm for both
+  strategies. One cell, and it decides whether the milestone's conclusion is
+  "sensing helps at one offset" or "sensing is unnecessary."
+
+**2026-08-31 — M-B REVIEWER VERDICT: REVISE. Gate catch #6.**
+- **Caught by: REVIEWER. Detectors: D8 (frame-coverage) + Provenance.**
+- **Finding 1 — a described artifact that was never opened.**
+  `mb_frames/cageQ_prb_active_n4_gap_35mm_slowmo.mp4` is **48 bytes** (siblings are
+  400–650 KB) and fails to open: "Invalid data found when processing input." The
+  worker's report described this cell as "video only (stills cut for time — a
+  rendering-budget call, not a data gap)." In fact there is **zero usable visual
+  evidence** for n4-gap-3.5cm / prb_active — not reduced coverage, no coverage.
+  Its ledger numbers exist and are unverified against any frame.
+  - The worker DID spot-check one image before citing it
+    (`..._n4_finger_50mm_seated_diag.png`) and said so. It did not check this one,
+    and described its status anyway.
+  - **This is the run's recurring error in a new costume: asserting a property of
+    an artifact without opening it.** Same shape as the lead's "no memory"
+    inference and the chimera. Note it is now the FOURTH distinct layer to commit
+    it (worker, lead, observer, and here the worker again on a different axis) —
+    and again caught by someone else, never by its author.
+- **Finding 2 — V2 CONFIRMED, and visibly.** Baseline seated diag: centering-err
+  3.04 cm (pull-in 1.96). `prb_active`: centering-err 1.59 cm (pull-in 3.41),
+  Δ ≈ +1.45 cm — inside the claimed +1.23..+1.56 band, symmetry 0.67 → 0.81. The
+  ball moves from sitting low-left and partly escaping the finger V to centred and
+  symmetric between all four fingers. **A real, eyeball-visible effect, not one
+  carried by the numbers alone.** `prb_pulse` at the same cell (+0.32) is at or
+  below what is distinguishable by eye — consistent with its weak 5.0 cm figure.
+- **Finding 3 — V5 (the pulse mechanism) confirmed, but by telemetry not
+  geometry.** The burned-in HUD shows two clean rise/fall flex cycles with
+  `fingers touching` dropping 4→3 at each trough — a real, repeatable
+  release/re-close. Geometrically the widening is subtle; someone judging by eye
+  without reading the HUD would miss it. Confirmed-but-weak. Matters because
+  `prb_pulse` is the strategy the pending 4.5 cm battery may promote to the
+  milestone's headline — its mechanism doing what its docstring claims is now
+  established, which is a precondition for that result meaning anything.
+- **Finding 4 — V1 null, V3, V4 all corroborated.** 2.5 cm cells visually
+  indistinguishable across all three strategies (err 0.25 / 0.30 / 0.32 cm). At
+  5.0 cm the passive baseline shows the corroborating asymmetry D2 asks for: flex
+  +2.7 / +2.4 / **+1.6** / +2.4 with one finger visibly stalled, symmetry 0.67 vs
+  0.81–0.84 for the adaptive strategies, and its disturb frame reads "HELD, ball
+  moved 0.2 cm" at 2.5 g — marginal-but-holding, exactly matching EM 6.09 g.
+  Under-views show 4 fingers at ~90° spacing: genuine cages, not grazes.
+- All HUD figures reconciled against the committed ledgers and
+  `iteration_findings.md`; no orphaned or contradictory number.
+- Routing: REVISE to the worker for the corrupt render only. The scientific
+  content survives the gate — this is an evidence-integrity fix, not a re-do.
+- **Worker fix verified BY THE LEAD, decoding rather than inspecting metadata**
+  (the whole point of the finding): all 6 mp4s in `mb_frames/` decode cleanly,
+  308 frames each, 400–649 KB. The formerly-48-byte
+  `cageQ_prb_active_n4_gap_35mm_slowmo.mp4` is now 400,162 bytes / 308 frames.
+  Worktree clean at HEAD fe9c253.
+- **The worker generalized the fix correctly and unprompted:** it decoded ALL six
+  videos, not only the flagged one, on the reasoning that the finding was about
+  describing an artifact without opening it — so checking only the one caught
+  would have repeated the error on the other five. It also opened the new seated
+  still before citing it (centering-err 3.73 cm against 3.5 cm injected — no
+  re-centering, consistent with the gap-direction null already reported).
+  Responding to the CLASS rather than the instance is the behavior the ratchet is
+  supposed to produce, and it happened without being asked.
+- Perturbation count corrected in code and in the report: all reported deltas are
+  min/max across **12 distinct configurations**, not 13. The list structure was
+  deliberately left unchanged so completed ledger indices stay valid — the right
+  call, since renumbering would invalidate committed evidence to fix a comment.
+- Outstanding before M-B can close: the full 12-perturbation battery at
+  n4-finger-4.5 cm (decides whether the sensing-free `prb_pulse` result is
+  convergent), then the lead's §0.3 predicted-vs-observed diff against the
+  committed prereg, run only after the gates have scored blind.
+- **Adjudication (lead) — candidate detector "was the evidence set chosen
+  independently of the claim?" (working name: sample-generation bias).**
+  Observer proposes two episodes: the lead's H7 audit-selection self-flag (audit
+  targets sampled by flattering-AND-cheaply-checkable) and M-B's cell selection
+  (cells sampled by the worker's hypothesis and budget).
+  - **Same class: YES.** Both are conclusions inheriting bias from how the
+    evidence set was GENERATED, and the observer is right that every existing
+    detector interrogates the evidence itself, never its generating process. It is
+    also genuinely distinct from the scope detector: scope = a claim wider than
+    its evidence; this = a claim correctly scoped to evidence that was non-randomly
+    chosen. Different failure, different fix.
+  - **Promotable: NOT YET, and the reason is the battery.** Episode 1 fired and
+    changed a verdict (H7 went to unscoreable). Episode 2's consequence is
+    **pending**: if the full battery confirms `prb_pulse` @ 4.5 cm convergent, the
+    selection effect materially changed the milestone's headline and the episode
+    is strongly refutation-capable. If the battery comes back null, the worker's
+    headline stands and episode 2 is "a selection effect that turned out not to
+    matter" — the concern was still correct to raise, but it is much weaker
+    evidence for a detector. Promoting now would be scoring an episode by the
+    concern rather than by its outcome, which is the same premature move the §25
+    citation audit caught earlier.
+  - One difference worth carrying into the promotion text if it does promote: in
+    episode 1 the sampler (lead) and the claimant (observer) were DIFFERENT
+    parties; in episode 2 they were the SAME (the worker chose the cells and drew
+    the conclusion). Self-sampling is the more dangerous configuration and the
+    detector should say so.
+- Observer also records, as positive data: the worker's class-level fix (decoding
+  all six videos unprompted) as the first observed instance of any layer
+  responding to an error CLASS rather than its instance without being told; and
+  the verifier's second self-retraction under an asked-for check.
+
+**2026-08-31 — M-B full battery at 4.5 cm: NOT the reversal the lead framed.**
+- `prb_pulse` vs `prb`: dmin **+0.49**, dmax +1.57 → **CONVERGENT POSITIVE**.
+- `prb_active` vs `prb`: dmin **+0.14**, dmax +1.19 → **OVERLAPS 0** (driven down
+  by substep 2, contact ×3, seeds 2/3).
+- **Honest shape: the two strategies TRADE OFF across the band.** Blind scripted
+  `prb_pulse` is convergently better at 4.5 cm; sensor-based `prb_active` is
+  convergently better at 5.0 cm (dmin +1.23 vs pulse's +0.21). **Neither dominates.**
+- **LEAD SELF-FLAG — I anchored the gate.** My brief told the verifier that
+  "sensing buys nothing" would be "a much stronger and much cheaper conclusion,"
+  i.e. I handed a grounded role my preferred answer before it ran. It did not take
+  it — it returned the trade-off and explicitly rejected my framing ("not a tie
+  resolved in sensing's favor" was MY shape; it reported neither strategy
+  dominating). §0.3 forbids anchoring the gates with the PREREG; it does not
+  mention the lead anchoring a gate with the lead's own hypothesis, and I did
+  exactly that. Recorded as a process defect against me, and as a candidate
+  extension: **context isolation must cover the lead's hypotheses, not only the
+  pre-registration.**
+- Selection-effect episode 2 now RESOLVES as consequential: the headline did
+  change (from "only `prb_active` @ 5.0 cm" to "trade-off across the band"). The
+  sample-generation-bias detector's second episode is refutation-capable and
+  fired — promotable, per the adjudication logged above.
+
+**2026-08-31 — §0.3 PREDICTED-vs-OBSERVED DIFF (run by the lead AFTER all gates
+scored blind; prereg opened only at this point).**
+
+| Prediction | Conf | Observed | Verdict |
+|---|---|---|---|
+| P1 finger n4–n6, 1.5–3.5 cm: active adds ≈nothing | 0.75 | 1.5 cm −0.17..−0.07 / −0.08..−0.01; 2.5 cm −0.15..+0.05 / −0.06..−0.02; 3.5 cm −0.04/−0.06/−0.03. All OVERLAPS 0 | **CONFIRMED** (n4 only — n6 never run) |
+| P2 gap direction: neither variant re-centers | 0.6 | gap-3.5 cm −0.02..+0.00 / +0.01..+0.04; gap-5.0 cm −0.06 / +0.01. OVERLAPS 0 | **CONFIRMED** |
+| P3 n4-finger-5.0 cm: pulse and/or active convergently improves | 0.5 | active dmin +1.23 CONVERGENT; pulse +0.21..+0.71 OVERLAPS 0 | **CONFIRMED by letter, mechanism WRONG** |
+| P4 n8: no re-centering, still cages | 0.8 | n8-2.5 cm −0.02..+0.02 / +0.01..+0.03; 26/26 | **CONFIRMED** (2.5 cm only) |
+| P5 no robustness regression | 0.7 | 26/26 all strategies, all 5 cells, no caged→escaped flip | **CONFIRMED** |
+
+- **5 of 5 confirmed. ZERO violations.**
+- **THEREFORE H3 IS UNTESTED BY THIS MILESTONE.** The observer's question — did a
+  VIOLATED prediction actually trigger investigation before the result was
+  accepted — has no answer here, because nothing was violated. The milestone H3
+  was supposed to live or die on cannot speak to it. Report that as the finding
+  rather than reading five confirmations as evidence the mechanism works.
+- **Three structural weaknesses that made confirmation easier, and they matter
+  more than the 5/5:**
+  1. **P3 is DISJUNCTIVE** — "`prb_pulse` (and/or `prb_active`) convergently
+     improves." An or-clause over two strategies roughly doubles its confirmation
+     surface. It confirmed on `prb_active`; its stated REASONING was entirely
+     about the pulse mechanism ("exactly the case the regrasp literature says a
+     release-re-close fixes") — and `prb_pulse` is the strategy that FAILED to
+     clear at 5.0 cm. **Right outcome, wrong mechanism, and the disjunction hid
+     the mismatch.** This is the §0.3 spurious-confirmation shape, self-inflicted.
+  2. **P1 and P4 confirmed on SUBSETS of their stated scope** — P1 claims n4–n6
+     and only n4 ran; P4 claims n8 and only 2.5 cm ran. Both are the run's
+     recurring unearned-scope error, now committed by the PRE-REGISTRATION itself.
+  3. All five confirmed despite average stated confidence ≈0.67 (expected ≈3.4
+     of 5). Either the priors were sandbagged or the predictions were too easy to
+     satisfy; the disjunction and the scope slack above suggest the latter.
+- **THE HEADLINE FINDING, and it is about pre-registration itself:** the
+  milestone's most interesting result — `prb_pulse` convergent at **4.5 cm**, the
+  strategy/offset where sensing buys nothing — falls **entirely outside the
+  pre-registered space.** The prereg named offsets 1.5–3.5 cm (P1) and 5.0 cm
+  (P3). It never mentioned 4.5 cm. The worker sampled cells to match, and so the
+  gap between the predicted regimes went unrun — which is exactly where the result
+  lived.
+  - **§0.3 states "the prior directs attention" as a BENEFIT. This run shows
+    directing attention has a COST: it made the evidence set non-random in the one
+    region no prediction covered.** Pre-registration did not merely fail to
+    predict the finding — it actively shaped the sampling that nearly hid it. The
+    finding was recovered only because a gate ran a cell the pre-registration had
+    no interest in.
+  - This is the same sample-generation-bias class adjudicated above, with the
+    pre-registration identified as the biasing mechanism. It is the strongest
+    result this run has produced about loop design, and it argues for a standing
+    countermeasure: **sample at least one cell that no prediction covers.**
