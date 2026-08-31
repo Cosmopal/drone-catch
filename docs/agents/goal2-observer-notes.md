@@ -75,10 +75,16 @@ it by inspection, but only because the human prompted the check).**
 - D8 hole exposed: it constrains frame COVERAGE/citation, not artifact
   RETENTION or MEDIUM. The failure under study is temporal (hold nf=3 → lift
   nf=0 vs baseline nf=3 → nf=4); a still samples that, video shows it.
-  ~~SUPERSEDED~~ **[corrected later same day: the "nf=3 → nf=4" baseline trace
-  was a cross-run chimera — see the reviewer-verdict entry below. True PASS
-  trace per its own jsonl: hold nf=4 → lift nf=4. The temporal-failure point
-  stands; the specific figures were contaminated.]**
+  **[correction history — both directions, kept deliberately:** (1) this
+  baseline trace is TRUE — verified by the observer directly against
+  `reg_elbow_catch.txt` (`t=0.900 -> hold ... nf=3`, `t=1.904 -> lift ...
+  nf=4`); (2) a LATER chimera attached this baseline trace to the verifier's
+  PASS run (whose own jsonl reads nf=4 → nf=4) — origin verifier, path
+  verifier → lead → reviewer brief, caught by the reviewer; (3) the observer
+  then OVER-RETRACTED, striking this true baseline fact as if it were the
+  chimera — caught by the lead, restored after artifact re-check. Same error
+  class both ways: REFERENT errors — right number, wrong run / right number
+  detached from its right run.**]
 - Latent evidence-destroyer found in the same pass: `rotate_runs(keep=5)` on
   `--runs-dir` — a rotating dir under every future dynamic result.
 - Two ratchet candidates (both executable, correctly classified by the lead):
@@ -195,13 +201,16 @@ LEAD (provenance ratchet primary; D8/D1 secondary). Nudges still 4.**
   nf=4; true trace nf=4 → nf=4). The claimed figures are verbatim the
   HISTORICAL baseline's (hold at t=0.900) — a number that travelled between
   runs and was re-attached to a run nobody re-derived it from.
-- **Contamination path was THREE hops, not two** (observer addition): worker
-  summary → lead (run log + reviewer brief) → OBSERVER NOTES (the nudge-#4
-  entry above quoted the chimera trace; now superseded in place). Every layer
-  that consumed a SUMMARY propagated it; the one role pointed at the primary
-  artifact stopped it. This is the strongest possible evidence for the
-  gates-read-artifacts-not-briefs design — a reviewer fed only the lead's
-  brief would have countersigned the error.
+- **Contamination path: TWO hops — verifier → lead → reviewer brief.**
+  [Corrected: the observer first claimed three hops, mis-reading its own
+  nudge-#4 entry as contaminated. That entry recorded the BASELINE trace,
+  which is true (observer re-verified against reg_elbow_catch.txt directly);
+  the chimera was created later when the verifier's report attached the
+  baseline's trace to the PASS run. The observer's "correction" struck a true
+  fact — the mirror-image referent error — and was itself caught by the lead.
+  See the amended nudge-#4 entry.] The design conclusion survives at two hops:
+  every summary-consuming layer propagated the chimera; the artifact-pointed
+  role stopped it.
 - **Attribution (lead recorded it against itself, unsoftened)**: the
   provenance-ratchet violation was committed by the role that enforces the
   provenance ratchet. And it's the counterexample to over-reading the earlier
@@ -221,10 +230,26 @@ LEAD (provenance ratchet primary; D8/D1 secondary). Nudges still 4.**
   run IS loggable/renderable. The corrected mechanism converts "provably
   unobtainable evidence" into a render job. Every reviewer demand is
   satisfiable.
-- Tally: verifier 2, reviewer 1 (on the lead), critic 0, human 1. All three
-  agent layers have now each been caught once by another layer (worker by
-  verifier, lead by reviewer, observer by lead) — nobody exempt, zero human
-  nudges consumed in any of it.
+- Tally: verifier 2, reviewer 1 (on the lead), critic 0, human 1. Cross-layer
+  catches so far: worker by verifier (causal story), lead by reviewer
+  (chimera figure), observer by lead TWICE (spurious promotion evidence;
+  over-retraction). Nobody exempt; zero human nudges consumed in any of it.
+  [Amended from "each caught once": the observer's catch was on the
+  OVER-CORRECTION, not on propagating the chimera.]
+
+**2026-08-31 — two additions from the lead's second audit of the observer.**
+- **Watch item (NOT promotable — one episode, per the marginal-coverage
+  rule): "a retraction requires the same evidentiary standard as the claim it
+  retracts."** Retractions are the more insidious referent error because
+  struck-through facts read as settled and nothing in the loop currently
+  audits a correction the way it audits a claim. If a second episode occurs,
+  promote; layer TBD then.
+- **Bound on H5 (lead's own caveat, adopted): both of its cross-layer catches
+  were CHEAP, WELL-POSED checks against committed files it had direct access
+  to.** The easy case. Neither says anything yet about claims that are
+  diffuse, expensive to verify, or artifact-less — which describes most of
+  what the meta-analysis itself asserts. H5 evidence is real but bounded to
+  artifact-backed claims; the diffuse-claim case remains untested.
 
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
