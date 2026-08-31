@@ -482,6 +482,23 @@ headline reversal in flight; nudges still 4 for gate purposes).**
   predicted-vs-observed AFTER blind gate scoring and will report whether any
   violation triggered investigation-before-acceptance.
 
+**2026-08-31 — sample-generation-bias detector: adjudicated SAME CLASS,
+DISTINCT from scope, NOT promotable until the battery resolves.** The lead's
+reasoning, adopted: episode 1 (audit-selection) fired and changed a verdict
+(H7→unscoreable); episode 2's consequence is PENDING — if the battery
+confirms the prb_pulse reversal, the selection effect changed a headline and
+the episode is strongly refutation-capable; if null, it's "a concern that
+turned out not to matter" — and promoting on the concern rather than the
+outcome is the same premature move as the §25 citation episode. Two
+refinements to carry into the promotion text if it promotes:
+(1) **self-sampling vs other-sampling**: in ep. 1 sampler and claimant were
+different parties; in ep. 2 the worker both chose the cells and drew the
+conclusion — the more dangerous configuration, name it explicitly.
+(2) The worker's class-level fix is **class-level-within-a-medium** ("decode
+videos before describing them"), not the wider class ("check any artifact
+before asserting its state") — the real test is the next NON-video artifact,
+which hasn't occurred. Write-up must not claim more than happened.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
