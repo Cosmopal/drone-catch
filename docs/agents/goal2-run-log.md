@@ -966,3 +966,24 @@ trusted for the study that follows?):**
     the cheap check for THAT claim, and still shipped the downstream conclusion
     that depended on it. Fixing an inference without revisiting what was built on
     it is its own failure mode, and it is not one any current detector covers.
+
+**2026-08-31 — M-B resumed after the interruption.**
+- Worker instructed to resume immediately and answer the context check in the same
+  reply (one round trip, not two): does it still hold the M-B brief, the six
+  standing requirements, and the prereg-violation logging instruction, and how far
+  had it got before stopping. Told to report what is actually in its context
+  rather than reconstruct from the repo — a reconstruction is indistinguishable
+  from a memory in a finished reply, so asking for one would forfeit the check.
+- Lead's two corrections passed to the worker explicitly: (a) the "your session
+  was killed and your context lost" claim was wrong and retracted (b8d4144);
+  (b) the WIP commit c2ec47e therefore carries no authority — a save point the
+  worker may amend, rewrite, or revert freely, not an approval.
+- M-B runs under the six requirements earned in M-A: committed-code provenance;
+  solver-iteration axis in convergence; video alongside stills in a non-rotating
+  dir; falsifiers named before running; scope stated explicitly; paired
+  comparisons sharing declared numerics. `cage_harness.py`'s metric stays frozen
+  (margin-metric and `--fk-ablate` ratchets remain queued for close-out) so M-B's
+  comparisons stay paired within one instrument.
+- Gate on completion: verifier → reviewer, prereg withheld from both; the lead
+  runs the predicted-vs-observed diff afterward, reporting per §0.3 whether any
+  VIOLATED prediction triggered investigation before the result was accepted.
