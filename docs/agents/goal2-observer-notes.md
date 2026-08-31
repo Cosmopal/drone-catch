@@ -85,6 +85,46 @@ it by inspection, but only because the human prompted the check).**
   knowledge already stored in project memory since iteration 1 — a
   compile-coverage failure, not a knowledge gap.
 
+**2026-08-31 — M-A gate verdict: REVISE — FIRST TRUE GATE CATCH (verifier, D5
+of [[grasp-iteration2-spec#^3|§3]]), zero human input consumed.** The
+load-bearing event for the whole study so far:
+- The worker's causal claim ("any per-tick query flips the outcome → frames
+  provably unobtainable") was NOT-CONFIRMED by the verifier running the
+  ablation the worker hadn't: instrumentation channels separated → video
+  capture (getCameraImage) is bit-identical inert; the flip isolates to ONE
+  call, getLinkState(computeForwardKinematics=1) during the ~600-tick settle
+  window — forced FK recomputation across a floating-base settle transient
+  accumulates FP difference across the margin.
+- **This is the [[loop-engineering-analysis|analysis doc]] §II.3 hypothesis
+  confirmed in miniature**: iteration 1 needed a human's framerate question to
+  crack its numerics artifact; this run's equivalent artifact-class claim was
+  cracked by the mechanized perturbation gate with the human count at zero.
+  The gate design paid for itself on its first firing.
+- **H4 data, with a caveat the lead itself flagged**: catch attributed to the
+  VERIFIER/D5, but it retroactively closed the D8 gap too (the "unobtainable"
+  excuse collapsed; the verifier recorded the failing trajectory). Detector
+  catches are NOT independent — per-detector attribution will undercount;
+  score catches per ROLE primarily.
+- **H5 strengthened sharply**: verifier (Sonnet-class role) returned
+  UNDETERMINED on the claim it hadn't tested, named the settling experiment,
+  gave a falsifier per claim — the exact discipline whose absence defined
+  iteration 1's orchestrator. Lead sequenced reviewer AFTER artifact
+  preservation, deliberately. No routing failures observed.
+- **H1 supported**: the specified report shape routed in a single pass — the
+  REVISE is substantive (wrong mechanism), not a format round-trip.
+- **Substantive reframe**: the elbow-catch gate is marginal on BOTH platforms
+  (several "passes" hold with 2 fingers; ~0.3 mm/s on a 3.3 m/s launch flips
+  the verdict) — the cross-platform "regression" was a knife-edge boolean gate,
+  not 3.2.5-vs-3.2.7. Human decision #3 (don't chase 3.2.7) is retroactively
+  vindicated for a reason nobody had established when it was made — log this
+  as: scope-economy calls can be right ahead of the evidence, which is exactly
+  why they stay HUMAN calls ([[loop-engineering-analysis|analysis]] §II.2's
+  residual). Ratchet implication (for the lead/consolidation, not new here):
+  the boolean caught/held gate wants a margin metric — the same
+  binary-hides-the-distribution lesson as
+  [[grasp-experiment-reflection#^4|§4]].3, now firing on OUR OWN regression
+  gate.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
