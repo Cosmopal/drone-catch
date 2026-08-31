@@ -324,6 +324,47 @@ nothing tested), this time flagged by the party the hypothesis flattered, at
 the moment the conclusion was agreeable — behavioral evidence that the
 discipline is cultural, not only structural.
 
+**2026-08-31 — M-A critic verdict: DO NOT CLOSE (D4/D6). Critic's first
+catch; nudges still 4.**
+- **H4 essentially RESOLVED, positive, strongest form**: three gate roles,
+  three catches, three disjoint faculties — verifier by ablation (wrong
+  mechanism), reviewer by primary-log reading (provenance chimera), critic by
+  pure enumeration, running NOTHING (untested axis). Zero overlap. A
+  homogeneous 3-panel would plausibly have made one catch three times
+  ([[grasp-goal2-loop-spec|spec]] §0.1's premise, now with a worked
+  demonstration). Note the cost gradient: the cheapest role (no runs at all)
+  produced the milestone-gating catch.
+- The catch itself: `numSolverIterations=150` hardcoded; converge_cell()
+  sweeps substep/contact/seed but NEVER solver iterations → F5's "static
+  measurement foundation is sound" rested on a battery that omitted the one
+  axis that produced non-monotonic scatter dynamically. Lead withdrew the
+  "sound" phrase pending the experiment. ALSO: arm_catch_solo's 12/12 was
+  never attacked — "matches historical baseline" is evidence nobody tried to
+  break it (golden runs need ATTACK PARITY with the gates they certify).
+- **Scope detector: SECOND LOCAL EPISODE.** "Convergence-checked" carried
+  scope over an axis never swept — correct measurements on swept axes,
+  unearned generalization over the unswept one. With Claim 4, that's ≥2 local
+  refutation-capable episodes: the "unearned scope" detector now meets the
+  promotion bar on LOCAL evidence alone, exactly as the finding/preference
+  machinery requires. Promote at consolidation.
+- **Lead's own find (missed by worker, verifier, two reviewer passes, and
+  itself until now): the two regression gates run at DIFFERENT solver
+  settings** — elbow_catch_solo sets 150, arm_catch_solo inherits default 50.
+  Every gate-A-vs-gate-B comparison this milestone was cross-solver
+  confounded. Ratchet candidate (executable, domain layer):
+  instrument-consistency check — paired gates must share declared numerics or
+  the difference is stated in the comparison.
+- **Fourth candidate detector (critic's sharpest point, one episode — WATCH
+  ITEM per marginal-coverage): justification audit** — "is the JUSTIFICATION
+  for this conclusion the evidence actually cited for it?" F4 (clean logger)
+  was being cited for a conclusion only F3 (instability regardless of
+  logging) supports; the boolean-gate demotion was right but mis-justified,
+  and it survived three gates because every gate checks CLAIMS, not the
+  inferential chain BETWEEN them. Distinct from the scope detector (scope =
+  claim wider than evidence; this = right claim, wrong evidence wired to it).
+- M-B remains blocked pending the solver-axis experiment + gate-A attack.
+  Zero human input consumed by the entire M-A gate sequence to date.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
