@@ -326,7 +326,14 @@ discipline is cultural, not only structural.
 
 **2026-08-31 — M-A critic verdict: DO NOT CLOSE (D4/D6). Critic's first
 catch; nudges still 4.**
-- **H4 essentially RESOLVED, positive, strongest form**: three gate roles,
+- **H4: STRONGLY SUPPORTED — one milestone, redundancy cost untested**
+  [amended from "essentially RESOLVED, strongest form" after the lead's
+  caution — which was itself the observer's FOURTH scope error: three catches
+  in one milestone of one run on one task type (contact-rich, artifact-backed)
+  is an existence proof of disjoint faculties, but "resolved" implies the
+  split earns its COST, and cost shows up as the untested failure mode: two
+  gates firing redundantly on one defect. Not yet observed either way.]
+  Evidence: three gate roles,
   three catches, three disjoint faculties — verifier by ablation (wrong
   mechanism), reviewer by primary-log reading (provenance chimera), critic by
   pure enumeration, running NOTHING (untested axis). Zero overlap. A
@@ -341,6 +348,22 @@ catch; nudges still 4.**
   "sound" phrase pending the experiment. ALSO: arm_catch_solo's 12/12 was
   never attacked — "matches historical baseline" is evidence nobody tried to
   break it (golden runs need ATTACK PARITY with the gates they certify).
+- **RUN HEADLINE (lead's synthesis, adopted as the consolidation write-up's
+  lead finding): the recurring error of this run is not wrong findings — it
+  is CORRECT findings with untested scope attached.** Tally of instances:
+  gates caught 1 in the worker (Claim 4), the lead made 2 (F4-justification
+  mis-wire counts here; cross-solver confound), the observer made 4 (§25
+  double-count, three-hop claim, literature-inherited status, "H4 resolved").
+  Every layer produced it; every instance was caught by a different party
+  than its author. This is the strongest argument that the scope detector
+  belongs in the UNIVERSAL layer, not the domain layer — it fires on physics
+  claims, design claims, and meta-claims alike.
+- **Scope detector promotion text, strengthened (lead's addition): the two
+  local episodes were caught by DIFFERENT roles via different faculties**
+  (verifier/ablation on Claim 4's regime inference; critic/enumeration on the
+  solver-axis omission) — two catches by one role would share that role's
+  blind spots; two by different roles is better evidence the error class is
+  general rather than an artifact of one auditor's lens.
 - **Scope detector: SECOND LOCAL EPISODE.** "Convergence-checked" carried
   scope over an axis never swept — correct measurements on swept axes,
   unearned generalization over the unswept one. With Claim 4, that's ≥2 local
