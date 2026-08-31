@@ -16,7 +16,13 @@ PERTURBATIONS = (
     + [("contact", sc) for sc in (0.33, 3.0)]
     + [("seed", sd) for sd in (1, 2, 3)]
     + [("solver_iters", it) for it in (50, 100, 150, 200, 300)]
-)  # 13 total, matches paired_converge exactly
+)  # 13 entries, but only 12 DISTINCT configurations: solver_iters=150 is the
+   # committed default (== the same run as substep=4 with everything else at
+   # default) -- paired_converge deliberately skips this exact duplicate.
+   # Left as-is (not deduped) so already-completed ledger indices stay valid;
+   # consequence-free for verdicts (a duplicate baseline point doesn't move
+   # dmin/dmax), but "13-perturbation" in any report referencing this list is
+   # wrong as stated -- it's 12 distinct + 1 repeat.
 
 
 def apply_perturbation(kind, val):
