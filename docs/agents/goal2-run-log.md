@@ -940,13 +940,29 @@ trusted for the study that follows?):**
   - A fresh `grasp-iter-2` session exists but is a NEW session with NO context —
     the M-B brief, the six standing requirements, and the prereg-violation
     logging instruction all died with the old one.
-- **Loop-design observation, unprompted by the interruption's content:** every
-  piece of durable state that survived was in a COMMITTED artifact — the run log,
-  the M-A evidence, the generator scripts. Everything that died was in session
-  context: the brief, the standing requirements, the routing state. The
-  committed-evidence discipline this run kept ratcheting toward for epistemic
-  reasons turns out to double as crash recovery. The one gap was the WIP itself,
-  which survived only by luck of the filesystem.
-  - **RATCHET CANDIDATE (process layer): a milestone brief belongs in a committed
-    file, not only in a session message.** One local episode; recorded as a watch
-    item, not promoted.
+- ~~**Loop-design observation:** every piece of durable state that survived was in
+  a COMMITTED artifact; everything that died was session context; the
+  committed-evidence discipline doubles as crash recovery; the WIP survived only
+  by luck of the filesystem.~~ **RETRACTED SAME DAY — the lead asserted a data
+  loss that did not occur.** Corrected by the human: both the lead session and the
+  worker session retained their conversation history. Nothing was lost. The
+  inference chain was restart → sessions dead → context lost, and BOTH links were
+  wrong; the sessions were interrupted, not wiped. Uncommitted files also persist
+  across a restart as a matter of course, so the "survived only by luck" claim was
+  wrong too.
+  - What is actually true, and it is unremarkable: the worker's WORK was
+    interrupted mid-M-B. No state was lost. The lead's WIP-preservation commit
+    (c2ec47e) was harmless but not necessary, and the four-question context check
+    sent to the worker was the right move made for a wrong reason.
+  - The candidate ratchet ("a milestone brief belongs in a committed file") is
+    WITHDRAWN — it was motivated entirely by the loss that didn't happen. It may
+    be independently defensible; it has no episode behind it here.
+  - **Recorded rather than deleted, because this is the run's own recurring error
+    committed by the lead for the third time and the first time into the primary
+    data: a correct-sounding conclusion drawn from a structural signal (a
+    "started 3m ago" timestamp) instead of a check that was one message away.**
+    The human caught it. Note the sequence: the lead had, minutes earlier, been
+    corrected on asserting the worker had "no memory" from the same timestamp, ran
+    the cheap check for THAT claim, and still shipped the downstream conclusion
+    that depended on it. Fixing an inference without revisiting what was built on
+    it is its own failure mode, and it is not one any current detector covers.
