@@ -955,35 +955,66 @@ paper-validated (digest 09):
   (Part V edited); the ratchet gained a retirement mechanism ([[#^5|§5]] amendment).
 
 **Addendum (2026-08-31, surfaced by the human — the roll-forward agent MISSED
-this despite running after its Aug 29 publication; from press coverage of
-arXiv 2608.27454, paper not yet read, so the structural mapping is
-ANALOGY-TIER until it is): Google's WikiSkill.** The closest published system
-to this doc's design, independently converging on the same shape:
-- Three tiers: Raw Layer (immutable execution traces) / Wiki Layer
-  (continuously-growing distilled insights — failures AND rejected proposals
-  stay documented) / Skill Layer (active procedural instructions, rolled back
-  if performance drops). That is "append-only in history, distilled in active
-  surface" (VII.2–VII.3), with our raw-transcripts / findings+ledger /
+this despite running after its Aug 29 publication; STATUS: paper read in full,
+arXiv 2608.27454, Tang et al., Google Research + Virginia Tech): Google's
+WikiSkill.** The closest published system to this doc's design, independently
+converging on the same shape (named inspiration: Karpathy's "LLM Wiki" gist):
+- Three tiers: Raw Layer `raw/` (immutable execution traces) / Wiki Layer
+  `wiki/` (compounding, NEVER rolled back) / Skill Layer `skills/` (active
+  procedural instructions, reversible). "Append-only in history, distilled in
+  active surface" (VII.2–VII.3), with our raw-transcripts / findings+ledger /
   spec-principles tiers as the analogues.
-- Its loop — Inference Agent → Wiki Maintainer → Skill Proposer → **gating
-  mechanism validating every proposed skill change on a held-out validation
-  set** — is the consolidation pass ([[#^6|§6]].4) made agentic and, the part
-  our design left manual, GATED: promotion requires passing an executable
-  check ("a local refutation-capable episode," mechanized). Reported:
-  Gemini-3.5-Flash 49.5%→68.1% avg over five benchmarks (LiveMath, SealQA,
-  SpreadSheet, OfficeQA, ALFWorld); a ~9B model with it matching a 27B
-  without.
-- Two caveats against drop-in adoption: the gating works because benchmarks
-  HAVE ground-truth validation sets — an open-ended engineering loop's
-  analogue is known-answer/drift runs (§II.3; Part VI #7), scarcer and
-  dearer; and the authors report cross-model skill transfer is inconsistent —
-  matching digest 10's GEPA finding that tuned content doesn't transfer,
-  structure does.
+- **The provenance convergence is exact, not approximate**: every skill dir
+  carries a `PURPOSE.md` mapping the skill back to the motivating wiki
+  patterns — our `derived_from:` field, shipped. Wiki patterns are one .md
+  per failure mode WITH per-iteration evidence citations (episode links);
+  `index.md` is a one-line-per-pattern catalog (our MEMORY.md pattern);
+  `skill-impact.md` is a **programmatically-written** audit trail (proposal
+  metadata, unified diff, validation score, accept/reject) — provenance
+  maintained by the harness, not by agent discipline, which is stronger than
+  our design and worth stealing. The case study shows a REJECTED proposal's
+  recorded diff directly informing the accepted proposal one iteration later.
+- Loop: Inference Agent → Wiki Maintainer (root-cause analysis on sampled
+  traces) → Skill Proposer (ReAct, reads wiki index + impact tracker, pulls
+  pattern pages and raw traces on demand — JIT retrieval over an index, §6.2)
+  → **gating on a held-out validation split (accept only if score strictly
+  improves; roll back otherwise; wiki persists regardless)**. This is the
+  consolidation pass ([[#^6|§6]].4) made agentic and, the part our design
+  left manual, GATED. Reported: Gemini-3.5-Flash 49.5%→68.1% avg over five
+  benchmarks; Qwen-9B with skills (47.4%) beats Qwen-27B without (39.4%);
+  ablation: wiki access for the proposer is worth +15 points — persistence is
+  the load-bearing component, not the skill-editing.
+- **The isolation ablation is the paper's most striking design datum**: the
+  Inference Agent is BARRED from reading the wiki during rollouts, because
+  granting it access DEGRADES final skill quality (63.7%→60.9%) — knowledge
+  leaking into the executor makes its traces less informative for skill
+  development. A second, independent argument for layer-isolation on top of
+  our anchoring one (§0.3 of the loop spec): isolation protects not just the
+  judge's objectivity but the LEARNING SIGNAL itself.
+- Transfer (CORRECTING the press-based caveat above/earlier: the paper is
+  more positive than "inconsistent"): evolved skills transfer across models
+  and families, and foreign-evolved skills sometimes BEAT self-evolved ones
+  (9B on ALFWorld: 70.2% with 27B's skill vs 63.4% with its own) — "skill
+  discovery and skill execution are distinct capabilities." Negative transfer
+  occurs specifically when skills encode MODEL-SPECIFIC WORKAROUNDS (4B's
+  low-level crutches throttle Gemini) — digest 10's distinction between
+  general procedures and capability workarounds, reproduced at paper scale.
+- What it lacks that our design has (its own stated limitations + reading):
+  **no wiki pruning/retirement mechanism** (our lifecycle: fires/catches,
+  demotion, staleness propagation); strict-improvement gating excludes
+  neutral-now/enabling-later changes (our finding-vs-preference tags +
+  deferred-with-trigger tier are exactly the machinery for those); no skill
+  retrieval story (full prompt injection); and the gating presumes
+  ground-truth validation sets — an open-ended engineering loop's analogue
+  remains known-answer/drift runs (§II.3; Part VI #7).
 - Net: with Anthropic's Dreaming (memory consolidation) and Google's
   WikiSkill (gated skill compilation), both major labs have now shipped the
   write-time-distillation + lifecycle architecture this doc assembled from
-  fragments in July. What remains distinctly ours are the questions
-  benchmarks don't force: validation-set-free gating, provenance/staleness
+  fragments in July. Its related-work section also reveals the roll-forward's
+  thread-3 coverage gap was wider than one paper: a whole 2026 subfield
+  (EvoSkill, Trace2Skill, SkillOpt, SkillOS, HarnessX, Self-Harness,
+  AutoHarness, Meta-Harness) now works on scaffold/skill self-evolution.
+  What remains distinctly ours: validation-set-free gating, pruning/staleness
   propagation, finding-vs-preference status of the distilled layer.
 - Process note, kept per the appendix tradition: the roll-forward's miss of a
   2-day-old publication is a coverage bound on single-pass literature sweeps
