@@ -35,6 +35,7 @@ the doc's Part VII — the full-mission generalization questions:
 | 09 | rollforward-aug2026 | May–Aug 2026 literature roll-forward: METR corrections, Dreaming/Outcomes, GEPA, auto-scaffold-design counter-evidence, supersession measured, Cognition's softened multi-agent stance | Part VII.1, edits to Part V + [[iteration_findings#^5::§5]] |
 | 10 | generic-vs-specialized-loops | ratchet overfitting; scaffold transfer (ADAS/GEPA/ExpeL/Voyager/METR); TMS/reflection-tree distillation with provenance; checks in code vs context; layered check hierarchies | Part VII.2–VII.3 |
 | 11 | vision-reference-priors | expectation-based monitoring; pre-registration for agents; literature-derived priors; anchoring-bias evidence; VLM reference-clip limits | Part VII.4 |
+| 12 | wikiskill-paper-notes | **full paper read, not a subagent digest** — Google's WikiSkill (arXiv 2608.27454): three-layer wiki/skill co-evolution, [[12-wikiskill-paper-notes::PURPOSE.md provenance]], gated skill updates, isolation ablation; missed by sweep 09, surfaced by the human | Part VII.1 addendum |
 
 Note: 10 and 11 have NO raw transcripts (their task transcript files were empty
 at archive time — a harness observability gap, itself a data point); the digests
