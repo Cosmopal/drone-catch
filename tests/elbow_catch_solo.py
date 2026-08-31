@@ -117,7 +117,12 @@ def run(gui, runs_dir, ball_vx=BALL_VX_DEFAULT, ball_vz=BALL_VZ_DEFAULT,
         print(f"intercept={intercept.tolist()} station_H={STATION_H} "
               f"t_flight={t_flight:.3f}s")
     ball = spawn_ball(launch_pos)
-    p.changeVisualShape(ball, -1, rgbaColor=[1.0, 0.3, 0.3, 1])
+    # Bright green — distinct from the red/orange/magenta MarkerSet palette
+    # (target [1,.2,.2], actual [1,.5,0], intent [1,.2,.8]) and the orange
+    # m_cup / yellow m_est markers below. The old near-red [1,.3,.3] was
+    # visually indistinguishable from the target marker at render scale
+    # (M-A reviewer finding: legibility bug, blocked finger-state frame review).
+    p.changeVisualShape(ball, -1, rgbaColor=[0.15, 0.85, 0.25, 1])
     p.changeDynamics(ball, -1, linearDamping=0.0, angularDamping=0.0,
                      restitution=BALL_RESTITUTION, lateralFriction=BALL_FRICTION)
     p.resetBaseVelocity(ball, linearVelocity=launch_vel.tolist())
