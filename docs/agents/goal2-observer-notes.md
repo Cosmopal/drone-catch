@@ -272,17 +272,40 @@ and the change was the arrival of a refutation-capable episode.
   (untested-vs-earned distinguishability). Independent re-derivation is the
   best validation a design element in the PREFERENCE tier can get short of an
   episode.
-- **On the hard version** (testing "the ratchet should compile to three
-  layers" without running many loops): partially answerable. The three-layer
-  claim IS grounded in episodes — other people's: ADAS/GEPA/Voyager/METR
-  published runs ([[10-generic-vs-specialized-loops|digest 10]]) are its
-  evidence base, with our own future runs as the falsifier-in-waiting. So the
-  taxonomy generalizes: a design claim's "artifact" is a citable episode from
-  ANY project, and its finding-status is inherited provisionally from
-  literature until a local episode confirms or refutes. What has no answer —
-  the lead is right — is design claims with neither local nor literature
-  episodes; those are preferences, full stop, and should be the cheapest to
-  reverse.
+- **On the hard version** — AMENDED after the lead's third audit of the
+  observer (all three objections verified and accepted):
+  (1) The observer over-claimed: [[10-generic-vs-specialized-loops|digest 10]]
+  itself states its three-layer synthesis "is inference from those, not a
+  citation" — the foreign episodes ground their own narrow claims (ADAS →
+  pattern transfer; GEPA → prose overfitting; Voyager → executable transfer;
+  METR → the failure split); the COMPILATION across them is our synthesis:
+  analogy tier. The observer cited the digest while dropping the limit its
+  own author had flagged.
+  (2) A parallel finding/preference axis duplicates [[grasp-goal2-loop-spec|spec]]
+  §0.3's provenance tags (literature-backed/analogy/guess) — unify, don't
+  run alongside (marginal-coverage rule, applied to the observer's proposal).
+  (3) "Literature-inherited provisional finding status" is a prior lowering
+  the evidence bar — the spurious-confirmation shape (§0.3 asymmetric
+  authority + prior-robustness), aimed at our own design claims this time.
+  **Standing resolution (lead's amendment, adopted): foreign episodes license
+  ATTENTION and PRIORITY, never STATUS. A design claim with only foreign
+  episodes is a PREFERENCE carrying a literature-backed prior; promotion
+  requires a local episode that could have refuted it. The triage rule
+  survives: claims with neither local nor foreign episodes are preferences
+  full stop and the cheapest to reverse.**
+
+**H7 — direction-of-error gradient in the meta-layer (opened on the lead's
+observation; watch, don't over-read).** Three consecutive observer errors ran
+the SAME direction: each would have made our own framework look
+better-grounded than it is (spurious second episode for the scope detector;
+three-hop contamination claim; literature-inherited finding status). Zero ran
+the other way. If the gradient persists, it's the meta-layer's own sycophancy/
+self-confirmation analogue — the observer optimizing the study's narrative —
+and the fix is structural per this run's own lesson: the observer's
+load-bearing claims need an artifact-pointed auditor (which the lead is
+currently providing ad hoc). Score at consolidation: direction of every
+observer error, and whether any framework-UNFLATTERING observer error ever
+got caught (if none is ever even made, that asymmetry is itself the signal).
 
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
