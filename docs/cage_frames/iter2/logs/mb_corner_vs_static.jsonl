@@ -1,0 +1,4 @@
+{"tag": "S29_n4_finger_2.5cm", "strategy": "prb", "EM_g": 10.0, "PI_cm": 2.0836529965273236, "CF": 4, "SY": 0.7501903371469731, "score": 1.0}
+{"tag": "S29_n4_gap_3.5cm", "strategy": "prb", "EM_g": 10.0, "PI_cm": 0.009964151754291578, "CF": 4, "SY": 0.6012874768145132, "score": 1.0}
+{"tag": "MB_n4_finger_2.5cm_paired", "strategy": "prb_pulse", "a_PI": 2.1230900999211393, "b_PI": 2.0836529965273236, "delta": 0.039437103393815676}
+{"tag": "MB_n4_finger_2.5cm_paired", "strategy": "prb_active", "a_PI": 2.0267654952304373, "b_PI": 2.0836529965273236, "delta": -0.056887501296886356}
