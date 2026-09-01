@@ -1,0 +1,5 @@
+=== §2.3 PAIRED delta (prb_pulse-prb) n=4 off=4.5cm dir=finger ===
+             variation |  prb_p PI    prb PI   DELTA
+     substep 2 (1/480) |     +4.20     +3.72   +0.49
+     substep 4 (1/960) |     +3.53     +2.33   +1.20
+    substep 8 (1/1920) |     +3.08     +1.98   +1.10
