@@ -1,0 +1,2 @@
+{"corner": "corner1_substep8_contact033_seed2", "substep": 8, "contact_scale": 0.33, "seed": 2, "a_pull_in": 4.797666917189716, "b_pull_in": 4.780999540680508, "delta": 0.0166673765092078, "elapsed_s": 195.28459191322327}
+{"corner": "corner2_substep2_contact3_seed1", "substep": 2, "contact_scale": 3.0, "seed": 1, "a_pull_in": 1.8191644395670483, "b_pull_in": 0.16651844420434644, "delta": 1.652645995362702, "elapsed_s": 18.657026529312134}

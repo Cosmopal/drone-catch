@@ -1,0 +1,3 @@
+{"corner": "corner1_substep2_contact033_seed3", "substep": 2, "contact_scale": 0.33, "seed": 3, "a_pull_in": 4.275143222621377, "b_pull_in": 3.07558489634189, "delta": 1.199558326279487, "elapsed_s": 60.941972494125366}
+{"corner": "corner2_substep2_contact3_seed1", "substep": 2, "contact_scale": 3.0, "seed": 1, "a_pull_in": 3.829229952567027, "b_pull_in": 3.0325438792789075, "delta": 0.7966860732881194, "elapsed_s": 33.52418637275696}
+{"corner": "corner3_substep8_contact033_seed2", "substep": 8, "contact_scale": 0.33, "seed": 2, "a_pull_in": 4.105821716871675, "b_pull_in": 4.26275589786088, "delta": -0.15693418098920553, "elapsed_s": 144.7841351032257}
