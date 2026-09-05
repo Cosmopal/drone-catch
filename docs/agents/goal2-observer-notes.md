@@ -672,6 +672,44 @@ consequential).**
   transcript is unrecoverable fails the same provenance standard we impose
   on the physics.
 
+**2026-09-06 — corrections round on the trigger-5 relay (one against the
+observer, one against the lead — both caught by a different party, pattern
+unbroken).**
+- **Observer error #6 (caught by lead): the moment-arm consequence was
+  INVERTED.** I said hand mass "worsens the folded-pose concern"; measured
+  against the pose the project ALREADY flies (folded_shoulder=−π/2, cup at
+  (−0.445, +0.020) → 44.5 cm lever), the proposed cup-up pose (elbow ~1.53
+  rad, cup at (−0.209, +0.265)) HALVES the horizontal lever: 200 g at 0.209 m
+  on ~1.1 kg AUW ≈ 3.8 cm COM shift vs 8.1 cm for the existing pose. The
+  mass finding argues FOR the new pose. Error class: sampling-bias/framing
+  axis — I evaluated the new pose against no baseline instead of the
+  incumbent. First observer error in the hardware domain; direction neutral
+  (neither flattered nor damaged the framework — relevant to H7's
+  direction-tracking).
+- **D9 CONTRAST recorded (lead's elevation of the Model T finding): same
+  detector, same project, OPPOSITE verdicts on two subsystems.** Hand: `prb`
+  models a documented mechanism (Model T's single-actuator differential) —
+  D9 positive. Arm: `torque_cap` is a current-limit posing as compliance —
+  D9 negative. The pairing is the best teaching example the write-up has for
+  what mechanism-fidelity means. Sensing-fork refinement: one-servo load
+  feedback is the topology's NATIVE sensing channel; `prb_active`'s
+  per-finger contact booleans are the part WITHOUT a hardware referent — the
+  fork narrows to "which single servo," and the per-finger abstraction gets
+  its own validity-ledger flag.
+- **Lead framing error (caught by the HUMAN asking for the M-B videos):
+  "null" was over-compressed.** At 5.0 cm nominal the adaptive close shows a
+  real, mechanically legible improvement (centering 3.04→1.59 cm; a jammed
+  finger at flex +1.6 vs all four at +2.5; symmetry 0.67→0.81); what it
+  fails is robustness to one joint corner. Honest claim: "not demonstrated
+  robustly," NOT "no benefit." Compression of a nuanced result into a binary
+  verdict is the scalar-hides-the-distribution failure — at the REPORTING
+  layer this time. And the catch mechanism was the human requesting frames:
+  the examine-frames memory earning its keep at yet another layer. Prereg
+  correctly held until the human decides milestone scope on the corrected
+  picture.
+- Standing rule adopted by lead: predictions leaning on per-part numbers are
+  §4 escalations, never estimates.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
