@@ -634,6 +634,44 @@ and a §6 flaw exposed and fixed.**
   argument for deleting the sensors. Findings priced in hardware terms:
   the reason the envelope was commissioned, arriving one milestone early.
 
+**2026-09-06 — lead's synthesis of the hardware envelope (three items, each
+consequential).**
+- **The sensing/compliance actuator fork (sharpened from the observer's
+  caveat):** the same actuator that makes contact sensing free (STS3215-class
+  geared serial-bus servo with load feedback) is the one that FORECLOSES
+  back-drivability; the compliant catch wants direct-drive BLDC+FOC at ~1/10
+  torque per gram. `prb_active` and compliant absorption pull toward
+  DIFFERENT actuators — a real design fork the sim hides because in sim both
+  capabilities are free. First concrete case of the envelope re-pricing a sim
+  trade-off.
+- **D9 EXTENDED TO ACTUATORS (lead's find — mechanism-fidelity's blind spot
+  was scope, again):** `spin_arm(torque_cap=...)` is a current-limit posing as
+  mechanical compliance — structurally the SAME defect that reopened Goal 1
+  (`yale_hand.py`: contact-reading redistributor posing as a tendon hand).
+  Nobody flagged it in two milestones because D9 has only ever been pointed
+  at the HAND. Cousin of situation-fidelity: the detector existed, its scope
+  didn't cover the subsystem. Consolidation item: D9's text must cover ANY
+  software abstraction standing in for a physical mechanism, wherever it
+  lives.
+- **Design synthesis for the geometry milestone — "put the compliance where
+  it's manufacturable":** a compliant dished palm IS a series-elastic
+  element relocated from the joint (unbuildable cheaply) into the hand
+  (trivially printable in TPU). The dish does three jobs: seat, re-centre by
+  gravity, absorb impact — and partially substitutes for an actuator
+  capability hardware can't provide. Milestone design change: palm COMPLIANCE
+  becomes a swept axis alongside curvature and impact energy, not a rigid
+  shape. This is the envelope directly reshaping an experiment's design
+  space before a single prediction was written — the sequencing (envelope
+  before prereg) earning its keep immediately.
+- Prereg holds until trigger 5 fires (OpenHand fabrication PDF masses);
+  actuator-mass reality (110 g/2 joints vs 60 g of links) worsens the
+  folded-pose moment-arm concern. Lead treating all envelope numbers as
+  provisional pending use-time verification — correct.
+- Lead's note adopted: the transcript-flush defect is the "trace to
+  committed evidence" problem one layer up — a research pass whose raw
+  transcript is unrecoverable fails the same provenance standard we impose
+  on the physics.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
