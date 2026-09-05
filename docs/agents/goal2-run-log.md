@@ -1296,3 +1296,232 @@ scored blind; prereg opened only at this point).**
     pre-registration identified as the biasing mechanism. It is the strongest
     result this run has produced about loop design, and it argues for a standing
     countermeasure: **sample at least one cell that no prediction covers.**
+- **STANDING PRACTICE ADOPTED from M-C onward (lead's call, on the observer's
+  prompt): a gate brief states what to TEST and what would FALSIFY, never what
+  the lead expects to be true.** Adopted without waiting for a second episode,
+  against the normal one-episode rule, because this failure is structurally
+  guaranteed to recur — the lead authors every brief, so the channel is open on
+  every gate, every milestone.
+  - **Refinement, and it is the part that matters:** the rule bars stating an
+    expected OUTCOME, not naming an untested ALTERNATIVE. The M-A verifier brief
+    said "Claim 1 is the one I most doubt, because there is a cheaper untested
+    explanation — `--runs-dir` may change the code path rather than observe it,"
+    and that brief produced the run's single best catch. It named a rival
+    hypothesis and assigned the ablation that would separate them; it did not say
+    which would win. The M-B brief said "sensing buys nothing would be a much
+    stronger and cheaper conclusion" — that states a preferred answer and adds a
+    reason to want it. **Name the alternative, assign the discriminating
+    experiment, never predict the winner, and never say which result would be
+    more convenient.**
+  - Sharpest test of the boundary: if a brief's framing would survive being read
+    aloud to the gate AFTER it reported, without embarrassment, it is direction;
+    if it would look like a thumb on the scale, it is anchoring.
+- Observer's confound noted and accepted: "5/5 confirmed at mean confidence 0.67"
+  is NOT usable calibration data, because the cells were chosen to match the
+  predictions. Confirmations calibrate only on cells sampled independently of the
+  predictions being scored. That makes the uncovered-cell countermeasure
+  load-bearing twice — it is the precondition for calibration data existing at
+  all, not just insurance against a missed finding.
+
+**2026-09-01 — M-B CRITIC VERDICT: DO NOT CLOSE. Gate catch #7. Lead verified all
+three checkable code claims before acting.**
+- **BLOCKER, and it is the LEAD'S defect, not the worker's.** The milestone's
+  headline (F3, the 4.5 cm trade-off) exists **only as prose in this run log**.
+  Verified: `docs/cage_frames/iter2/logs/` contains ten `mb_ledger_*` files
+  covering 1.5 / 2.5 / gap-3.5 / 5.0 / n8-2.5 cm — and **NOTHING for 4.5 cm**.
+  The verifier ran that battery in its scratchpad, reported the numbers to me, and
+  I wrote them into the log. No committed artifact exists.
+  - This is the exact rule the lead promoted at M-A close — "a number must trace
+    to committed CODE, not merely a committed log" (c3ee083) — violated by the
+    lead, on the milestone's most important number, one milestone later. F2
+    (5.0 cm) has a full ledger and reproduces line-by-line; F3 does not.
+  - Note the asymmetry that let it through: the rule was enforced on the WORKER's
+    numbers by a gate. Numbers arriving via a GATE and transcribed by the LEAD had
+    no such check, because nothing in the loop gates the lead's own artifacts.
+- **F4 relabel — CONFIRMED, and the harness already knew.** `A_MAX_ESCAPE = 10.0*G`
+  is documented in-code as "cap on the margin search (holds above read '>=cap')",
+  and line 1102 prints `>=10.0g` rather than a value when at the cap. So
+  "escape-margin 10.00 g" is **censored data**, not a measurement — the true
+  margin could be 10 g or 40 g. Every "restores EM to 10.00 g" statement in this
+  milestone (mine included, repeatedly) must read **"restores EM to at-or-above
+  the 10 g search ceiling."** The qualitative finding (baseline strained at 5.0 cm,
+  adaptive not) survives intact; the number does not.
+- **OAT vs factorial — a real limit on what "convergent" means here.** The 12
+  perturbations vary ONE axis at a time from a single baseline (3+2+3+4). A
+  configuration that is simultaneously coarse-timestep AND soft-contact AND
+  bad-seed is never sampled. "Convergent across all 12" is convergence along 12
+  rays from one point, not across the space. If the joint-worst-case noise floor
+  exceeds 0.3 cm, both headline convergences could be within noise.
+- **The trade-off attacked, and it lands.** F3's `prb_pulse` clears the threshold
+  by only 0.19 cm (dmin +0.49 vs the +0.3 bar), and `prb_active`'s own 4.5 cm
+  spread across 4 seeds was +0.687/+0.806/+0.203/+0.141 — a 0.66 cm swing on a
+  0.3 cm threshold. So "the strategies trade off" may be **two threshold-straddling
+  readings narrated as a crossover**, equally consistent with one noisy underlying
+  quantity that both strategies estimate imperfectly and that happens to fall
+  either side of the bar at two nearby offsets. Cheapest discriminator: one cell at
+  **4.75 cm**, full battery, both strategies — a real crossover predicts a smooth
+  monotonic swap in dmin across 4.5 → 4.75 → 5.0; noise predicts an incoherent
+  pattern.
+- **THE DEEP FINDING (critic's §5), and it may scope the entire milestone.**
+  Gravity is OFF for the whole close (`setGravity(0,0,0)`, `setup_physics` line
+  143 — verified; gravity is applied only transiently as the disturbance probe).
+  Pull-in is therefore purely finger-force-driven, with no weight pre-seating the
+  ball. On real hardware a Yale/SDM-class hand's self-adaptation is classically
+  demonstrated as compensating for WEIGHT-driven pre-seating. So the adaptive
+  advantage may be a **zero-g-only artifact**: `prb_pulse`'s release phase lets the
+  ball drift free and be re-grabbed in a better spot precisely because nothing
+  pulls it back to a rest position during release. If so, F2/F3 do not describe
+  the regime the hand would actually operate in — and F7's visual confirmation
+  does not rule it out, having also been captured gravity-off.
+- **§4 ESCALATION TO THE HUMAN — physical-realism judgment.** Whether gravity-off
+  invalidates the pull-in finding, and whether the static harness should be run
+  gravity-on for these two cells, is exactly the faculty the loop spec marks as
+  not mechanizable. The gravity-off design was deliberate (§25: determinism).
+  Escalating rather than unilaterally changing the testbed regime.
+
+**2026-09-01 — M-B tasks 1–4 landed (worktree f401b7b). Lead re-derived every
+number from the committed ledgers. THE MILESTONE'S RESULT HAS CHANGED.**
+- **Task 1 — blocker cleared, no drift.** `mb_ledger_P6_n4_finger_4.5cm_*` now
+  committed. Lead-verified: pulse dmin **+0.485** / dmax +1.574; active dmin
+  **+0.141** / dmax +1.193 — matching my transcription exactly. The worker's
+  official `paired_converge` runs were killed twice by the machine, so it
+  preserved both partials and cross-checked 10 overlapping perturbations against
+  the chunk driver bit-for-bit before relying on it. Correct handling of a flaky
+  environment: it did not let the instability become an excuse for an unverified
+  number.
+- **Task 2 — EM censoring corrected**, by the worker and applied retroactively to
+  its own prior claims. Qualitative finding restated precisely: the passive
+  baseline was the ONLY strategy not saturating the 10 g search ceiling; both
+  adaptive variants DID saturate it. The magnitude of their advantage is unknown
+  and unmeasured.
+- **Task 3 — the discriminator is ambiguous, and the worker declined to resolve
+  it.** dmin across 4.5 → 4.75 → 5.0 cm: `prb_pulse` +0.485 → +0.248 → +0.21
+  (smooth monotonic decline); `prb_active` +0.141 → +0.165 → +1.23 (flat, then an
+  abrupt step). Neither a clean crossover nor pure noise. Reported as observed,
+  interpretation left open — the right call.
+- **TASK 4 — BOTH HEADLINE CONVERGENCES BREAK. This is the milestone's real
+  result.** Two JOINT corners (substep + contact + seed varied simultaneously,
+  which the 12-ray OAT design never samples):
+  - corner (substep 2, contact ×3.0, seed 1): both cells robustly positive
+    (pulse +0.80, active +1.65) — no surprise.
+  - corner (substep 8, contact ×0.33, seed 2): **`prb_pulse` @ 4.5 cm = −0.157
+    (SIGN FLIP; every OAT perturbation at this cell was positive, min +0.485).
+    `prb_active` @ 5.0 cm = +0.017 (collapse to ~zero; OAT min was +1.23).**
+  - Lead-verified from the committed ledgers, and both reproduce exactly in
+    separate `*_repro_*` files (−0.157 and +0.017). Not a fluke.
+- **Consequence: M-B has NO surviving convergent-positive result on pull-in.**
+  Both positives were artifacts of an incomplete sweep. The honest milestone
+  finding is now: *adaptive re-centering shows no robustly convergent pull-in
+  advantage over the passive close anywhere in the tested envelope, and the
+  apparent advantages at 4.5 and 5.0 cm do not survive joint perturbation.* The
+  worker reached this conclusion itself and stated it plainly against its own
+  prior headline.
+- **RETROACTIVE IMPLICATION — the largest thing this run has surfaced.** The
+  OAT-only design is not M-B's; it is `converge_cell`/`paired_converge`, the
+  §2.3 battery used to validate **every contact-rich result in the iteration-2
+  static study, including §28/§29's Goal-1 conclusions.** If a joint corner breaks
+  M-B's results, the question of whether it breaks §29's is open and unasked. The
+  worker explicitly flagged that it did NOT try the breaking corner at any other
+  cell. **This is now the highest-value experiment available and its scope is
+  Goal 1, not Goal 2.**
+- Also untested (worker's own list): only 2 corners per cell, no systematic
+  corner sweep; no mechanism-level account of why substep8 × contact0.33 × seed2
+  specifically breaks it.
+- **Gate catch attribution: the CRITIC (D4/D6) named the OAT gap; the WORKER
+  executed the corner that falsified both headlines.** The critic ran nothing and
+  again produced the milestone-deciding catch — second time in two milestones.
+
+**2026-09-01 — RETROACTIVE SCARE RESOLVED: §29 does NOT break under the corner.**
+- Worker ran corner (substep 8, contact ×0.33, seed 2) against three cells:
+  - **prb, n4, 2.5 cm, finger:** EM 10.00 g (ceiling), CF 4, score 1.00 — all
+    unchanged. PI +2.08 vs committed +2.24–2.26 across OAT. SY 0.75 vs 0.60–0.83.
+  - **prb, n4, 3.5 cm, gap:** EM 10.00 g, CF 4, score 1.00 — unchanged.
+    PI +0.01 vs committed −0.35..−0.00 (a cell §29 ALREADY flagged as sign-unstable).
+  - **M-B null cell (n4-finger-2.5 cm), paired:** pulse +0.04, active −0.06 —
+    both inside their reported OAT ranges. Null holds.
+- **The worker did not stop at "it holds" — it found the mechanism, by
+  cross-reference rather than assumption.** At BOTH static cells the corner's
+  numbers are reproduced almost exactly by the **contact×0.33 row alone** in the
+  already-committed `prb_convergence.txt`: finger-2.5 cm contact×0.33 gives
+  PI +2.06 / SY 0.75 against the corner's +2.08 / 0.75; gap-3.5 cm gives
+  PI −0.00 / SY 0.60 against +0.01 / 0.60. Adding substep 8 and seed 2 contributes
+  essentially nothing. **No super-additive interaction at the static cells.**
+- **Contrast, and this is the actual finding:** at M-B's headline cells the same
+  corner produced effects FAR outside anything a single axis predicted —
+  pulse@4.5 cm OAT range +0.49..+1.57 → corner −0.16 (below the weakest single
+  axis); active@5.0 cm OAT range +1.23..+1.56 → corner +0.02. That is genuine
+  super-additivity, and on this evidence it is specific to MARGINAL findings.
+- **Coherent shape: joint-corner sensitivity appears to scale with how close a
+  finding already sits to the noise floor, not with a universal flaw in the
+  harness.** §29's Goal-1 conclusions are large-margin (EM at ceiling, PI ≫ the
+  0.3 cm threshold) and survive intact; M-B's findings hovered just above 0.3 cm
+  and do not. The worker labelled this a hypothesis fitting 3 data points rather
+  than a law — correct, and exactly the scope discipline this run kept having to
+  enforce, now applied unprompted to its own reassuring result.
+- **Consequence: the retroactive threat to Goal 1 is NOT realized.** The §2.3
+  OAT battery's inadequacy is real but its damage is bounded to marginal claims.
+  That is a far better outcome than either "everything is fine" (which nobody
+  checked) or "two iterations are invalid."
+- Untested and flagged by the worker: one corner only, 3 cells only; other joint
+  combinations at the static cells unsampled; no corner run at n6/n8 or other §29
+  offsets.
+- **The gravity escalation has RESHAPED and the lead is telling the human so.**
+  It was raised as "is the adaptive ADVANTAGE a zero-g artifact?" There is no
+  longer a robustly convergent advantage to be an artifact of, so that form of the
+  question is largely moot. The live form is now the REVERSE: **does the NULL
+  generalize, or does gravity-off suppress a benefit that weight-driven
+  pre-seating would reveal?** Weaker motivation, still real, and a different
+  experiment's worth of value. Reported to the human as a changed question rather
+  than left standing as originally posed.
+
+**2026-09-05 — human decision #5 (faculty: PHYSICAL REALISM / mechanism design).
+The escalation was answered with a better question.**
+- Human: "To use gravity as an assisting force rather than something we fight,
+  won't we have to provide a base on which the ball would land? This would mean
+  the arm would catch the ball from below?"
+- **Lead verified the geometry rather than reasoning from memory. The human is
+  right, and the situation is worse than stated:**
+  - The cup opens DOWNWARD. `SHOULDER_HOLD = 0` (arm hangs straight down); cup
+    centre = `ee_world() + [0,0,-CUP_DEPTH]`, i.e. 4.5 cm BELOW the palm. Fingers
+    mount on a 34 mm ring about the −z axis; 55 mm proximal passes the equator,
+    32+25 mm middle/distal curl UNDER to meet beneath the ball. The mouth faces
+    the ground — gravity pulls the ball toward the opening, not against support.
+    (This is why §15 validated the cage by INVERSION test: inversion survival is
+    required precisely because there is no floor but the fingers.)
+  - **The "palm" is CONVEX** — `end_effector` is a sphere of radius **12 mm**,
+    5 g, against a 30 mm ball. Ball-on-smaller-convex-sphere is an UNSTABLE
+    equilibrium. The current palm does not merely fail to assist centering, it
+    actively DE-centers. Flipping the cup upward alone would not give a base; a
+    CONCAVE dished palm is required for gravity to seat the ball on-axis.
+- **Consequence for M-B's null, and it is a scope limitation nobody had stated:**
+  M-B asked whether an adaptive close can re-centre an off-center ball. In this
+  geometry all re-centering must come from FINGER FORCES ALONE — gravity off, no
+  supporting surface, against a de-centering convex palm. That is the hardest
+  possible form of the question. The Yale/SDM literature the PREREGISTRATION
+  CITED demonstrates re-centering in the OPPOSITE configuration: object resting
+  under its own weight on a palm, hand closing over it. **The prereg's literature
+  anchor did not match the testbed's geometry, and no gate caught it** — the
+  provenance-tagged "literature-backed" prediction was backed by literature about
+  a different mechanical configuration.
+- **The lead's escalation was mis-posed and the human corrected it.** I asked
+  "should we run these cells gravity-on?" In a downward-facing cup that tests
+  RETENTION (can fingers hold the ball in), not RE-CENTERING. The coupled change
+  is one experiment, not three: **cup up + dished palm + gravity on.**
+- Costs recorded honestly: the drone must get UNDER a descending ball, so the ball
+  falls through rotor downwash — and PyBullet models NO propwash (parking-lot
+  item 11), so the sim would be silently optimistic about exactly the failure mode
+  the change introduces. A miss puts the ball into the drone. Cup-up needs a ~180°
+  shoulder sweep — no new DOF, but folded-back/inverted arm poses are a documented
+  trap and sustained arm-up cascade stability is unverified.
+- **Lead's recommendation to the human:** close M-B on its null (the null is real
+  FOR THIS GEOMETRY), record the downward-facing convex-palm configuration as an
+  explicit scope limitation rather than a footnote, and run "upward dished palm +
+  gravity on" as its own milestone with its own pre-registration.
+- **For the meta-study — the sharpest instance of the run's recurring error, and
+  the only one no gate could have caught.** Every layer (worker, lead, verifier,
+  reviewer, critic, observer) reasoned for two milestones about "re-centering"
+  without anyone checking which way the cup faced or what shape the palm was. The
+  detectors interrogate claims, evidence, scope, and sampling — none asks whether
+  the TESTBED'S GEOMETRY MATCHES THE MECHANISM BEING CLAIMED. D9 (mechanism
+  fidelity) covers whether the HAND is faithful; nothing covers whether the
+  SITUATION is. Human nudge count: 5.
