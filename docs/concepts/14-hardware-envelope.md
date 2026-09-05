@@ -106,3 +106,49 @@ tags:
 ---
 
 **Not reached / explicitly NOT COVERED this session**: exact Yale OpenHand total hand mass and per-part breakdown (page lacked the data; fabrication PDFs unopened); quantitative contact-sensing gram/cost comparison (FSR vs. limit switch vs. tendon-servo current sensing); indoor noise dB figures; individual tilt-rotor paper mass/servo specs (summarized from search snippets, not read in full).
+
+---
+
+## ADDENDUM 2026-09-06 — Trigger 5 FIRED: real OpenHand mass figures (closes thread-3's main NOT COVERED)
+
+Second research pass, focused on documented hand masses. Sources per row; the
+fabrication PDFs themselves are scanned/non-extractable, so itemized per-part
+breakdowns and tendon material remain open.
+
+| Hand | Mass | Actuators | Tag |
+|---|---|---|---|
+| Yale Model T42 (2-finger) | **400 g** | 2× Dynamixel RX-28/MX-28 (~72 g each) | fabrication-doc page |
+| Yale Model O (4-finger) | **750 g** | 4× Dynamixel | fabrication-doc page |
+| Yale Model M2 (2-finger) | **375 g** | 2× Dynamixel | fabrication-doc page |
+| Yale Model T (4-finger, ONE actuator + pulley differential) | **490 g** | 1× Dynamixel | paper, secondary citation |
+| Model T aerial "half-weight" variant | **≈245 g** | same topology, lighter | stated intent in a README, NOT a verified as-built weight |
+| Fully-printed body-powered prosthetic (no servo — analogue only) | 92 g | none | analogue |
+
+**Corrected verdict for the hand (supersedes row 3's "plausible/NOT COVERED"):**
+- The sim's 3–4 g/finger is plausible FOR THE PRINTED LINKS — but finger mass
+  was never the number that matters. 4 × 3–4 g ≈ 12–16 g captures structure
+  only; real hands show the actuator + differential + palm cost **230–700+ g
+  on top**. Mass driver = actuators, same conclusion as the arm (thread 2).
+- **No documented OpenHand build fits a 100–200 g budget.** The only
+  plausible path near it: ONE light tendon servo (SG90/MG90S 9–13 g, or
+  STS3215 55 g if sensing is wanted) driving a single differential to 4
+  printed fingers — Model T's topology with hobbyist substitution — landing
+  at an **optimistic floor of ~150–250 g**. Anchor numbers for the sim:
+  ~150–250 g hobbyist floor; 375–750 g documented Yale range; never the
+  ~12–16 g the finger-only figure implies.
+- Validity-ledger row (replaces the open flag): sim's hand is effectively
+  massless-plus-fingers; hardware floor for a 4-finger tendon-differential
+  caging hand is ~150–250 g optimistic — a mass comparable to a QUARTER TO
+  HALF the sim's entire drone (`Drone.MASS = 0.625` kg), mounted at the end
+  of the arm's moment arm. This is now the envelope's #1 at-risk item
+  jointly with `Drone.MASS` itself.
+- Note the topology finding matches the study's own physics: Model T proves
+  the SINGLE-ACTUATOR pulley-differential 4-finger caging hand is a real,
+  documented design — which is exactly the mechanism class `prb`'s
+  constant-tension tendon models, and it pairs with the load-feedback
+  sensing channel (one servo = one current signal) rather than per-finger
+  sensors.
+
+Still open after this pass: itemized per-part masses (needs a human opening
+the scanned fabrication PDFs), tendon material, per-finger community print
+logs.
