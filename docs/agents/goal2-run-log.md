@@ -1649,3 +1649,51 @@ geometry milestone before a single prediction was written.**
 - Infrastructure: third instance of the transcript-flush defect (research pass raw
   transcript unrecoverable). "Trace to committed evidence" failing one layer up
   from the physics.
+
+**2026-09-06 — trigger 5 closed (real OpenHand masses); prereg unblocked on
+evidence, still gated on the human's milestone decision.**
+- **Hand mass is 10–20× the sim's implied value.** No documented OpenHand build
+  fits 100–200 g (M2 2-finger 375 g; Model O 4-finger 750 g). Optimistic hobbyist
+  floor ~150–250 g, driven by ACTUATORS (72 g/Dynamixel), not fingers. The sim's
+  3–4 g/finger is fine for links but implies a ~12–16 g hand. Validity-ledger row.
+- **Lead corrected the observer's moment-arm consequence — it was inverted.** The
+  claim "hand mass worsens the folded-pose moment arm" evaluated the new pose
+  against no baseline. The INCUMBENT flight pose (`folded_shoulder = −π/2`,
+  `folded_elbow = 0`) puts the cup at **(−0.445, +0.020)** — a 44.5 cm lever. The
+  cup-up folded pose puts it at **(−0.209, +0.265)** — 20.9 cm. Folding the elbow
+  HALVES the horizontal lever against what the drone already flies with; a 200 g
+  hand shifts COM ~3.8 cm in the new pose vs ~8.1 cm in the current one. **The
+  mass finding argues FOR the new pose.** Observer logged it against itself as the
+  sampling/framing class, its first in the hardware domain, direction-neutral.
+- **D9 TEACHING PAIR — same detector, opposite verdicts, two subsystems, one week:**
+  - HAND, **positive**: Yale Model T is documented hardware for the
+    single-actuator differential 4-finger caging topology — the exact mechanism
+    class `prb` models. `prb` has a real referent; it is not a stand-in.
+  - ARM, **negative**: `spin_arm(torque_cap=...)` is a current limit posing as
+    mechanical compliance, with no cheap back-drivable actuator behind it.
+  - Consequence for the sensing fork, narrowed: the topology's NATIVE sensing
+    channel is one tendon servo's load feedback. So the referent-less abstraction
+    is specifically `prb_active`'s **per-finger contact booleans**, not sensing as
+    such. Validity-ledger row.
+- Standing rule adopted: any prediction leaning on a per-part mass is a §4
+  escalation (fabrication PDFs are scanned/non-extractable and need a human), not
+  an estimate.
+- **LEAD REPORTING ERROR, caught by the human asking for video.** I had been
+  compressing "not demonstrated robustly" into "null". The frames say otherwise:
+  at n4-finger-5.0 cm the passive baseline JAMS — flex +2.7/+2.4/**+1.6**/+2.4,
+  one finger stalled, symmetry 0.67, centering-err 3.04 cm — and the adaptive
+  close UNJAMS it: flex +2.7/+2.5/+2.5/+2.5, symmetry 0.81, centering-err 1.59 cm.
+  A real, mechanically legible effect that fails one joint corner. "Null" as a
+  scalar summary destroyed the mechanism content that the frames carry.
+  - This is the project's own **"examine frames, not just metrics"** memory firing
+    at the REPORTING layer rather than the measurement layer — a scalar summary
+    hiding a failure mode, one level up from where the principle was written. It
+    was caught only because the human asked for the video.
+  - Consequence: the lead re-stated the options to the human on the corrected
+    picture rather than letting the earlier recommendation stand, since the
+    correction may change the decision.
+- **Open, and blocking everything: the human's milestone-scope call.**
+  (1) close M-B on the scoped null and run geometry before M-C; (2) pursue the
+  adaptivity result instead — the effect looks real, what is missing is numerics
+  good enough to prove it, which is a convergence problem not a mechanism problem;
+  (3) both, in some order. No prereg is written until this lands.
