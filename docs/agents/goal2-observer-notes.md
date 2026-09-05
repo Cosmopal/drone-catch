@@ -558,6 +558,52 @@ pre-registration itself, and it is not flattering.**
   uncovered-cell sampling is not just insurance against buried findings, it
   is the PRECONDITION for calibration data existing at all.
 
+**2026-09-06 — nudge #5 (faculty: PHYSICAL REALISM / mechanism design) — the
+run's most consequential human input, and the first strictly OUTSIDE the
+detector set's reach.**
+- The catch: to use gravity as an assist you need a base to land on → catch
+  from below. Lead verified against geometry (not memory): the cup opens
+  DOWNWARD (centre 4.5 cm below palm, mouth facing the ground — why §15
+  validated by inversion), and the "palm" is a CONVEX 12 mm sphere against a
+  30 mm ball — an actively DE-centring unstable equilibrium. M-B tested
+  re-centring in the hardest possible configuration: no supporting surface,
+  gravity off, de-centring palm. The M-B null is real but GEOMETRY-SCOPED.
+- **NEW GAP CLASS — SITUATION FIDELITY (candidate detector, one episode,
+  watch item, but flag: it invalidated a milestone's framing).** The prereg's
+  "literature-backed" tag was accurate about the CITATION and wrong about its
+  APPLICABILITY: SDM/OpenHand demonstrate re-centring in the OPPOSITE
+  configuration (object resting under weight on a palm, hand closing over).
+  D9 asks whether the HAND is faithful; nothing asks whether the SITUATION
+  is. Six layers (verifier, 2× reviewer, 2× critic, lead) reasoned about
+  "re-centring" across two milestones without checking which way the cup
+  faced. Provenance tags need an applicability check, not just citation
+  accuracy — "literature-backed" must mean backed IN THIS CONFIGURATION.
+- **Sampling-bias countermeasure scoped down (lead's own flag, adopt into
+  promotion text): uncovered-cell sampling protects against bad sampling
+  WITHIN a space; it does nothing when the SPACE is mis-specified** — every
+  M-B cell was in the wrong configuration. Don't over-credit the
+  countermeasure.
+- **Sampling-bias detector: THIRD axis observed (lead's three same-class
+  errors, all human-caught):** conclusions inherited from how the lead FRAMED
+  a search (signed +x sweep vs |x|; "no memory" from a timestamp; "static"
+  pose vs the codebase's own hold_arm docstring). The evidence set = a
+  parameter sweep the claimant wrote — the self-sampling configuration, on
+  the ANALYSIS axis. Also an H6 instance: the hold_arm docstring ("the elbow
+  gives, like a human catch") was stored knowledge nobody consulted.
+- **H2/II.2 note**: physical-realism was the faculty II.2 marked
+  non-mechanizable; nudge #5 is it striking at full force — embodied
+  imagination of the catch (the user's "vision" faculty) re-framing the
+  problem, not correcting a number. The hardware-envelope pass (launched
+  today, independently) is the partial mechanization: geometry/orientation
+  constraints belong in the envelope + validity ledger so the next
+  configuration mismatch is checkable.
+- Lead's recommendation (pending human decision): close M-B on the scoped
+  null; new milestone "geometry vs control" (dish + orientation + gravity as
+  ONE coupled mechanism; restitution becomes load-bearing; metric shifts
+  pull-in → capture envelope) sequenced BEFORE M-C; bounce study gets
+  joint-corner perturbation from day one (it sits on the axis where M-B's
+  headlines broke).
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
