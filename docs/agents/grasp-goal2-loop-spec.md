@@ -143,8 +143,15 @@ A consolidation step reads the run log + any new ratcheted checks and:
 - supersedes (never deletes) anything overturned;
 - records per-gate lifecycle stats from the run log: fires/run, catches (fires
   that changed a verdict), cost — zero catches over N runs marks a gate a
-  demotion candidate; a superseded episode flags every principle justified only
-  by it (TMS-style staleness propagation via `derived_from:` links);
+  demotion candidate **ONLY where the check's carry cost is non-trivial. Never
+  demote a near-zero-cost check whose failure mode is silent and study-wide:
+  fire-rate demotion suits cheap high-frequency detectors and actively selects
+  against rare-but-catastrophic ones, for which never-firing is what success
+  looks like** *(amended 2026-09-06 after the situation-fidelity episode — a
+  once-per-harness check with unbounded blast radius would have been demoted
+  by the original rule precisely because it was working)*; a superseded
+  episode flags every principle justified only by it (TMS-style staleness
+  propagation via `derived_from:` links);
 - prunes capability workarounds that a model upgrade made unnecessary, but keeps
   verification gates (they compensate for simulator/measurement deficits, which
   model upgrades don't fix);

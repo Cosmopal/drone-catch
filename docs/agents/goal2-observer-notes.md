@@ -604,6 +604,36 @@ detector set's reach.**
   joint-corner perturbation from day one (it sits on the axis where M-B's
   headlines broke).
 
+**2026-09-06 — situation-fidelity PROMOTED at n=1 on a BLAST-RADIUS argument
+(lead's adjudication) — a second legitimate path past the ≥2-episodes rule,
+and a §6 flaw exposed and fixed.**
+- The promotion framework now has two recognized n=1 overrides, with opposite
+  profiles: (a) brief-anchoring — HIGH-frequency channel, structurally open
+  on every gate; (b) situation-fidelity — LOW-frequency, established once at
+  harness-design time, then silently inherited by every subsequent claim:
+  unbounded blast radius (one setup mistake contaminated two milestones and a
+  prereg), near-zero carry cost (asked once per harness, not per claim).
+  Rule of thumb extracted: n=1 promotion is legitimate when EITHER recurrence
+  is structural OR (blast radius is study-wide AND carry cost ≈ 0).
+- Detector text adopted: "does the testbed's configuration match the
+  configuration the cited mechanism actually describes?" — i.e.
+  'literature-backed' must mean backed IN THIS CONFIGURATION; the provenance
+  tag verified a citation exists, not that it applies.
+- **§6 flaw fixed at source ([[grasp-goal2-loop-spec|loop spec]] §6 amended)**:
+  fire-rate demotion is mis-specified for tail-payoff checks — a
+  rare-but-catastrophic detector fires almost never BECAUSE it works, and the
+  old rule would demote it for that. Demotion on fire rate now applies only
+  where carry cost is non-trivial; near-zero-cost checks with silent
+  study-wide failure modes are never fire-rate-demoted.
+- H6 third instance confirmed by the lead (hold_arm docstring).
+- Envelope→loop coupling now explicit: the geometry milestone's prereg WAITS
+  on the envelope doc (so its literature anchors are applicability-checked
+  against buildable configurations), and the envelope may convert M-B's
+  sensing null from a measurement into a DECISION — if contact sensing
+  carries real gram/BOM cost, "sensing buys nothing measurable" becomes an
+  argument for deleting the sensors. Findings priced in hardware terms:
+  the reason the envelope was commissioned, arriving one milestone early.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
