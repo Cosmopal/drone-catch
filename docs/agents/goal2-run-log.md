@@ -1604,3 +1604,48 @@ Findings noted; milestone-scope decision pending.**
   still at n=1 after several milestones as a demotion candidate on THAT ground
   (evidence never materialised), which is a different and legitimate demotion axis
   from fire rate.
+
+**2026-09-06 — hardware envelope read ([[14-hardware-envelope|concepts/14]]); it reshaped the
+geometry milestone before a single prediction was written.**
+- **D9 AT THE ACTUATOR LEVEL — the detector existed, its SCOPE did not cover the
+  subsystem.** Envelope at-risk item #2: no cheap hobbyist actuator is genuinely
+  back-drivable; geared servos back-drive by grinding gear teeth, and true
+  back-drivability needs direct-drive BLDC+FOC at ~1/10 the torque per gram, which
+  then cannot hit the throw sweep's ω without gearing that defeats it. So
+  `spin_arm(torque_cap=...)` is **a current limit posing as mechanical
+  compliance** — structurally identical to the `yale_hand.py` defect that reopened
+  Goal 1 (a software abstraction scored as though the mechanism were faithful).
+  Nobody caught it because D9 has only ever been pointed at the HAND. Consolidation
+  item: D9's text must cover any software abstraction standing in for a physical
+  mechanism wherever it lives — hand, arm, or future rotor tilt.
+- **An actuator fork the sim hides.** The cheapest sensing channel is current/load
+  feedback on an STS3215-class servo (55 g, load reporting) — free if that servo is
+  chosen. But the same doc says it is "a geared position servo doing torque
+  limiting via current threshold... good enough to cap force, not to feel like a
+  compliant joint." **The actuator that makes sensing free is the one that
+  forecloses compliance.** `prb_active` wants the geared serial-bus servo; the
+  compliant catch wants BLDC+FOC. In sim both are free, so the conflict is
+  invisible. This also WEAKENS the "sensing null → delete the sensors" conversion
+  the lead proposed: the decision hinges on servo choice, not on a discrete
+  sensor's gram cost. Caveat accepted and recorded.
+- **Design synthesis (lead), which changes the geometry milestone: put the
+  compliance where it is manufacturable.** The envelope names a series-elastic
+  element between geared servo and joint as the standard fix. **A compliant dished
+  palm IS that element, relocated from the joint into the hand** — and a TPU dish
+  is trivially printable where joint back-drivability is not. The dish then does
+  three jobs at once: seat the ball, re-centre it by gravity, and absorb the impact
+  the shoulder cannot. Consequence: **palm COMPLIANCE becomes a swept axis** of the
+  geometry milestone alongside dish curvature and impact energy — the dish is not
+  a rigid shape.
+- Mass note: the arm's real driver is ACTUATORS (~55 g/joint, ~110 g for two), not
+  links (30 g in sim) — which makes the moment-arm concern on the folded cup-up
+  pose worse than the lead estimated. And `Drone.MASS = 0.625 kg` is the envelope's
+  #1 at-risk parameter (bare 5" airframe is 580–700 g BEFORE battery/avionics/arm;
+  realistic AUW 900 g–1.1 kg).
+- Prereg still BLOCKED pending trigger 5 (OpenHand fabrication PDFs → real hand
+  mass; the 3–4 g/finger and 100–200 g hand assumptions are NOT COVERED). Observer
+  has fired it. All envelope citations are agent-produced and unverified — nothing
+  becomes load-bearing without being checked at use time.
+- Infrastructure: third instance of the transcript-flush defect (research pass raw
+  transcript unrecoverable). "Trace to committed evidence" failing one layer up
+  from the physics.
