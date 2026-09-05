@@ -640,3 +640,9 @@ empty files (digests survived only via final messages). Same failure class as
 iteration 1's "where did the agent go?" — worker state invisible to the
 supervision layer. If it recurs, it earns a check (verify transcript non-empty
 at agent completion).
+**RECURRED 2026-09-06 (third instance: the hardware-envelope agent's
+transcript, 0 bytes at completion). Check now EARNED and adopted as observer
+procedure: stat the transcript before relying on it; preserve the digest from
+the completion notification verbatim when the file is empty; note transcript
+availability in every archived digest's header. Harness bug reported
+upstream.**
