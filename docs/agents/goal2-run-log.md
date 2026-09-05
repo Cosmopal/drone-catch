@@ -1525,3 +1525,82 @@ The escalation was answered with a better question.**
   the TESTBED'S GEOMETRY MATCHES THE MECHANISM BEING CLAIMED. D9 (mechanism
   fidelity) covers whether the HAND is faithful; nothing covers whether the
   SITUATION is. Human nudge count: 5.
+
+**2026-09-06 — design session (human + lead): the cup-up folded catch pose.
+Findings noted; milestone-scope decision pending.**
+- **Lead error, caught by the human (2nd time in this session).** I swept for
+  cup-up poses maximising SIGNED +x and concluded "every cup-up pose is
+  elbow-extended; the folded configuration puts the hand behind the shoulder."
+  Wrong direction: the catcher faces body +x while the ball arrives from −x, so
+  the catch side IS −x. Re-swept by |cupX| — **folded beats extended at every
+  mouth-tilt threshold**, and only folded gives a truly vertical cup with useful
+  reach. Same error class as the rest of this run: a conclusion inherited from how
+  the search was framed rather than from the geometry.
+- **The drawn pose is reachable and is very nearly already configured.**
+  `ArmConfig.folded_shoulder = −1.5708` is EXACTLY the drawn shoulder angle;
+  `folded_elbow = 0.0` is what leaves the cup facing sideways.
+
+  | pose | cup (x, z) body | mouth from +z |
+  |---|---|---|
+  | `fold_arm()` today | (−0.445, +0.020) | 90° (horizontal) |
+  | drawn pose (elbow → ~1.53 rad) | (−0.209, +0.265) | **2° (vertical)** |
+
+  The delta is one config value. Reach cost: 0.445 → 0.209 m.
+- **The arm is NOT static during capture — lead mis-stated this and the human
+  corrected it.** `hold_arm`'s own docstring already describes the drawn pose:
+  "the torque cap makes the joints BACK-DRIVABLE ... so a *partly-folded arm*
+  absorbs a caught ball's momentum (*the elbow gives, like a human catch*) rather
+  than bouncing it back out." Both `spin_arm(shoulder_vel, elbow_vel, torque_cap)`
+  and `hold_arm(...)` already take the elbow and a shared cap; the elbow merely
+  defaults to 0. The API was built for this pose and then the elbow was pinned.
+- **Load path in the folded cup-up pose (lead's analysis, unverified in sim):**
+  cup (−0.209, +0.265) sits essentially DIRECTLY ABOVE the elbow (−0.20, +0.020),
+  so a downward catch impulse passes near the elbow axis — little elbow torque,
+  carried as axial compression in the forearm. About the shoulder the same force
+  has a ~0.20 m lever → ~0.66 N·m at the ~3.3 N compliant capture spreads to,
+  against a 2.0 N·m limit. The load routes into the shoulder, which is already
+  the back-drivable joint.
+- **Control decomposition:** since a2 = θ1 − θ2, the DIFFERENTIAL sets cup
+  orientation and the COMMON MODE sets cup position. Yielding both joints
+  together keeps the mouth vertical while the cup swings down on an arc — a
+  cushioning stroke at constant orientation, absorbing along the ball's velocity
+  vector. Expressible with the existing `spin_arm` API.
+- **Why this matters beyond ergonomics — it dissolves the M-A failure.** In the
+  downward cage, compliance and retention COMPETE: softening the fingers to absorb
+  momentum directly threatens retention, which is precisely the M-A failure
+  (fingers pinned at their 0.5 N·m cap through the splay; ball lost at
+  t = 3.9417 during hold, no impulsive kick). With a dished palm carrying the
+  weight, fingers only prevent escape rather than support it — the torque budget
+  is freed and much greater compliance becomes affordable.
+- Still required regardless of pose: **a CONCAVE palm.** Orientation and seat are
+  independent fixes; a vertical cup over a convex 12 mm sphere still de-centers a
+  30 mm ball. Implementation note: PyBullet convex-decomposes meshes, so a true
+  dish needs a compound of primitives (faceted cone / tilted boxes) or a VHACD
+  mesh — the fiddly part of this change.
+- Also unresolved: `fold_arm()` at θ1 = −90° lays the upper arm along the deck
+  (pivot at +0.020 = the base's top face), so the pose may self-collide and need
+  the shoulder stub raised.
+- **Loop spec amended at source (observer), §6 demotion rule.** Fire-rate
+  demotion now applies only where carry cost is non-trivial; near-zero-cost checks
+  with silent, study-wide failure modes are never fire-rate-demoted. Fixes the
+  flaw that situation-fidelity would have been marked a demotion candidate
+  precisely because it was working. Detector text adopted as drafted:
+  **"literature-backed" must mean backed in THIS configuration.**
+- Promotion framework now records **two legitimate n=1 paths with opposite
+  profiles**: structural recurrence (brief-anchoring — guaranteed to recur because
+  the lead authors every brief) and blast-radius × zero-cost (situation-fidelity —
+  fires almost never, but one setup error contaminates a whole study). Extracted
+  rule: *n=1 promotion is legitimate when recurrence is structural, OR blast
+  radius is study-wide AND carry cost ≈ 0.*
+- **Lead's caution against its own success here, logged deliberately.** I authored
+  both n=1 promotion arguments, and both were accepted. The ≥2-distinct-contexts
+  rule has in effect gone from a REQUIREMENT to a DEFAULT with two named
+  exemptions — and a plausible argument is much cheaper to produce than a second
+  episode. Two n=1 promotions in a single run is a pattern worth watching, not a
+  precedent to lean on: the failure mode is a loop that promotes on rhetoric
+  rather than evidence, which is the same "correct-sounding conclusion, untested"
+  shape this run has caught seven times. Recommend consolidation track, per
+  promoted check, whether a SECOND episode ever arrived — and treat any n=1 check
+  still at n=1 after several milestones as a demotion candidate on THAT ground
+  (evidence never materialised), which is a different and legitimate demotion axis
+  from fire rate.
