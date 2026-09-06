@@ -787,6 +787,45 @@ was matching an already-solved problem.
   reviewer's frame reading) when the mechanism is geometric. Adjudication:
   lead/consolidation.
 
+**2026-09-06 — (5) and (d) settled; the lead declines its own exemption.**
+- **Per-property convergence, sharpened with DIRECTION (adopt into the
+  consolidation item):** certificates don't transfer DOWNWARD to
+  finer-grained metrics, and the finer the metric the stronger the burden.
+  §26 certified 1/960 against a BINARY cage verdict (robust to small
+  position error almost by construction); pull-in is a sub-centimetre
+  continuous displacement — the same timestep certifying both is not merely
+  unearned, it's directionally wrong. Cleanest instance of the
+  unearned-scope class: committed by the gate that exists to prevent it.
+- **(d) resolved by a third design neither observer candidate reached — the
+  rule lives at the INTERFACE, not the role assignment:** *a causal claim
+  from a grounded role must state the MECHANISM; a role that cannot state
+  the mechanism from its own evidence reports UNDERDETERMINED rather than a
+  verdict.* "Delta +0.0167" is true and causally ambiguous; forced to say
+  what physically changed, the verifier discovers it can't — and THAT is
+  the render trigger. Preserves role separation entirely (verifier never
+  looks), costs nothing, and extends existing machinery (UNDETERMINED for
+  "didn't run it" → "ran it and my medium can't separate the hypotheses").
+  Observer candidates rejected for cause: A destroys fresh-eyes
+  (self-conditioning on own runs); B has a fuzzy trigger in front of an
+  expensive gate.
+- **Meta-event, possibly the run's best discipline datum: the lead DECLINED
+  the n=1 exemption for its own proposal** — having authored three n=1
+  arguments (two accepted) and flagged the pattern against itself, it ruled
+  that a plausible argument is cheaper to produce than a second episode and
+  a loop promoting on rhetoric repeats the failure this run catches. Status:
+  watch item + adopted practice in its own briefs; earns promotion on a
+  second episode or never — "if it never gets one, that's information too."
+  The promotion machinery being applied against its most productive user, by
+  that user.
+- **§II.3 symmetry corrected (adopt):** if the jam is an artifact, the loop
+  caught its §25-class error one level deeper GIVEN one human input of a
+  specific, now-identifiable kind — the medium correction. The loop had
+  accepted the scalar verdict and moved on. Nudges-to-truth: a nudge, not
+  zero. The honest headline is narrower and better: the human input needed
+  has narrowed from domain physics (iter 1) to evidence-medium discipline
+  (this run), and the mechanism-or-UNDERDETERMINED rule is the candidate
+  that mechanizes even that.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
