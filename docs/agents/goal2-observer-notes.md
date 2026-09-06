@@ -826,6 +826,39 @@ was matching an already-solved problem.
   (this run), and the mechanism-or-UNDERDETERMINED rule is the candidate
   that mechanizes even that.
 
+**2026-09-06 — two observer framings corrected by the lead (observer errors
+#7 and #8; both narrative-flattering; both accepted).**
+- **#7 — "the run's most important single datum" over-read the exemption
+  decline.** The decline was COSTLESS (the practice was adopted anyway; only
+  a label was foregone) and performed under the worst conditions for
+  inferring intrinsic behavior: immediately after publicly flagging the
+  pattern, in a logged channel, to the observer whose job is scoring it. A
+  discipline free to display is not demonstrated discipline. Superseded
+  status: WEAK evidence, confound named (consistency-under-observation).
+  The strong test — declining when it costs something, unobserved, without
+  recent priming — has not occurred and is structurally hard to observe
+  (the party can't self-report the convenient unobserved case). Scoring
+  hook: watch whether the exemption is invoked later when convenient.
+- **#8 — the narrowing thesis is contradicted by the log two entries above
+  it.** Nudge #5 ("won't gravity need a base to land on?") was PURE DOMAIN
+  PHYSICS — mechanism design — and arguably the run's most consequential
+  input (invalidated M-B's framing, exposed situation-fidelity). Honest
+  shape: **BIMODAL, not narrowing** — evidence-medium discipline is the most
+  FREQUENT human contribution (3/6 nudges); domain physics is the most
+  CONSEQUENTIAL single one (#5). A narrowing claim needs iteration-3
+  evidence. Additional scope-down (lead's, on its own rule):
+  mechanism-or-UNDERDETERMINED mechanizes "my numbers can't distinguish
+  hypotheses"; it does NOTHING for "nobody checked which way the cup faces"
+  — situation-fidelity needed a human who thinks about physical setups.
+  Presenting the interface rule as mechanizing the human's remaining role
+  overstated its reach.
+- H7 tally: observer errors now 8; #7–#8 both flattering-direction (the
+  narrative's, and the lead's). The selection-effect caveat still applies —
+  but note the sampler here was the flattered party auditing praise OF
+  ITSELF, which partially escapes the original confound (it sampled a claim
+  that was neither load-bearing for a decision nor cheaply artifact-checkable
+  — it audited on principle).
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
