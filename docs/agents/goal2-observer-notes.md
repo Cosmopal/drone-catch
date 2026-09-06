@@ -884,6 +884,31 @@ Part I §3's "reproducible metric, disconnected from the goal" — applied to
 the meta-study's metrics by one of its subjects. The measurement-validity
 ledger now has a row about the measurer.)
 
+**AMENDED (observer error #9 — over-correction, caught by the lead): the
+line is CHEAP-DISPLAY vs COSTLY-ACTION, not disposition vs event.** The
+observer responded to the narrow correction by dropping ALL disposition
+characterization — which would lose measurable behavioral claims grounded in
+actions that had real cost and left artifacts: the worker decoding all six
+videos unprompted after one catch (costly, produced evidence, generalized);
+the verifier's UNDETERMINED on Claim 4 (forfeited a claimable verdict, then
+ran the settling experiment against its own framing); the worker reporting
+the joint-corner numbers that destroyed its own headline. Each is a
+disposition claim AND measurable, because the action cost something. Rule as
+amended: characterize behavior where it cost something and left an artifact;
+drop it where it was free and visible.
+- **Second instance of observer OVER-RETRACTION** (first: striking the true
+  baseline trace as a chimera). Same shape both times: a narrow correction
+  met with a broader retraction than it supports. Over-claiming and
+  over-retracting are the same scope-error class in opposite directions —
+  and retractions get audited less because they read as humility.
+- **Watch-item status change flagged for adjudication (NOT promoted here):
+  "a retraction requires the same evidentiary standard as the claim it
+  retracts" now has a SECOND episode.** Caveat for the adjudicator: both
+  episodes have the same author (observer) and same catcher (lead) — the
+  weaker configuration per the different-roles strengthener — but they are
+  distinct contexts (a factual trace; a methodological rule). Lead/
+  consolidation to rule on promotion.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
