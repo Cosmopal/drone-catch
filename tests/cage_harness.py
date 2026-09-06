@@ -997,7 +997,7 @@ def migration_trace(strategies=("fixed", "soft"), n_fingers=4, offset_m=0.025,
 
 
 def render_quality(strategy, n_fingers, offset_m, direction, ready, out_dir,
-                   video=True):
+                   video=True, seed=None, tag_suffix=""):
     """§2.4 — legible review evidence for ONE cell, HUD-annotated with the
     CONTINUOUS quality metrics so every reported number has a citable frame.
 
@@ -1012,7 +1012,7 @@ def render_quality(strategy, n_fingers, offset_m, direction, ready, out_dir,
     (they are properties of the hold) and stamped on every frame."""
     import imageio.v2 as imageio
     os.makedirs(out_dir, exist_ok=True)
-    tag = f"{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm"
+    tag = f"{strategy}_n{n_fingers}_{direction}_{int(offset_m*1000)}mm{tag_suffix}"
     p.connect(p.DIRECT)
     try:
         setup_physics()
@@ -1024,6 +1024,13 @@ def render_quality(strategy, n_fingers, offset_m, direction, ready, out_dir,
         az = (math.pi / 2 if direction == "finger"
               else math.pi / 2 + math.pi / n_fingers)
         off = offset_m * np.array([math.cos(az), math.sin(az), 0.0])
+        if seed is not None:
+            # same jitter formula as run_cell's seed perturbation, reused
+            # verbatim (not reimplemented) so a rendered corner matches the
+            # metric-only corner exactly.
+            jitter = np.random.default_rng(seed).normal(0, 3e-4, 3)  # ~0.3 mm
+            jitter[2] = 0.0
+            off = off + jitter
         cup = g.cup_world()
         ball = setup_ball(cup + off)
         ee = g.ee_world()
