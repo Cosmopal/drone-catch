@@ -1809,3 +1809,41 @@ the result is worse than either prior story. Lead verified all 24 cells from
   boundary between ss4 and ss8 unlocated; grid not run at 1.5/2.5/3.5 cm; unknown
   whether EM = 0.16 g in the blow-up cells is a real escape or the metric
   computation hitting the same instability.
+- **Blow-up diagnosed from frames; TWO lead inferences corrected by the worker.**
+  1. **NOT joint-limit saturation.** Per-joint angles at the blow-up cell are
+     [0.501, 1.000, 1.300] rad on all four fingers, well inside the URDF's
+     −0.8/2.0 bounds. **The HUD's "flex" is the SUM of a finger's three segment
+     angles plus a rest offset**, not a single joint — 0.501+1.000+1.300+0.6 =
+     3.401. So "+3.40" is the ordinary fully-closed pose, identical on all four
+     because none is touching anything. The lead read it as a pinned limit; it is
+     not. (Note this display convention applies to every flex number quoted this
+     run — the jam reading survives, since a stalled finger summing to +1.6 is
+     still a partially-closed finger, but the "pinned" language was wrong.)
+  2. **EM = 0.16 g is a REAL measurement, not a broken metric.** The 26-direction
+     bisection returns a uniform 1.53 m/s² in EVERY direction — exactly the
+     signature of bisecting against an uncaged ball, not NaN or inconsistent
+     garbage. The lead called it "the metric computing nonsense about an empty
+     hand"; the worker's reading is better: it correctly describes "not caged."
+     Worker appropriately scoped it — the output pattern matches a correct
+     implementation, which is not the same as proving the bisection bug-free.
+- **Ejection mechanism, from the every-4-tick frame sweep: sideways squeeze-out.**
+  Contact lost between frames 32 and 48; by frame 76 the ball is laterally
+  displaced past ONE finger that has been pushed outward, while the other three
+  close normally. Not tunneling (no pass-through-solid), not whole-assembly
+  instability (no flailing or hand rotation). A real hand's finger does not get
+  shoved aside by the ball it is closing on — so this region is a contact-solver
+  pathology, not physics.
+- **The lead's validity-guard conclusion SURVIVES, better motivated.** The point
+  is not that the metric breaks; it is that **escape-margin alone cannot
+  distinguish a WEAK grasp from an ABSENT one** — both yield small numbers, and an
+  aggregate over cells would silently mix them. Guard: a cell's numbers count only
+  if `n_contact_fingers > 0` and `score > 0`.
+- **And the practical trap stands.** The battery's nominal parameter box contains
+  a region where the simulator produces physically wrong behaviour. It is a JOINT
+  corner (ss8+ × contact ×3.0), so OAT never samples it and nothing committed is
+  polluted — but the joint-corner redesign the lead was about to recommend walks
+  straight into it, unflagged, unless the guard above ships with it.
+- Worker's untested list: exact onset tick unlocated (sampled every 4th); no
+  repeat-seed check on the blow-up (the sweep used no seed variation, so
+  seed-sensitivity unknown); no mechanism-level account of why that finger is
+  pushed outward.
