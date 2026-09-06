@@ -70,3 +70,17 @@ if "6" in jobs:
     ch.render_quality("prb_pulse", 4, 0.045, "finger", "splayed", OUT, video=True,
                       seed=None, tag_suffix="_NOMINAL")
     print("6 done")
+
+if "7" in jobs:
+    # prb_active @4.5cm NOMINAL -- completes the 4-way (passive/active x
+    # nominal/corner) comparison at the cell where prb_active OVERLAPS 0.
+    ch.render_quality("prb_active", 4, 0.045, "finger", "splayed", OUT, video=True,
+                      seed=None, tag_suffix="_NOMINAL")
+    print("7 done")
+
+if "8" in jobs:
+    set_corner()
+    ch.render_quality("prb_active", 4, 0.045, "finger", "splayed", OUT, video=True,
+                      seed=2, tag_suffix="_CORNER_ss8_ctc033_seed2")
+    reset()
+    print("8 done")
