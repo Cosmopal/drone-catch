@@ -1697,3 +1697,62 @@ evidence, still gated on the human's milestone decision.**
   adaptivity result instead — the effect looks real, what is missing is numerics
   good enough to prove it, which is a convergence problem not a mechanism problem;
   (3) both, in some order. No prereg is written until this lands.
+
+**2026-09-06 — human nudge #6 (faculty: EVIDENCE STANDARDS). Frames overturned a
+causal conclusion the scalars could not reach. The run's strongest instance of
+"examine frames, not just metrics".**
+- **Before:** M-B's two headline results were killed by a joint corner, on PURE
+  SCALAR evidence (delta +0.0167 and −0.1569, reproduced exactly, committed
+  ledgers). 60 rendered artifacts existed for the NOMINAL results; **zero for any
+  corner run.** The finding that overturned the milestone carried the weakest
+  evidence in it — a coverage inversion.
+- Lead compounded it by compressing "not demonstrated robustly" → "null",
+  destroying the mechanism content. Two lossy steps stacked.
+- **Human asked to see the video. There was none.** No hypothesis offered, no
+  domain argument — a request for a MEDIUM. Lead dispatched renders, and
+  under-scoped them (observer caught `prb_active`@4.5cm still missing): even acting
+  on the principle, the lead applied it incompletely.
+- **What the frames settled, which the deltas structurally could not:**
+
+  | | flex | symmetry | centering-err |
+  |---|---|---|---|
+  | `prb` @5.0cm NOMINAL | +2.7/+2.4/**+1.6**/+2.4 | 0.67 | 3.04 cm |
+  | `prb` @5.0cm CORNER | +2.3/+2.3/+2.3/+2.3 | 1.00 | **0.22 cm** |
+  | `prb_active` @5.0cm CORNER | +2.3/+2.3/+2.3/+2.3 | 1.00 | 0.20 cm |
+
+  **The stalled finger is gone. The delta collapsed because the BASELINE became
+  near-perfect, not because adaptivity failed.** Adaptivity was matching an
+  already-solved problem — the denominator changed, not the numerator.
+- **Reframes the milestone:** M-B has been measuring "does adaptivity fix the
+  jam", and the jam may itself be a numerics artifact (present at substep 4 +
+  nominal contact, absent at substep 8 + soft contact). This is
+  [[iteration_findings#^26|§26]] recurring one refinement level deeper — §26 found iteration 1's
+  off-center verdict was a timestep/rigid-contact artifact and that *at converged
+  numerics strategy makes no difference*. The harness treats 1/960 as the
+  validated operating point; this says 1/960 may not be converged FOR PULL-IN.
+  Convergence ladder dispatched (passive `prb` alone, substep {2,4,8,16} ×
+  contact {0.33,1,3}, offsets 4.5/5.0 cm) to settle it.
+- **Four findings for the meta-study:**
+  1. **Scalars cannot distinguish mechanism-level hypotheses that frames settle
+     instantly.** +0.0167 is exactly consistent with two opposite causal stories;
+     no added scalar precision separates them. A structural limit of the medium,
+     not a shortfall of rigor.
+  2. **The coverage inversion is predictable, not bad luck.** Renders were keyed
+     to the ORIGINAL sampling plan; corner runs were diagnostics, and diagnostics
+     go unrendered because they read as "just checks" — until one overturns the
+     headline. **Standing rule adopted: evidence coverage attaches to a claim when
+     it becomes DECISION-DRIVING, not when its cell was planned.** Same root cause
+     as the 4.5 cm cell being unrun at all: evidence keyed to a plan rather than
+     to what turned out to matter.
+  3. **The human's faculty was insisting on a MEDIUM, not supplying knowledge.**
+     3 of 6 nudges are now evidence-standards — the dominant human contribution
+     this run and the faculty §II.2's catalog had no row for. The highest-value
+     human input across the whole run was repeatedly "show me", not "you are wrong
+     about the physics".
+  4. **Sharpest for loop design: a PERCEPTUAL artifact settled a CAUSAL question.**
+     D5 (causal soundness) belongs to the VERIFIER (grounded, never looks at
+     frames); the REVIEWER is perceptual and owns D1/D2/D7/D8/D9. Here rendering
+     corrected the causal story the grounded role's numbers could not resolve.
+     That undercuts §0.1's clean verifier/reviewer division: **some causal claims
+     are only distinguishable perceptually, so D5 cannot live solely with the role
+     that never looks.**
