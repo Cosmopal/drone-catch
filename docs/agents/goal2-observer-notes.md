@@ -710,6 +710,32 @@ unbroken).**
 - Standing rule adopted by lead: predictions leaning on per-part numbers are
   §4 escalations, never estimates.
 
+**2026-09-06 — nudge #6 (faculty: EVIDENCE STANDARDS again): video coverage
+missing exactly on the DECISION-DRIVING cells.** Human: video is their primary
+review channel, and parts of the run driving the milestone decision lack it.
+Observer verified against the worktree before relaying:
+- `prb_pulse` 4.5 cm ("convergent positive", the reversal headline): nominal
+  + ONE corner-seed video exist; the 12-perturbation battery cells that made
+  it "convergent" are unvideoed.
+- `prb_active` 4.5 cm ("overlaps 0" — the other half of the trade-off):
+  **zero videos** (active is videoed only at 2.5/5.0 cm + gap 3.5 cm).
+- So the trade-off conclusion presented to the human rests on a comparison
+  with one arm unvideoed and the other 2-of-13.
+- The failure is sharper than nudge #4's: the video requirement EXISTS (M-A
+  standing requirement: "video alongside stills"), was partially followed
+  (mb_frames/, mb_corner_frames/ are populated) — but coverage was keyed to
+  the cells the worker SAMPLED, not to the cells that became VERDICT-BEARING.
+  The 4.5 cm cells entered late (verifier-discovered), and nobody re-keyed
+  evidence coverage when the verdict moved there. Ratchet refinement:
+  **evidence-coverage requirements attach to claims at the moment they become
+  decision-driving — a claim may not reach the human as decision input
+  without its evidence at the human's review medium.** This is D8 + the
+  human-interface layer: gates check what workers produce; nothing checked
+  what the HUMAN was given to decide on.
+- H2 note: 3 of 6 nudges are now evidence-standards/observability — the
+  faculty II.2's catalog missed entirely remains the run's dominant human
+  contribution.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
