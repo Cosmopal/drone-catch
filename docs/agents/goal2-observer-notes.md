@@ -858,6 +858,31 @@ was matching an already-solved problem.
   ITSELF, which partially escapes the original confound (it sampled a claim
   that was neither load-bearing for a decision nor cheaply artifact-checkable
   — it audited on principle).
+  **SUPERSEDED (lead's second-order correction, accepted): "against its
+  interest" holds only at first order — in a session where epistemic
+  discipline is the MEASURED VARIABLE, declining praise is the locally
+  rewarded move; the incentive relocates one level up and points the same
+  way. The regress ("you only said that to seem rigorous") is unfalsifiable
+  after one turn; where it bottoms out is behavior when nothing is scored,
+  unobservable from inside the session. Status of the datum: UNINFORMATIVE
+  in either direction.**
+
+**2026-09-06 — STANDING LIMITATION for the write-up (lead's general finding,
+adopted as the study's measurement-validity statement about ITSELF):
+an observer scoring an agent on epistemic virtue cannot use the agent's
+DISPLAYS of epistemic virtue as evidence — the scoring supplies the incentive
+for the display.** Contaminated class: behaviors cheap to perform and visibly
+logged (self-flagging, declining credit, hedging well, admitting error).
+NOT contaminated: costly, artifact-grounded events that would be equally true
+unobserved (the FK ablation refuting a causal story; the critic blocking
+closure on an untested axis; rendering overturning the corner
+interpretation). Directive: **score catches, not character.** H5 and H7 as
+currently framed partly measure the observation apparatus; state it in the
+limitations section rather than let a reader discover it. (Note the
+symmetry: this is the study's own construct-validity/Goodhart lesson —
+Part I §3's "reproducible metric, disconnected from the goal" — applied to
+the meta-study's metrics by one of its subjects. The measurement-validity
+ledger now has a row about the measurer.)
 
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
