@@ -736,6 +736,57 @@ Observer verified against the worktree before relaying:
   faculty II.2's catalog missed entirely remains the run's dominant human
   contribution.
 
+**2026-09-06 — the video-evidence arc, complete (recorded at the human's
+request; the project's strongest examine-frames episode, and it CHANGED A
+CONCLUSION).**
+Sequence: (1) both M-B headlines killed by a joint-corner perturbation on
+pure scalars (delta +0.0167 / −0.1569, exactly reproduced, committed) — with
+60 rendered artifacts for nominal results and ZERO for any corner run: the
+finding that overturned the milestone had the weakest evidence in it.
+(2) Lead compressed "not demonstrated robustly" → "null" (scalar summary of
+a scalar result, wrong medium, two lossy steps stacked). (3) Human asked to
+SEE it — no hypothesis, no domain argument, just a medium request; renders
+dispatched, initially under-scoped (observer caught the missing
+prb_active@4.5cm). (4) Frames answered what scalars structurally could not:
+at the corner numerics the baseline's stalled finger is GONE (flex all
++2.3, symmetry 1.00, centering 0.22 cm) — **the delta collapsed because the
+baseline became near-perfect, not because adaptivity failed**. Adaptivity
+was matching an already-solved problem.
+- **Reframe: §26 recurring one refinement level deeper.** The jam M-B spent
+  a milestone measuring may itself be a numerics artifact (exists at
+  substep 4 + nominal contact; vanishes at 8 + soft). The harness treats
+  1/960 as validated — but **convergence certificates are PER-PROPERTY, not
+  per-harness**: numerics converged for the caged/escape verdict may not be
+  converged for pull-in. Consolidation item for the convergence-gate text:
+  a convergence claim names the metric it certifies. Convergence ladder
+  dispatched (substep {2,4,8,16} × contact {0.33,1,3}); milestone decision
+  correctly held until it lands.
+- **(a) A class of question scalars cannot answer**: +0.0167 is exactly
+  consistent with two OPPOSITE causal stories; no scalar precision separates
+  them; one look at frames did. The examine-frames memory's canonical
+  episode.
+- **(b) Coverage inversion is predictable, not bad luck**: renders key to
+  the sampling PLAN; diagnostics read as "just checks" and go unrendered —
+  until one overturns the headline. Rule adopted by lead + worker: evidence
+  coverage attaches when a claim becomes decision-driving. Same root cause
+  as the unrun 4.5 cm cell: evidence keyed to plan, not to what mattered.
+- **(c) The dominant human faculty this run was "show me," not "you're
+  wrong."** 3/6 nudges are evidence-standards; the human's highest-value
+  input was repeatedly insisting on a MEDIUM. For the write-up: mechanizing
+  the human here means mechanizing evidence-medium discipline, not domain
+  knowledge.
+- **(d) OPEN DESIGN QUESTION (lead's sharpest): a perceptual artifact
+  settled a CAUSAL question.** D5 lives with the grounded verifier; the
+  correction came from rendering. Some mechanism-level hypotheses are only
+  distinguishable perceptually, so D5 cannot live purely with a role that
+  never looks at frames. NOT resolved here (the observer has learned not to
+  promote resolutions unilaterally); candidate resolutions for
+  consolidation: (i) the verifier's perturbation runs always render (it
+  already retains video per the M-A addendum — the gap is that it must also
+  LOOK); (ii) causal claims get dual sign-off (verifier's ablation +
+  reviewer's frame reading) when the mechanism is geometric. Adjudication:
+  lead/consolidation.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
