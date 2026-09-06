@@ -1756,3 +1756,56 @@ causal conclusion the scalars could not reach. The run's strongest instance of
      That undercuts §0.1's clean verifier/reviewer division: **some causal claims
      are only distinguishable perceptually, so D5 cannot live solely with the role
      that never looks.**
+
+**2026-09-06 — CONVERGENCE LADDER: the lead's artifact hypothesis is REFUTED, and
+the result is worse than either prior story. Lead verified all 24 cells from
+`mb_convergence_check.jsonl`.**
+- Passive `prb` alone, n4 finger, offsets {4.5, 5.0} cm × substep {2,4,8,16} ×
+  contact {0.33, 1.0, 3.0}. No pairing, no tuning.
+- **(1) The jam is REAL at default contact — my "§26 one level deeper" hypothesis
+  is dead.** At 5.0 cm / ×1.0 the stalled finger persists at every substep:
+  flex[2] = +1.77 / +1.60 / +1.47 / +1.55 for ss = 2/4/8/16. Refinement does not
+  remove it. Same at 4.5 cm (+2.10 / +1.79 / +1.74 / +1.69) — and there it gets
+  slightly WORSE with refinement.
+- **(2) But pull-in itself is NOT substep-converged anywhere.** At 5.0 cm / ×1.0:
+  PI = 2.74 → 1.96 → 1.44 → 1.80 cm (non-monotonic, 1.30 cm spread). At 4.5 cm /
+  ×1.0: 3.72 → 2.33 → 1.98 → 1.75 (still falling at ss16, 1.97 cm spread).
+  Escape-margin is worse: 10.00 → 6.09 → 8.59 → 6.41 g at 5.0 cm / ×1.0.
+  **Spreads of 1.3–2.0 cm against a 0.3 cm decision threshold.**
+- **(3) The corner that killed both headlines is itself an anomalous cell.** The
+  breaking corner was (ss8, ×0.33). The ladder shows (5.0 cm, ×0.33) goes
+  SY = 0.69 → 0.61 → **1.00** → 0.77 for ss = 2/4/8/16. ss8 is the ONLY cell in
+  the entire grid where the baseline reaches perfect symmetry, and ss16 reverts.
+  So the corner is not a well-behaved worst case — it is a numerical outlier in a
+  non-converged axis, and it has no more authority than the OAT set it overturned.
+- **(4) A previously uncharacterized SOLVER BLOW-UP, new to this sweep.** At
+  5.0 cm / ×3.0, ss8 and ss16: PI = −24.37 and −40.48 cm, EM 0.16 g, SY 0.00, all
+  four fingers pinned identically at +3.40 rad. Gets WORSE with refinement — the
+  opposite of a stable-but-stiff system. Does not occur at 4.5 cm anywhere.
+  **substep 16 was never in any prior convergence table** (the battery sweeps
+  {2,4,8}), so this has been sitting outside the tested envelope all along.
+- **THE HONEST CONCLUSION, and it is neither of the stories we had: at 4.5–5.0 cm
+  this harness cannot resolve pull-in differences of ~1 cm. Neither M-B's headline
+  nor its refutation is trustworthy.** The headline rested on an OAT set that
+  missed the corner; the refutation rested on a corner the ladder now shows is
+  anomalous. Pairing did its job — deltas were far more stable than absolutes —
+  but pairing cannot rescue a comparison when the baseline changes QUALITATIVELY
+  (jam vs no jam) between cells.
+- **Consequence for the milestone: M-B's question is not answerable with this
+  instrument at these offsets.** Note the shape of the envelope: at 1.5–3.5 cm
+  everything is null AND stable (the instrument works; there is simply no effect,
+  because the passive close already seats to ~0.25 cm). At 4.5–5.0 cm there IS an
+  effect and the instrument is unreliable. **The region where the question is both
+  interesting and measurable may be empty in this configuration** — which is a
+  far stronger argument for the geometry change than anything the geometry
+  discussion produced on its own, since a dished weight-seated palm moves the
+  interesting regime rather than chasing precision in this one.
+- Lead's hypothesis scorecard for this run: the artifact story was clean,
+  well-motivated, had a documented precedent (§26), and is WRONG. Third time this
+  session a tidy lead hypothesis has been refuted by the experiment the lead
+  itself commissioned. Recorded because the pattern is the point — the value was
+  in commissioning a falsifiable test, not in the hypothesis.
+- Worker's not-tested list carried forward: blow-up mechanism undiagnosed; onset
+  boundary between ss4 and ss8 unlocated; grid not run at 1.5/2.5/3.5 cm; unknown
+  whether EM = 0.16 g in the blow-up cells is a real escape or the metric
+  computation hitting the same instability.
