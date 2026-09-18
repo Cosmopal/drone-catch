@@ -19,8 +19,8 @@ tags:
 | Session name | Model | Role | Owns (docs) | Never does |
 |---|---|---|---|---|
 | `drone-catch-meta` | Fable | **Meta-observer / AI researcher.** Studies the loop itself: logs every gate catch, human nudge (+faculty tag), error (all layers incl. its own), hypothesis score. Runs research passes (literature, hardware envelope). Feeds consolidation. | [[goal2-observer-notes|observer notes]], [[loop-engineering-analysis|analysis doc]] Parts VII+, `research/` digests, `concepts/14` | Coordinate the loop; approve work; touch the worktree's code |
-| `grasp-iter-lead` | Opus | **Lead.** Routes worker reports through gates (verifier→reviewer→critic, fresh-context Sonnet subagents), keeps the run log, escalates per spec §4, adjudicates detector promotions, writes gate briefs (never stating expected outcomes). | [[goal2-run-log|run log]], prereg diffs, gate briefs | Mark work done itself; relay a figure without re-deriving from artifact; put prereg/human-prior in gate contexts |
-| `grasp-iter-2` | Sonnet | **Worker.** Builds + measures in the worktree (`.claude/worktrees/grasp-iter2`, branch `grasp-iter2`). Owns the conda env (may fix packages; may NOT change pybullet/numpy/python versions mid-study). Commits logs+code with every number. | worktree code, committed run ledgers, evidence dirs | Self-approve; report a number without committed code + evidence at the human's medium |
+| `grasp-iter-lead` | Opus | **Lead.** Routes worker reports through gates (verifier→reviewer→critic, fresh-context Sonnet subagents), keeps the run log, escalates per spec §4, adjudicates detector promotions, writes gate briefs (never stating expected outcomes). | [[goal2-run-log|run log]], [[grasp-dynamic-catch-spec|grasp-dynamic-catch-spec.md]], prereg diffs, gate briefs | Mark work done itself; relay a figure without re-deriving from artifact; put prereg/human-prior in gate contexts |
+| `grasp-iter-2` | Sonnet | **Worker.** Builds + measures in the worktree (`.claude/worktrees/grasp-iter2`, branch `grasp-iter2`). Owns the conda env (may fix packages; may NOT change pybullet/numpy/python versions mid-study). Commits logs+code with every number. | worktree code, committed run ledgers, evidence dirs, grasp-harness-operating-notes.md | Self-approve; report a number without committed code + evidence at the human's medium |
 
 **The human** decides milestone scope, design rulings, and supplies the
 faculties the run showed aren't mechanized: physical-realism/mechanism design
@@ -61,7 +61,9 @@ nudges with faculty tags — that count is the study's primary metric.
   8. Paired comparisons share declared numerics (solver iterations included).
   9. Direction words name their referent ("cup mouth faces…", not "points…").
   10. A retraction requires the same evidentiary standard as the claim it
-      retracts (watch item at 2 episodes, adjudication pending).
+      retracts — WATCH ITEM, not a rule: adjudicated as not meeting the bar
+      (both episodes share one author+catcher dyad); promotes only on a
+      cross-role instance.
 
 ## 3. Resume procedure on a new machine
 
@@ -142,7 +144,12 @@ nudges with faculty tags — that count is the study's primary metric.
 8. **Author tags + wikilinks inline** per CLAUDE.md's Obsidian conventions;
    commit after every substantive entry; everything of value lives in git,
    never only in conversation (this document exists because that rule was
-   almost violated at machine scale).
+   almost violated at machine scale). **Corollary from the human: transcripts
+   are NOT the mechanism — the docs must suffice for a fresh deployment to
+   pick up the work. The sessions-2026-09 transcript archive was a one-time
+   move artifact; do not make archiving conversations into the repo a
+   practice. If a successor needs a transcript to understand a decision, the
+   docs failed — fix the doc.**
 
 ## 5. State snapshot at handoff (2026-09-19 — verify against the run log,
 which is authoritative if they diverge)
@@ -153,14 +160,25 @@ which is authoritative if they diverge)
   — ball spawned overlapping a finger; lateral offset was the mechanism's
   weakest axis; OAT convergence inadequate for marginal claims; pull-in not
   substep-converged at large offsets).
-- **Next phase (agreed in shape, prereg NOT yet written)**: fixed-base
-  axis-aligned dynamic catch — feasibility envelope, speed × lateral miss →
-  catch rate; passive `prb` alone first; dished palm in the baseline.
-  Pending human rulings: two-phase pose (meet arrival-aligned → rotate
-  vertical to hold) in/out of first build; sweep ranges. The human's
-  pre-registered prior is on record ("a very simple hand with just compliant
-  material will be decently performative") with the asymmetric scoring
-  protocol fixed in advance.
+- **Next phase — AUTHORITATIVE PLAN: [[grasp-dynamic-catch-spec|grasp-dynamic-catch-spec.md]]**
+  (the lead's forward doc: design, sim-fidelity limits, standing rules,
+  sealed prereg, routing; the run log stays authoritative for chronology).
+  Fixed-base dynamic catch, GRID APPROVED by the human, four axes:
+  approach speed {1.5, 2.8, 4.0 m/s} × misalignment magnitude {0°, 10°,
+  20°, 30°} × misalignment azimuth {toward-finger, toward-gap} × lateral
+  miss {0, 1.5, 3.0 cm}. The angular axes are the human's addition — they
+  make the old sideways case a LIMITING POINT of the envelope (learn where
+  between aligned and sideways it breaks; that angle is the flight
+  controller's spec), and azimuth is finger-vs-gap because the hand has C4
+  symmetry (in-plane/out-of-plane is an ARM property, meaningless
+  fixed-base). Passive `prb` alone first; dished palm in the baseline.
+  **Single pending ruling: two-phase pose (meet arrival-aligned → rotate
+  vertical to hold) in/out of first build.** The human's pre-registered
+  prior is on record ("a very simple hand with just compliant material will
+  be decently performative") with the asymmetric scoring protocol fixed in
+  advance. The human's original hand-drawn pose sketch is committed at
+  `docs/agents/underarm-drawing.png` (the input that drove the geometry
+  change).
 - **Consolidation queue (the M-D-style distillation pass, not yet run)**: the
   PROPOSE/design-audit gate (the run's unifying gap — every detector audits
   execution, none audits design); D9 extended to actuators; scope detector
