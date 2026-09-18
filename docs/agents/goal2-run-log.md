@@ -1936,3 +1936,32 @@ AND CLOSED. Next phase redefined: axis-aligned dynamic catch.**
 - Next phase: a DYNAMIC, axis-aligned catch test — ball launched toward the hand
   along the cup axis with a lateral tolerance, hand catches. Design to be agreed
   with the human before any build; the lead is NOT to start on it unilaterally.
+- **Human design rulings (partial), 2026-09-19:** (a) characterize the PASSIVE
+  `prb` alone first; (b) DISHED palm in the baseline, not as a later intervention.
+  - Lead's recorded cost of (b), so it is not discovered later: dish and
+    axis-alignment change together, so the experiment cannot attribute an effect
+    to either one. Disqualifying for a comparison; acceptable for a feasibility
+    envelope, and it saves a cycle characterizing a palm already judged wrong.
+- **Lead phrasing error corrected by the human.** I wrote "point the cup along the
+  arrival velocity vector — down-and-toward", describing the VELOCITY while the
+  reader needs the CUP direction. The human: "If the ball is descending, then
+  won't the hand be pointing upwards?" Correct. The cup mouth is ANTI-parallel to
+  the ball velocity: for the nominal throw (vx +3.3, vz −3.2, arriving 44° below
+  horizontal) the cup faces **up and backward, ~46° from vertical, leaning toward
+  the thrower.**
+  - Reach consequence, from the earlier pose sweep: a vertical cup reaches only
+    0.209 m (folded), but at ≤45° tilt it reaches **0.373 m folded / 0.326 m
+    extended.** The arrival-aligned pose is EASIER to reach than the vertical one.
+- **Design tension surfaced by the correction, and it needs a ruling:** the two
+  jobs want different angles. Aligned with arrival (~46°) is best for absorbing
+  the impact down the cup axis; VERTICAL is best for gravity seating the ball to
+  the cup axis, since at 46° gravity pulls it to the dish's downhill rim.
+  - Lead's proposed resolution: **two-phase pose** — meet the ball aligned with
+    its path, then rotate the cup toward vertical for the hold. This is how a
+    person catches, and the differential/common-mode decomposition already
+    established means cup ORIENTATION is controllable independently of cup
+    POSITION. Cheap if designed in, awkward if retrofitted. In scope or deferred
+    is the human's call.
+- Still open before the prereg: two-phase pose in/out of the first build; and the
+  sweep ranges (lead proposes 1–4 m/s approach × 0–4 cm miss, with at least one
+  cell deliberately beyond where anyone expects it to work).
