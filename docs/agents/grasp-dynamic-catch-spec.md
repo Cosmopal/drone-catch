@@ -252,20 +252,42 @@ protect an experiment from the person who chose its shape.
 
 ## 6. Open — needs a ruling before the prereg is written ^6
 
-**Two-phase pose: in the first build, or deferred?**
+**How to handle the cup angle during the HOLD phase.** (The human's hand-drawn
+pose that started this is committed at `docs/agents/underarm-drawing.png`.)
 
 The cup's two jobs want different angles. Aligned with arrival (~46°) is best for
 absorbing the impact down the cup axis; **vertical** is best for gravity seating
-the ball to the cup axis, because at 46° gravity pulls it to the dish's downhill
-rim.
+the ball to the cup axis, because at 46° gravity pulls it to the dish's *downhill
+rim* instead of its centre — which defeats the reason for adding the dish.
 
-Proposed resolution: meet the ball aligned with its path, then rotate the cup
-toward vertical for the hold — which is how a person catches. The
-differential/common-mode decomposition makes this cheap: since the forearm's
-absolute angle is `a2 = θ1 − θ2`, the **differential** sets cup orientation and
-the **common mode** sets cup position, so orientation is controllable
-independently of position. Cheap if designed in, awkward if retrofitted — but it
-adds a moving part to an experiment whose whole point is to isolate the hand.
+The differential/common-mode decomposition makes a change of cup angle cheap on
+this arm: since the forearm's absolute angle is `a2 = θ1 − θ2`, the
+**differential** sets cup orientation and the **common mode** sets cup position,
+so orientation is controllable independently of position.
+
+Three options, in the order they were considered:
+
+1. **Two-phase pose, scripted** — meet the ball at ~46°, then rotate toward
+   vertical for the hold, as a person does. Cheap if designed in, awkward to
+   retrofit. Cost: it adds a *timing parameter* and a moving part to an
+   experiment whose whole point is to isolate the hand — if a catch then fails,
+   hand-failure and mistimed-rotation are not separable, which is the very
+   attribution confound the fixed-base design exists to remove.
+2. **Defer entirely** — hold at 46°. Cost: retention is then measured with
+   gravity pulling the ball to the rim, i.e. **a configuration nobody would
+   build.** That is the same error class as M-B's downward-facing cup.
+3. **RECOMMENDED — make the hold angle a CONDITION, not a transition.** Run the
+   catch at ~46°, then evaluate retention twice: once with the cup left at 46°,
+   once reoriented to vertical. Two cells, no timing parameter, nothing moving
+   during the catch.
+
+Option 3 separates two questions the binary framing conflates: *does cup angle
+matter for retention?* — a hand question, in scope here — and *can the arm
+execute the transition in time?* — a control question, out of scope for a
+fixed-base hand test and properly belonging to the drone milestone. If the two
+conditions come out the same, the two-phase pose is unnecessary complexity we
+avoided; if vertical is much better, we have quantified what the transition buys
+before anyone builds it.
 
 ## 7. Roles and routing ^7
 

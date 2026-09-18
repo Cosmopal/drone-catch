@@ -2023,3 +2023,23 @@ roles/routing). The worker separately wrote
   than patching. Verified afterwards that `iteration_findings.md` does carry `^N`
   block-ids on 28 headings, so the `#^N` links resolve — the worker had flagged
   that doubt and it is resolved.
+- **Open ruling reframed from a binary to three options** (spec
+  [[grasp-dynamic-catch-spec#^6|§6]] updated). The question was "two-phase pose:
+  in the first build or deferred?" Both answers are bad: scripting the rotation
+  adds a TIMING parameter to an experiment built to isolate the hand (a failed
+  catch then cannot be attributed between hand and mistimed rotation — the exact
+  confound the fixed base removes); deferring measures retention at 46° with
+  gravity pulling the ball to the dish's rim, **a configuration nobody would
+  build**, which is M-B's downward-cup error again.
+  - **Recommended third option: make the hold angle a CONDITION, not a
+    transition.** Catch at ~46°, then evaluate retention twice — cup left at 46°,
+    and cup reoriented to vertical. Two cells, no timing parameter, nothing moving
+    during the catch. It separates "does cup angle matter for retention?" (a hand
+    question, in scope) from "can the arm execute the transition in time?" (a
+    control question, belonging to the drone milestone). Same-result → the
+    two-phase pose is complexity avoided; vertical-much-better → we have priced
+    the transition before anyone builds it.
+  - Recorded because the reframe matters more than the answer: the binary was a
+    false choice between two flawed designs, and neither gate nor lead spotted it
+    until the human asked what the two-phase pose actually was. Another PROPOSE-
+    stage catch prompted by a plain question.
