@@ -1847,3 +1847,62 @@ the result is worse than either prior story. Lead verified all 24 cells from
   repeat-seed check on the blow-up (the sweep used no seed variation, so
   seed-sensitivity unknown); no mechanism-level account of why that finger is
   pushed outward.
+
+**2026-09-19 — human nudge #7 (faculty: PHYSICAL REALISM, from VIDEO). FOUNDATIONAL
+DEFECT: the ball is placed INSIDE a finger. §4 escalation raised.**
+- Human, watching `E3_stiff_ss16_50mm_BLOWUP_worse.mp4` on the UNDER camera:
+  "the ball was colliding severely with a finger, and when sim started, that gave
+  the ball the initial velocity." Correct, and it invalidates an assumption the
+  whole static study rests on.
+- The lead had twice asserted the harness has "zero relative velocity by
+  construction" (true of `resetBaseVelocity`) and missed that the ball is placed
+  in an already-overlapping state. Found by watching frames, not by reading code.
+- **Measured (worker, `performCollisionDetection` before any `stepSimulation`)
+  and INDEPENDENTLY CONFIRMED by the lead via pure URDF kinematics, no sim:**
+
+  | offset | lead's geometry | worker's measured |
+  |---|---|---|
+  | 1.5 cm | ~0 | −1.98 mm |
+  | 2.5 cm | −9.0 | −11.19 mm |
+  | 3.5 cm | −19.0 | −20.40 mm |
+  | 4.5 cm | −29.0 | −29.61 mm |
+  | 5.0 cm | −34.0 | **−34.21 mm** |
+  | 5.5 cm | −35.0 | −35.18 mm |
+
+  Two methods agreeing to ~1 mm. At 5.0 cm a 30 mm-radius ball is spawned 34 mm
+  inside a finger — its centre nearly coincident with the finger centreline.
+- **First-tick normal force:** 0.5 N at 1.5 cm; **88 N at 4.5 cm and 124 N at
+  5.0 cm at DEFAULT stiffness**; 236 N at ×3.0. The PRB tendon's whole budget is
+  `pull_max = 0.25 N·m` / 0.6 N·m joint cap. The placement impulse is orders of
+  magnitude beyond anything the close mechanism applies.
+- `_fingers_touching()` verified to use real `getContactPoints`
+  (`cage_harness.py:447`), not a proximity threshold — so the HUD's "touching: 1"
+  at frame 0 was a true contact all along.
+- **THE PRECISE DEFECT: `pull_in = offset_m − seat_off` measures from the nominal
+  placement, but at large offsets the ball never occupies that position in any
+  settled sense — it is ejected on tick one. The metric's origin is a location
+  that was never physically realised.** And "offset" is not an independent
+  variable in the finger direction: penetration grows ~linearly with it, so every
+  cell varies where the ball starts AND how hard the solver punches it.
+- **Coherent account, at last, of the shape we kept hitting:** clean and stable at
+  1.5–3.5 cm (overlap ~2–20 mm, force 0.5 N at the small end); unresolvable at
+  4.5–5.0 cm (overlap ~30–34 mm, force 88–124 N). The contamination scales
+  precisely into the region where convergence failed.
+  - **Lead's self-flag: this is the FOURTH tidy story offered this session and the
+    previous three were refuted.** Recorded as a hypothesis that fits the data,
+    not a demonstrated cause. What IS demonstrated: the overlap, its scaling, the
+    forces, and that the metric's origin is fictitious at large offset.
+- **Scope reaches Goal 1.** `run_cell` and `render_quality` share the placement
+  code, so §29's large-offset cells carry the same confound. Gap direction is much
+  milder (−2 to −3.6 mm at 2.5–4.5 cm, none at 1.5/5.5, ~0 at 5.0) — consistent
+  with §29's gap-direction results having always looked different.
+- **§4 ESCALATION RAISED TO THE HUMAN** — bears on committed results; not the
+  lead's call. Not yet decided, no remediation attempted, harness untouched.
+- Untested (worker): n6/n8 and other geometries; other strategies (placement is
+  strategy-independent in `run_cell`, expected to reproduce, unverified); whether
+  §29's committed numbers were measurably affected; READY_CURLED vs SPLAYED.
+- **Method note for the study: three of the run's deepest defects — cup facing
+  down, the corner's baseline change, and now placement overlap — were all found
+  by LOOKING, and none by any gate reading numbers.** Nudge #7 is the third
+  evidence-medium catch and the second where the human read a frame the lead had
+  already seen and not understood.
