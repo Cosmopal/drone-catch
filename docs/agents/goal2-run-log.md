@@ -1906,3 +1906,33 @@ DEFECT: the ball is placed INSIDE a finger. §4 escalation raised.**
   by LOOKING, and none by any gate reading numbers.** Nudge #7 is the third
   evidence-medium catch and the second where the human read a frame the lead had
   already seen and not understood.
+
+**2026-09-19 — human decision #8 (faculty: SCOPE + EXPERIMENT DESIGN). M-B SCOPED
+AND CLOSED. Next phase redefined: axis-aligned dynamic catch.**
+- **Decision (1): scope it and move on.** Finger-direction results above ~3.5 cm
+  are declared confounded by placement overlap; the small-offset nulls stand
+  (~2 mm overlap, 0.5 N first-tick force — genuinely clean). §29 to be annotated,
+  not re-baselined. No harness remediation. M-B closes here.
+- **Decision (2), and it reframes the whole study — the human's words:** "this
+  isolated offset experiment is not constructed well... the current design sort of
+  makes a sideways offset which given the design of the hand is anyway a failure
+  case — if the ball is approaching from the side, unless it precisely goes
+  between the fingers it is almost guaranteed to bounce off. So let us assume the
+  hand is well oriented and the ball approaches from the direction where the hand
+  is pointing rather than from sideways, so we can give the hand a better chance
+  to perform."
+- **Why this is right, and why no gate raised it.** A 4-finger cage is
+  axisymmetric about its approach axis; a LATERAL offset attacks the one direction
+  where the geometry has gaps between fingers. So the static study's independent
+  variable was chosen along the mechanism's weakest axis — not wrong, but a
+  worst-case probe reported as a characterization. Every detector asked whether
+  the measurement was sound; none asked whether the VARIABLE was the right one.
+  Same family as situation-fidelity (which way the cup faces): the gates
+  interrogate claims and evidence, never the choice of axis.
+- **The human's prior, recorded BEFORE the next experiment runs** (a
+  pre-registration in the §0.3 sense, and it should be scored as one): "intuitively
+  I guess it makes sense that a very simple hand with just compliant material will
+  be decently performative when doing the catch."
+- Next phase: a DYNAMIC, axis-aligned catch test — ball launched toward the hand
+  along the cup axis with a lateral tolerance, hand catches. Design to be agreed
+  with the human before any build; the lead is NOT to start on it unilaterally.
