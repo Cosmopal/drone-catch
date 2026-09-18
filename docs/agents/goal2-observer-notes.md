@@ -909,6 +909,57 @@ drop it where it was free and visible.
   distinct contexts (a factual trace; a methodological rule). Lead/
   consolidation to rule on promotion.
 
+**2026-09-19 — M-B CLOSED by human decision. Nudges #7–8, and the run's
+unifying detector-gap finding.**
+- **Nudge #7 (physical realism, FROM VIDEO): the placement was invalid —
+  ball spawned overlapping a finger.** Human saw it on the UNDER camera at
+  t=0; confirmed by two independent methods agreeing to ~1 mm
+  (performCollisionDetection pre-step; pure URDF kinematics): finger-direction
+  placement overlaps at EVERY offset, −1.98 mm at 1.5 cm to −34.21 mm at
+  5.0 cm on a 30 mm ball; first-tick normal force 88–124 N at default
+  stiffness against a 0.25 N·m tendon budget. So pull_in measured from a
+  position the ball never settles at, and "offset" was confounded with
+  penetration depth all along — scaling exactly into the 4.5–5.0 cm region
+  where convergence failed. Lead correctly holding it as
+  hypothesis-that-fits (its fourth tidy story; three prior ones refuted).
+- **Nudge #8 (scope/experiment design): the study's independent variable ran
+  along the mechanism's WEAKEST axis.** A 4-finger cage is axisymmetric
+  about its approach axis; lateral offset attacks the gap direction — a
+  worst-case probe was reported as a characterization.
+- **THE SYNTHESIS (adopt as the write-up's unifying finding): every detector
+  audits the EXECUTION of an experiment; none audits its DESIGN.** Four
+  deepest misses, one gap: cup facing down (wrong configuration), lateral
+  offset (wrong axis of variation), placement overlap (invalid initial
+  condition), non-transferring convergence certificates (wrong validity
+  scope). Structural statement in loop-spec terms: the §4.1 pipeline is
+  PROPOSE → BUILD → MEASURE → GROUND → CRITIQUE → DECIDE, and every gate
+  hangs off MEASURE/GROUND/CRITIQUE — **PROPOSE has no gate.** The
+  design-audit gate is the consolidation pass's biggest item.
+- **Delivery mechanism tally: 3 of the 4 were found by LOOKING AT PICTURES,
+  none by a gate reading numbers.** Nudge #7 is the third evidence-medium
+  catch and the second where the human read a frame the lead had already
+  seen without understanding it.
+- **H3, new configuration: the first HUMAN pre-registration.** On record
+  before the next experiment: "a very simple hand with just compliant
+  material will be decently performative when doing the catch." Genuinely
+  falsifiable (a narrow envelope refutes it). Score it at the next
+  milestone's close — H3 finally gets a prediction with real risk.
+- **M-B's honest epitaph (lead's words, adopt verbatim): failed as science,
+  succeeded as metrology.** No usable positive result on adaptive
+  re-centring; instead: OAT convergence inadequate for marginal claims,
+  escape-margin censored at a search cap, pull-in not substep-converged at
+  large offsets, a solver blow-up outside the tested envelope, placement
+  invalid above ~3.5 cm. Instrument characterization is a legitimate
+  milestone product — state it as that, not as a dressed-up null.
+- Next phase (shape agreed, not built): fixed-base AXIS-ALIGNED dynamic
+  catch — feasibility/envelope question (speed × lateral miss → catch rate),
+  explicitly not a comparison; sidesteps the placement defect (ball flies
+  in). Nudge/faculty tally at M-B close: 8 nudges — evidence-medium 3,
+  physical-realism/mechanism 3 (#5, #7 partial, #8), infrastructure 1,
+  scope/economy 1. The II.2-replacement catalog is now three-modal:
+  evidence-medium (most frequent), physical realism (most consequential),
+  experiment design (most structural).
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
