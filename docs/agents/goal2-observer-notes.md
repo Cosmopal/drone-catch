@@ -960,6 +960,33 @@ unifying detector-gap finding.**
   evidence-medium (most frequent), physical realism (most consequential),
   experiment design (most structural).
 
+**2026-09-19 — H3 scoring protocol for the human's prior, fixed BEFORE the
+experiment (lead's analysis, adopted in full).**
+- **Limit on isolation, and it's structural: the prior is ENCODED IN THE
+  DESIGN.** The human didn't just state "a simple compliant hand will
+  perform decently" — they designed the test (axis-aligned approach, lateral
+  probe dropped, mechanism's best case). §0.3 isolation protects JUDGES from
+  anchoring; it cannot protect an experiment from the person who chose its
+  shape. First clean instance of the PROPOSE-gap and the isolation machinery
+  interacting: the one prior you can't seal out is the designer's.
+- **Asymmetric scoring, committed to in advance (record this in the run log
+  as the standing H3 protocol):** a REFUTATION is strong evidence (narrow
+  envelope, in a design chosen to favour the mechanism, against the
+  designer's expectation — the cleanest falsification this project can
+  produce); a CONFIRMATION is weak evidence, weaker than normal (performs
+  well on the axis it was built for, in a test shaped by someone who
+  expected it to). Near-unfalsifiable-by-construction on the confirming
+  side. The write-up must not record "human prior confirmed" as if
+  symmetric.
+- **Countermeasure applied forward:** the envelope must include ≥1 cell the
+  design was NOT chosen to favour (off-axis approach, or miss distance past
+  expected competence) — an edge that could embarrass the prior. The
+  uncovered-cell rule, now doing its third distinct job (buried findings;
+  calibration precondition; designer-prior check).
+- Pending: three human design rulings (approach geometry; passive-hand-first;
+  convex-palm baseline). Prereg after they land — lead+worker's, with the
+  human's prior sealed from worker/gates.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
