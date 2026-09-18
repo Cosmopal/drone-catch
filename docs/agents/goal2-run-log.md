@@ -1999,3 +1999,27 @@ AND CLOSED. Next phase redefined: axis-aligned dynamic catch.**
     aiming; out-of-plane → you need yaw.
 - Last item open before the prereg: two-phase pose (meet aligned → rotate to
   vertical for the hold) in the first build, or deferred.
+
+**2026-09-19 — human decision #9: grid APPROVED; and "document everything so a
+restart can pick it up."** Written up as
+[[grasp-dynamic-catch-spec|grasp-dynamic-catch-spec.md]] — the forward-looking
+plan (status, what M-B concluded and why it is limited, the full dynamic-catch
+design, sim-fidelity limits, the 10 standing protocol rules, the human's
+pre-registration with its isolation and asymmetric scoring, the one open ruling,
+roles/routing). The worker separately wrote
+[[grasp-harness-operating-notes|grasp-harness-operating-notes.md]].
+- The human's point that prompted both: "Don't rely on an informal session's
+  accumulated knowledge." It dissolved the lead's own argument for keeping the
+  worker session alive — the argument was "its discipline is expensive to
+  rebuild", which is an argument for WRITING IT DOWN, not for protecting a
+  session. Once documented, a restart costs a re-brief and nothing more. This is
+  the H6 compile-coverage lesson one layer up: knowledge the system holds but
+  never compiled into a loadable form.
+- **Lead error while writing the spec, worth recording as a process note:** I
+  escaped the pipe in every wikilink (`\|`), which is wrong in prose (should be a
+  plain `|`) and wrong in table cells (should be `::` per CLAUDE.md). Then my
+  "fix" regex matched the empty string at every position and inserted a separator
+  between every character, corrupting the file; I deleted and rewrote it rather
+  than patching. Verified afterwards that `iteration_findings.md` does carry `^N`
+  block-ids on 28 headings, so the `#^N` links resolve — the worker had flagged
+  that doubt and it is resolved.
