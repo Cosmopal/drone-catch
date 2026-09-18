@@ -1965,3 +1965,37 @@ AND CLOSED. Next phase redefined: axis-aligned dynamic catch.**
 - Still open before the prereg: two-phase pose in/out of the first build; and the
   sweep ranges (lead proposes 1–4 m/s approach × 0–4 cm miss, with at least one
   cell deliberately beyond where anyone expects it to work).
+- **Human design ruling (c): sweep APPROACH ANGLE too** — "it is possible that the
+  drone fails to align the hand perfectly with the incoming trajectory, so we
+  should try different angles."
+  - **Why this improves the experiment structurally:** the angular sweep makes the
+    OLD sideways case a LIMITING POINT of the new one. At 0° the ball runs down
+    the cup axis; at 90° it recovers exactly the lateral approach M-B was
+    (wrongly) built around. So instead of two disconnected studies — best case and
+    worst case — one envelope shows where between them it breaks. **That angle is
+    the specification for the flight controller.**
+  - **Lead's caution, applying M-B's own lesson:** the tempting design is staged
+    one-axis-at-a-time (find the angular limit, then add speed, then miss). That
+    is precisely the OAT structure whose joint corner killed both M-B headlines
+    and was invisible to every single-axis sweep. So: a COARSE FACTORIAL with
+    deliberate adverse corners, not fine 1-D sweeps.
+  - Proposed grid (36 cells + corners): speed {1.5, 2.8, 4.0} m/s × angular
+    misalignment {0,10,20,30}° × lateral miss {0, 1.5, 3.0} cm, plus cells where
+    all three are adverse simultaneously and ≥1 cell deliberately beyond expected
+    capability (the uncovered-cell rule, designer-prior referent).
+  - Geometric sanity on the ranges: splayed mouth ~10 cm across against a 6 cm
+    ball → lateral tolerance bounded near 2 cm before the ball strikes a finger
+    rather than entering; at 2.8 m/s a 20° misalignment puts ~0.96 m/s ACROSS the
+    cup axis, which is the component that would carry the ball out through a
+    finger gap. So the proposed ranges should bracket the boundary rather than sit
+    wholly inside or outside it.
+  - **Open design question raised to the human: WHICH PLANE is the angular error
+    in?** In-plane (sagittal) error the 2R arm CAN correct — both joints rotate
+    about y. Out-of-plane (lateral) error it CANNOT correct at all; that needs yaw
+    control plus a singularity-free attitude controller (parking-lot #3/#4). So
+    out-of-plane is the error the drone genuinely cannot fix and therefore the
+    tolerance that matters most. Recommend sweeping both but REPORTING THEM
+    SEPARATELY, since they imply different fixes: in-plane → improve the arm's
+    aiming; out-of-plane → you need yaw.
+- Last item open before the prereg: two-phase pose (meet aligned → rotate to
+  vertical for the hold) in the first build, or deferred.
