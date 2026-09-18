@@ -987,6 +987,34 @@ experiment (lead's analysis, adopted in full).**
   convex-palm baseline). Prereg after they land — lead+worker's, with the
   human's prior sealed from worker/gates.
 
+**2026-09-19 — pre-prereg round: rule unified, a referent-error pattern
+named, two rulings landed.**
+- **Uncovered-cell rule UNIFIED (lead's check of the observer's "three jobs"
+  note — it's one mechanism, not a stretched label): *the evidence set must
+  contain ≥1 element whose selection was independent of the hypothesis* —
+  the three uses differ only in what selection must be independent OF
+  (prediction / scoring / design). Consolidation text: name the referent
+  each time; "uncovered" unqualified invites the scope-creep we'd catch in
+  anyone else.** (Note the method: the lead audited a flattering
+  generalization OF ITS OWN best rule before accepting it.)
+- **Lead output pattern named (human caught the third instance): direction/
+  magnitude words that don't name their referent.** "Point the cup along the
+  arrival velocity" described the velocity where the reader needed the cup
+  (mouth is ANTI-parallel: faces up-backward, ~46° from vertical). Prior
+  instances: signed +x in the pose sweep; flex-sum read as a joint angle.
+  Referent errors in prose — same class as the cross-run chimera, at the
+  sentence level. Candidate fix is stylistic, not a gate: directions state
+  their object ("cup mouth faces...", "ball velocity points...").
+- Fallout from the correction, both useful: arrival-aligned pose reaches
+  FURTHER than vertical (0.373 vs 0.209 m folded at ≤45° tilt) — the
+  realistic pose is the easier one; and a real design tension surfaced
+  (arrival-alignment absorbs down the cup axis; vertical gravity-seats; at
+  46° gravity pulls to the downhill rim) with a proposed two-phase pose
+  (meet aligned → rotate vertical to hold), cheap under the differential/
+  common-mode decomposition. With the human.
+- Rulings landed: passive `prb` alone first; dished palm IN the baseline.
+  Open: two-phase pose in/out of first build; sweep ranges. Prereg waits.
+
 **2026-08-31 — observability defect (harness-level), logged for the ledger.**
 Two of three research-agent transcripts from the extension pass came back as
 empty files (digests survived only via final messages). Same failure class as
