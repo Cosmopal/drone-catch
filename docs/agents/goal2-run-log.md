@@ -2043,3 +2043,59 @@ roles/routing). The worker separately wrote
     false choice between two flawed designs, and neither gate nor lead spotted it
     until the human asked what the two-phase pose actually was. Another PROPOSE-
     stage catch prompted by a plain question.
+
+**2026-09-22 — human rulings #10–11; spec updated; PREREGISTRATION WRITTEN.**
+- **Ruling #10 — no vertical-hold condition.** The question dissolved on a wrong
+  premise of the lead's: I had the dish's job backwards. **Retention is the
+  CAGE's** — the 4×3-segment hand with the long proximal phalanx was built to
+  survive full inversion ([[iteration_findings#^13|§13]]→[[iteration_findings#^15|§15]]), so form closure holds the ball at
+  any orientation without gravity. **The dish exists only to stop the palm
+  actively DE-centring during capture.** Human: the palm should "not act as an
+  instability but instead support a stable hold." After capture the arm returns to
+  its natural carry pose.
+  - Human's second reason, a hardware constraint: the arm cannot be much larger
+    than the drone (the body must house compute, battery, truss), so do not put
+    the arm under sustained load holding an awkward attitude. Consistent with
+    [[14-hardware-envelope|concepts/14]] — hand 150–250 g, actuator-dominated, at the end of a 0.4 m arm.
+  - Surviving narrow question, already covered by the close-timing variable:
+    between arrest and finger closure (tens of ms) the cage is not firm — does the
+    ball roll toward the dish rim first? A capture question, not a hold question.
+- **Ruling #11 — do not rely on a sensitive catch pose.** Lead had started citing
+  "at the nominal pose the force line passes near the elbow axis, so little elbow
+  torque" as a design rationale. **Human: that is backwards for an adversarial
+  game** — "the drone has to be robust enough to catch even if it has error
+  margins or not the optimal positions; it is only for now, constructing an
+  isolated catch experiment, that we are giving such controlled situations to the
+  hand." **The controlled setup is scaffolding, not the design target.** M-B's
+  error again: a favourable property of ONE point offered as a characterization,
+  while the misalignment sweep exists precisely because the pose will not be
+  nominal — and if the load path is benign only at 0°, joint torque grows exactly
+  where robustness is needed.
+- **Physics clarified for the record (human's question: isn't the impulse the same
+  regardless?).** Three distinct quantities, which the lead had been conflating:
+  - **Impulse** ∫F·dt = m·v to arrest the ball — FIXED, nothing the hand does
+    changes it. (A clean elastic bounce is up to 2m·v, so catching is the gentler
+    outcome.)
+  - **Peak force** = impulse ÷ duration — this is what compliance reduces, by
+    spreading the same impulse over ~70 ms (M5: peak ≤11.3 N despite 4.6 m/s).
+  - **Joint torque** `τ = r × F` — pure geometry. Identical force gives wildly
+    different joint load depending on where the ball strikes and the contact
+    normal's direction. **And it is a CAPTURE failure mode, not just actuator
+    sizing: an underactuated tendon hand back-drives rather than breaking —
+    joint yields, fingers open, ball leaves.** Exactly the M-A failure (pinned at
+    the 0.5 N·m cap, splayed, ball gone at t=3.9417).
+- **Metrics extended accordingly:** peak joint torque (shoulder + elbow) and peak
+  base reaction force/torque per cell. The base is fixed, so what it absorbs is
+  what a drone would have to — the flight controller's input spec, currently
+  unknown. **The envelope now has THREE limits** (hand / arm / drone) and it is
+  not safe to assume the hand binds first.
+- **[[goal2-prereg-dynamic-catch|goal2-prereg-dynamic-catch.md]] written and SEALED** — six predictions with
+  falsifiers, confidences and provenance tags; one explicit non-prediction (base
+  reaction — no prior exists, recorded so no number can later be narrated as
+  expected); an uncovered cell at 45°/5 cm with the DESIGN as independence
+  referent. Priors rest on M8's 2.3 m/s punch-through (negative precedent, same
+  physical hand) rather than M5's 12/12 (soft-constraint stand-in, weak evidence
+  here). **The set is deliberately pessimistic**, which makes confirmation cheap
+  and refutation informative — noted in the file so the diff is not misread as
+  success when the hand merely beats a cautious guess. P4 is flagged as the claim
+  the lead was cautioned against, now predicted-and-measured rather than assumed.

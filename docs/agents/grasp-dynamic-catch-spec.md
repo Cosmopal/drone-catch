@@ -19,7 +19,7 @@ tags:
 |---|---|
 | M-A (setup + regression) | **CLOSED.** Gate A (`arm_catch_solo --grid`) robust: 12/12, and 108/108 under solver × velocity-nudge attack. Gate B (`elbow_catch_solo`) demoted to informational — marginal on both platforms, not a platform regression. |
 | M-B (adaptive re-centering, static) | **CLOSED AND SCOPED** by human decision, 2026-09-19. No usable positive result. See [[#^2::§2]]. |
-| Dynamic catch (this doc) | **DESIGNED, NOT BUILT.** Awaiting one ruling ([[#^6::§6]]), then pre-registration. |
+| Dynamic catch (this doc) | **DESIGNED, PRE-REGISTERED, NOT BUILT.** All rulings landed ([[#^6::§6]]). Prereg: `goal2-prereg-dynamic-catch.md` (sealed from worker and gates). |
 | M-C / M-D as written in the loop spec | Superseded in shape by this milestone; the intent of [[grasp-iteration2-spec#^2::§2]] deliverable 6 (dynamic, kept strictly separate from static) is preserved. |
 
 Environment: Windows, conda env `robots` = Python 3.11.16, numpy 2.4.6,
@@ -111,6 +111,17 @@ Reach note: the arrival-aligned pose reaches **further** than a vertical cup —
 0.373 m folded at ≤45° tilt versus 0.209 m vertical. The realistic pose is the
 easier one.
 
+**What the dish is FOR, and what it is not for** (human ruling, 2026-09-22).
+Retention is the **cage's** job — the 4-finger × 3-segment hand with the long
+proximal phalanx was built to survive **full inversion** ([[iteration_findings#^13|§13]] → [[iteration_findings#^15|§15]]), which
+is exactly why the 2-segment version was rejected. Form closure holds the ball at
+any orientation with no help from gravity. **The dish exists only to stop the palm
+actively DE-centring the ball during capture** — the current convex 12 mm sphere
+against a 30 mm ball is an unstable equilibrium. Do not design any pose, hold, or
+control behaviour that depends on the dish for retention, and do not ask the arm
+to maintain an awkward attitude to keep gravity seating the ball. After capture
+the arm returns to its natural carry pose and the cage does the work.
+
 **Recorded cost of dishing the baseline:** dish and axis-alignment change
 together, so no effect can be attributed to either alone. Disqualifying for a
 comparison; acceptable for an envelope. Must not be written up as though the dish
@@ -153,9 +164,39 @@ ranges should bracket the boundary rather than sit wholly inside or outside it.
 **Retired:** pull-in (a static-study artifact, and its origin is fictitious above
 ~3.5 cm); lateral offset as the independent variable; the static placement.
 
-**In use:** captured (ball arrested inside the cage); retained (survives a
-disturbance or lift); peak contact force; and seated quality at rest, which is
-meaningful for the first time because gravity is on and the ball actually settles.
+**In use — ball side:** captured (ball arrested inside the cage); retained
+(survives a disturbance or lift); peak contact force; and seated quality at rest,
+which is meaningful for the first time because gravity is on and the ball actually
+settles.
+
+**In use — ARM and BODY side (added 2026-09-22, and these may bind first):**
+
+- **Peak joint torque at shoulder and elbow, per cell.** The impulse to arrest the
+  ball is fixed at m·v whatever the hand does; compliance lowers peak FORCE by
+  spreading that impulse over time (~70 ms in M5), and it does not change the
+  impulse. Torque is a third and separate quantity: `τ = r × F`, so identical
+  force produces wildly different joint load depending on where the ball strikes
+  and which way the contact normal points. At 0° misalignment the force line runs
+  down the forearm and passes near the elbow axis (axial compression, trivial); at
+  20° it is offset and the motor must react a real moment.
+  **This is a CAPTURE failure mode, not merely an actuator-sizing concern:** an
+  underactuated tendon hand does not break when torque exceeds its cap, it
+  **back-drives** — joint yields, fingers open, ball leaves. That is exactly the
+  M-A failure (fingers pinned at their 0.5 N·m cap, splaying, ball gone at
+  t = 3.9417). So torque above cap breaks a catch that ball-side numbers would
+  call fine.
+- **Peak base reaction force and torque.** The base is fixed, so what it absorbs
+  is precisely what a drone would have to absorb instead. This is the input
+  specification for the flight controller and is currently unknown — every catch
+  number the project has is about the ball, none about what the catch does to the
+  aircraft.
+
+**Consequence: the envelope has three limits, not one** — what the HAND tolerates
+before the ball escapes, what the ARM tolerates before joint torque exceeds a
+buildable actuator (STS3215 class, ~55 g, ~19.5 kg·cm at 7.4 V; sim joint cap
+0.6 N·m), and what the DRONE tolerates before the reaction exceeds its control
+authority. **The adversarial game is bounded by whichever is tightest, and it is
+not safe to assume that is the hand.**
 
 **Validity guard, mandatory before a cell's numbers count:**
 `n_contact_fingers > 0` **and** `score > 0`. Escape-margin alone cannot
@@ -250,10 +291,38 @@ axis, drop the lateral probe. The prior is therefore encoded in the design, and 
 context isolation can strip it out. Isolation protects the judges; it cannot
 protect an experiment from the person who chose its shape.
 
-## 6. Open — needs a ruling before the prereg is written ^6
+## 6. RESOLVED — the hold-angle ruling ^6
 
-**How to handle the cup angle during the HOLD phase.** (The human's hand-drawn
-pose that started this is committed at `docs/agents/underarm-drawing.png`.)
+**Ruling (human, 2026-09-22): NO vertical-hold condition.** The question largely
+dissolved rather than being answered, because it rested on a wrong premise of the
+lead's — that the dish contributes to retention. It does not; the cage does (see
+[[#^3::§3]].3). Catch in the arrival-aligned pose, then let the arm return to its
+natural carry pose with form closure retaining the ball. Do not put the arm under
+sustained load to hold an attitude the cage makes unnecessary.
+
+**A narrower real question survives, and it is already covered.** Between the ball
+being arrested and the fingers closing — tens of milliseconds — the cage is not
+yet firm. At ~46° with gravity on, does the ball roll toward the dish's rim before
+the fingers arrive? That is a *capture* question, folded into the close-timing
+variable; it means close timing matters more than first credited, and interacts
+with dish curvature. No extra condition needed.
+
+**Lead error recorded with the ruling**, because it recurred: having found that at
+the nominal pose the contact force line passes near the elbow axis, the lead began
+citing that as a design rationale. That is M-B's mistake again — a favourable
+property of ONE point offered as a characterization, while the whole purpose of
+the misalignment sweep is that the pose will not be nominal. Worse, if the load
+path is benign only at 0°, joint torque grows exactly where robustness is needed.
+Corrected by the human: *"our ultimate aim is an adversarial game, which means the
+drone has to be robust even with error margins — it is only for now, constructing
+an isolated experiment, that we give the hand such controlled situations."*
+**The controlled setup is scaffolding, not the design target.**
+
+---
+
+*Historical — the superseded framing, kept because the reasoning is still the
+record of how the ruling was reached.* (The human's hand-drawn pose that started
+this is committed at `docs/agents/underarm-drawing.png`.)
 
 The cup's two jobs want different angles. Aligned with arrival (~46°) is best for
 absorbing the impact down the cup axis; **vertical** is best for gravity seating
