@@ -2099,3 +2099,37 @@ roles/routing). The worker separately wrote
   and refutation informative — noted in the file so the diff is not misread as
   success when the hand merely beats a cautious guess. P4 is flagged as the claim
   the lead was cautioned against, now predicted-and-measured rather than assumed.
+- **2026-09-22 — human question "what is M8, where is it written?" exposed a
+  PROVENANCE FAILURE IN THE PREREG ITSELF, hours after writing it.**
+  - Answer: M-labels are milestone tags living only in `iteration_findings`
+    headings and CLAUDE.md prose — there is no index. M7=[[iteration_findings#^14|§14]], **M8=[[iteration_findings#^15|§15]]**,
+    M8b=[[iteration_findings#^16|§16]], M8c=[[iteration_findings#^17|§17]], M8d=[[iteration_findings#^18|§18]], M8e=[[iteration_findings#^19|§19]], M9=[[iteration_findings#^20|§20]]. The prereg had
+    cited "M8" as self-explanatory, failing the very acceptance test the lead set
+    for the worker's operating notes.
+  - **The real damage: the prereg's central prior was anchored on a SUPERSEDED
+    number.** I cited §15's "punches through at ~2.3 m/s" as "the most directly
+    relevant number the project has" **without reading four sections forward.**
+    [[iteration_findings#^16|§16]] supersedes it: the physical cage DID land a retained catch, and the
+    diagnosed failure is different — *"the ball seated at the cup RIM (~3 cm
+    off-center), not the center... a rim-seated ball gets only partial form
+    closure → it works loose in ~1 s and any acceleration ejects it."* Also §16:
+    firming to 2.0 N·m produced **100–166 N** on a 0.64 N ball.
+  - **This materially improves the experiment**, which is the irony: rim seating
+    is EXACTLY what a dished palm targets. The intervention addresses the
+    documented failure mode rather than a stale one — but only by accident, since
+    the prereg had reasoned from the wrong precedent. P1 rewritten to predict
+    seating-offset growth with speed, with a falsifier that distinguishes "the
+    dish is aimed at the right mechanism" from "it is aimed at the wrong one."
+  - **[[iteration_findings#^19|§19]] (M8e) was also never read and is directly on point:** a human-catch
+    review had already proposed the folded-arm-absorbs-momentum pose. Finding —
+    the arm runs at **84–93% extension** through the approach, near the Jacobian
+    singularity, with an IK modelling nothing for staying folded, compliance, or
+    trajectory overlap; compliance was tried and hit a wall. Relevant because the
+    fixed-base design removes the tracking IK that forced near-full extension.
+    Also [[iteration_findings#^18|§18]]: velocity-matching infrastructure already exists (`jacobian`,
+    `ik_velocity`, joint-velocity FF in `hold_arm`).
+  - **Pattern, and it is the H6 compile-coverage failure again:** the project had
+    already documented the answer to a question the lead was reasoning about from
+    scratch — for the fourth time this run. The findings doc holds five sections
+    on exactly this problem and the lead read one of them. A question about a
+    LABEL was what surfaced it.

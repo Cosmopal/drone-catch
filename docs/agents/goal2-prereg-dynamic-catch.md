@@ -25,29 +25,52 @@ Three in-project precedents, none of them this experiment:
 - **M5 / `arm_catch_solo`** — compliant capture held **12/12** at contact
   relative velocities to 4.6 m/s. But it used a *soft constraint stand-in*, not
   the physical cage. Its success is weak evidence here.
-- **M8 / `elbow_catch_solo`** — the *physical* cage on a *moving* ball: 2/12 on
-  the grid, and the documented failure is that **the ball punches through at
-  ~2.3 m/s relative before the cage firms**. This is the most directly relevant
-  number the project has, and it is a negative precedent.
+- **M8 ([[iteration_findings#^15|§15]]) / `elbow_catch_solo`** — the *physical*
+  cage on a *moving* ball punched through at ~2.3 m/s before the fingers firmed.
+  **SUPERSEDED — do not anchor on this.** (The lead's first draft did, having
+  failed to read four sections forward; recorded because it is exactly the
+  provenance failure our own rules exist to prevent.)
+- **M8b ([[iteration_findings#^16|§16]]) — the current and most relevant
+  precedent.** Pre-positioning landed the *first retained physical catch*, and
+  re-diagnosed the failure mode: **"the ball seated at the cup RIM (~3 cm
+  off-center), not the center. The static cage held through inversion + lift; a
+  rim-seated ball gets only partial form closure → it works loose in ~1 s and any
+  acceleration ejects it."** Also: firming the grip to 2.0 N·m produced
+  **100–166 N** contact forces on a 0.64 N ball, and a lift jolted the rim-seated
+  ball out.
+  **Rim seating is precisely what a dished palm targets**, so the intervention
+  under test addresses the documented failure rather than a stale one.
+- **M8c–M8e ([[iteration_findings#^17|§17]]–[[iteration_findings#^19|§19]])** —
+  the cage catch is noise-fragile; the arm's snap into tracking is intrinsic
+  (three fixes all broke the catch); velocity-matching infrastructure exists
+  (`arm_kinematics.jacobian`, `ik_velocity`, joint-velocity feedforward in
+  `hold_arm`) but naive use did not improve the catch; and the arm runs at
+  **84–93% extension** through the approach, near the Jacobian singularity, with
+  an IK that models nothing for staying folded, for compliance, or for trajectory
+  overlap. **§19 already tried the folded-arm-absorbs-momentum idea and hit that
+  wall** — relevant because the fixed-base design here removes the tracking IK
+  entirely, which is the thing that was forcing near-full extension.
 - **M6 / `finger_catch_solo`** — cages a ball *placed* in the cup; the in-flight
   catch was unreliable at ~7–10 cm rendezvous miss (a delivery failure, removed
   by the fixed base here).
 
-So the physical cage has **never** reliably caught a fast-moving ball. The priors
-below are correspondingly cautious, and deliberately so: if they are wrong in the
-optimistic direction, the dish and axis-alignment are doing real work.
+So the physical cage *has* caught and retained a moving ball, but only at nominal
+conditions, and its diagnosed weakness is **seating quality**, not raw speed.
 
 ## Predictions
 
-**P1 — Speed is the dominant limit; the cage punches through above ~2.5 m/s even
-at perfect alignment.**
-Capture is a race between the ball arriving and the fingers closing. Axis
-alignment and a dished palm change *where the ball goes*, not *how fast the
-fingers close*. Predict: 1.5 m/s captures and retains at 0° / 0 miss; **4.0 m/s
-does not capture at any misalignment**; 2.8 m/s is marginal.
-*Falsifier:* capture and retention at 4.0 m/s, 0°, 0 miss.
-*Confidence 0.6. Provenance: analogy* — M8's 2.3 m/s punch-through, same physical
-hand, different pose, no dish.
+**P1 — The binding failure is RIM SEATING, not punch-through, and it degrades
+with speed.**
+§16's retained catch failed earlier attempts because the ball came to rest ~3 cm
+off-centre at the cup rim, giving only partial form closure. Predict: **seated
+offset grows with approach speed**, and the ball reaches the rim region
+(≳2 cm off-centre) at 4.0 m/s even at 0° misalignment / 0 miss — with retention
+failing where seating does, not independently of it.
+*Falsifier:* seated offset flat across speed, or retention failing while seating
+stays central (which would mean the failure is a different mechanism and the dish
+is aimed at the wrong thing).
+*Confidence 0.6. Provenance: analogy* — §16's rim-seating diagnosis, same physical
+hand, but that run had no dish and a tracking arm rather than a fixed base.
 
 **P2 — Close timing dominates misalignment.**
 If capture is a race, then *when* the close is triggered relative to arrival
